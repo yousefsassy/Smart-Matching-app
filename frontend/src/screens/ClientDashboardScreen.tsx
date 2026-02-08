@@ -9,9 +9,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { HomeStackParamList } from '../navigation/MainTabs';
 import Card from '../components/Card';
 import StatWidget from '../components/StatWidget';
 import PrimaryButton from '../components/PrimaryButton';
@@ -26,8 +29,11 @@ import {
   UserIcon,
 } from '../components/Icons';
 
+type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
+
 export default function ClientDashboardScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation<NavigationProp>();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -38,7 +44,7 @@ export default function ClientDashboardScreen() {
   };
 
   const handleFindProviders = () => {
-    Alert.alert('Find Providers', 'Search functionality coming soon!');
+    navigation.navigate('CreateRequest');
   };
 
   const handleViewMatch = (matchName: string) => {

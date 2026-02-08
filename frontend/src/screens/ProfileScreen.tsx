@@ -34,12 +34,21 @@ interface ClientProfileData {
   preferences: string[];
 }
 
+interface TimeSlot {
+  id: string;
+  day: string;
+  startTime: string;
+  endTime: string;
+}
+
 interface ProviderProfileData {
   businessName: string;
   fullName: string;
   email: string;
   phone: string;
   serviceCategories: string[];
+  serviceRadius: string;
+  availabilitySlots: TimeSlot[];
   isAvailable: boolean;
 }
 
@@ -64,8 +73,17 @@ export default function ProfileScreen() {
     email: user?.email || '',
     phone: '+1 (555) 123-4567',
     serviceCategories: ['Business Consulting', 'Strategy', 'Growth'],
+    serviceRadius: '25',
+    availabilitySlots: [
+      { id: '1', day: 'Monday', startTime: '09:00', endTime: '17:00' },
+      { id: '2', day: 'Tuesday', startTime: '09:00', endTime: '17:00' },
+    ],
     isAvailable: true,
   });
+
+  const [newSlotDay, setNewSlotDay] = useState('Monday');
+  const [newSlotStart, setNewSlotStart] = useState('09:00');
+  const [newSlotEnd, setNewSlotEnd] = useState('17:00');
 
   const handleSaveProfile = async () => {
     try {
@@ -143,6 +161,32 @@ export default function ProfileScreen() {
     setProviderProfile({
       ...providerProfile,
       serviceCategories: providerProfile.serviceCategories.filter((_, i) => i !== index),
+    });
+  };
+
+  const addTimeSlot = () => {
+    if (newSlotDay && newSlotStart && newSlotEnd) {
+      const newSlot: TimeSlot = {
+        id: Date.now().toString(),
+        day: newSlotDay,
+        startTime: newSlotStart,
+        endTime: newSlotEnd,
+      };
+      setProviderProfile({
+        ...providerProfile,
+        availabilitySlots: [...providerProfile.availabilitySlots, newSlot],
+      });
+      // Reset form
+      setNewSlotDay('Monday');
+      setNewSlotStart('09:00');
+      setNewSlotEnd('17:00');
+    }
+  };
+
+  const removeTimeSlot = (id: string) => {
+    setProviderProfile({
+      ...providerProfile,
+      availabilitySlots: providerProfile.availabilitySlots.filter((slot) => slot.id !== id),
     });
   };
 
@@ -393,9 +437,96 @@ export default function ProfileScreen() {
         </View>
       </View>
 
+      {/* Service Radius */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Service Radius</Text>
+        <View style={styles.card}>
+          <Input
+            label="Service Radius (km)"
+            value={providerProfile.serviceRadius}
+            onChangeText={(text) => setProviderProfile({ ...providerProfile, serviceRadius: text })}
+            icon={<MapPinIcon size={20} color={colors.neutral[400]} />}
+            keyboardType="numeric"
+            editable={isEditing}
+            placeholder="Enter radius in kilometers"
+          />
+        </View>
+      </View>
+
+      {/* Availability Time Slots */}
+      <View style={styles.section}>
+        <Text style={styles.sectionTitle}>Availability Time Slots</Text>
+        <View style={styles.card}>
+          {providerProfile.availabilitySlots.length > 0 ? (
+            <View style={styles.timeSlotsContainer}>
+              {providerProfile.availabilitySlots.map((slot) => (
+                <View key={slot.id} style={styles.timeSlotItem}>
+                  <View style={styles.timeSlotInfo}>
+                    <Text style={styles.timeSlotDay}>{slot.day}</Text>
+                    <Text style={styles.timeSlotTime}>
+                      {slot.startTime} - {slot.endTime}
+                    </Text>
+                  </View>
+                  {isEditing && (
+                    <TouchableOpacity
+                      onPress={() => removeTimeSlot(slot.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <XIcon size={16} color={colors.error} />
+                    </TouchableOpacity>
+                  )}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.emptySlotText}>No time slots configured</Text>
+          )}
+
+          {isEditing && (
+            <View style={styles.addSlotContainer}>
+              <Text style={styles.addSlotLabel}>Add Time Slot</Text>
+              <View style={styles.slotInputRow}>
+                <View style={styles.slotInputFull}>
+                  <RNTextInput
+                    style={styles.slotInput}
+                    value={newSlotDay}
+                    onChangeText={setNewSlotDay}
+                    placeholder="Day (e.g., Monday)"
+                    placeholderTextColor={colors.neutral[400]}
+                  />
+                </View>
+              </View>
+              <View style={styles.slotInputRow}>
+                <View style={styles.slotInputHalf}>
+                  <RNTextInput
+                    style={styles.slotInput}
+                    value={newSlotStart}
+                    onChangeText={setNewSlotStart}
+                    placeholder="Start (HH:mm)"
+                    placeholderTextColor={colors.neutral[400]}
+                  />
+                </View>
+                <View style={styles.slotInputHalf}>
+                  <RNTextInput
+                    style={styles.slotInput}
+                    value={newSlotEnd}
+                    onChangeText={setNewSlotEnd}
+                    placeholder="End (HH:mm)"
+                    placeholderTextColor={colors.neutral[400]}
+                  />
+                </View>
+              </View>
+              <TouchableOpacity style={styles.addSlotButton} onPress={addTimeSlot}>
+                <Text style={styles.addSlotButtonText}>Add Time Slot</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+      </View>
+
       {/* Availability Toggle */}
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Availability</Text>
+        <Text style={styles.sectionTitle}>Availability Status</Text>
         <View style={styles.card}>
           <View style={styles.toggleContainer}>
             <View>
@@ -658,5 +789,81 @@ const styles = StyleSheet.create({
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
     color: colors.error,
+  },
+  timeSlotsContainer: {
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+  },
+  timeSlotItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.neutral[50],
+    padding: spacing.md,
+    borderRadius: borderRadius.lg,
+  },
+  timeSlotInfo: {
+    flex: 1,
+  },
+  timeSlotDay: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[800],
+    marginBottom: 2,
+  },
+  timeSlotTime: {
+    fontSize: typography.size.sm,
+    color: colors.neutral[600],
+  },
+  emptySlotText: {
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
+    textAlign: 'center',
+    paddingVertical: spacing.md,
+  },
+  addSlotContainer: {
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[100],
+    paddingTop: spacing.md,
+    marginTop: spacing.md,
+  },
+  addSlotLabel: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[700],
+    marginBottom: spacing.sm,
+  },
+  slotInputRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  slotInputFull: {
+    flex: 1,
+  },
+  slotInputHalf: {
+    flex: 1,
+  },
+  slotInput: {
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.lg,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    fontSize: typography.size.base,
+    color: colors.neutral[800],
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+  },
+  addSlotButton: {
+    backgroundColor: colors.accent.cyan,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.lg,
+    alignItems: 'center',
+  },
+  addSlotButtonText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[0],
   },
 });

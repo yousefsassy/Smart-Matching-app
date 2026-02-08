@@ -379,3 +379,52 @@ export function XIcon({ size = 24, color = colors.neutral[600] }: IconProps) {
     </Svg>
   );
 }
+
+interface StarIconProps extends IconProps {
+  filled?: boolean;
+}
+
+export function StarIcon({ size = 24, color = colors.neutral[600], filled = false }: StarIconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"
+        fill={filled ? color : 'none'}
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function CheckCircleIcon({ size = 24, color = colors.neutral[600] }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} />
+      <Path
+        d="M9 12L11 14L15 10"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+export function XCircleIcon({ size = 24, color = colors.neutral[600] }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx="12" cy="12" r="10" stroke={color} strokeWidth={2} />
+      <Path
+        d="M15 9L9 15M9 9L15 15"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}

@@ -9,9 +9,12 @@ import {
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { HomeStackParamList } from '../navigation/MainTabs';
 import Card from '../components/Card';
 import StatWidget from '../components/StatWidget';
 import {
@@ -26,8 +29,11 @@ import {
   ClockIcon,
 } from '../components/Icons';
 
+type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
+
 export default function ProviderDashboardScreen() {
   const { user } = useAuth();
+  const navigation = useNavigation<NavigationProp>();
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = async () => {
@@ -38,11 +44,11 @@ export default function ProviderDashboardScreen() {
   };
 
   const handleViewRequest = (clientName: string) => {
-    Alert.alert('View Request', `Viewing request from ${clientName}`);
+    navigation.navigate('IncomingRequests');
   };
 
   const handleManageServices = () => {
-    Alert.alert('Manage Services', 'Service management coming soon!');
+    navigation.navigate('MyServices');
   };
 
   return (

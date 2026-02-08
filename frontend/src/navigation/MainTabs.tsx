@@ -8,12 +8,18 @@ import ClientDashboardScreen from '../screens/ClientDashboardScreen';
 import ProviderDashboardScreen from '../screens/ProviderDashboardScreen';
 import PlaceholderScreen from '../screens/PlaceholderScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import { SearchIcon, BriefcaseIcon, CalendarIcon } from '../components/Icons';
+import CreateServiceRequestScreen from '../screens/CreateServiceRequestScreen';
+import MyRequestsScreen from '../screens/MyRequestsScreen';
+import RequestDetailScreen from '../screens/RequestDetailScreen';
+import RateProviderScreen from '../screens/RateProviderScreen';
+import ManageServiceRequestsScreen from '../screens/ManageServiceRequestsScreen';
+import { SearchIcon, BriefcaseIcon, CalendarIcon, ClockIcon } from '../components/Icons';
 import { colors, borderRadius, shadows } from '../theme';
 import { HomeIcon, MatchIcon, MessageIcon, ProfileIcon } from '../components/Icons';
 
 export type MainTabParamList = {
   HomeTab: undefined;
+  RequestsTab: undefined;
   MatchesTab: undefined;
   MessagesTab: undefined;
   ProfileTab: undefined;
@@ -27,23 +33,21 @@ export type HomeStackParamList = {
   IncomingRequests: undefined;
   MyServices: undefined;
   Availability: undefined;
+  CreateRequest: undefined;
+  RequestDetail: { requestId: string };
+  RateProvider: { requestId: string };
 };
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 const HomeStack = createNativeStackNavigator<HomeStackParamList>();
+const RequestsStack = createNativeStackNavigator<HomeStackParamList>();
 
 // Wrapper components for PlaceholderScreen
 const FindMatchesScreen = () => (
   <PlaceholderScreen title="Find Matches" icon={<SearchIcon size={48} color={colors.neutral[0]} />} />
 );
-const MyRequestsScreen = () => (
-  <PlaceholderScreen title="My Requests" />
-);
 const SavedProvidersScreen = () => (
   <PlaceholderScreen title="Saved Providers" />
-);
-const IncomingRequestsScreen = () => (
-  <PlaceholderScreen title="Incoming Requests" />
 );
 const MyServicesScreen = () => (
   <PlaceholderScreen title="My Services" icon={<BriefcaseIcon size={48} color={colors.neutral[0]} />} />
@@ -67,10 +71,28 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="FindMatches" component={FindMatchesScreen} />
       <HomeStack.Screen name="MyRequests" component={MyRequestsScreen} />
       <HomeStack.Screen name="SavedProviders" component={SavedProvidersScreen} />
-      <HomeStack.Screen name="IncomingRequests" component={IncomingRequestsScreen} />
+      <HomeStack.Screen name="IncomingRequests" component={ManageServiceRequestsScreen} />
       <HomeStack.Screen name="MyServices" component={MyServicesScreen} />
       <HomeStack.Screen name="Availability" component={AvailabilityScreen} />
+      <HomeStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} />
+      <HomeStack.Screen name="RequestDetail" component={RequestDetailScreen} />
+      <HomeStack.Screen name="RateProvider" component={RateProviderScreen} />
     </HomeStack.Navigator>
+  );
+}
+
+function RequestsStackNavigator() {
+  return (
+    <RequestsStack.Navigator
+      screenOptions={{
+        headerShown: false,
+        contentStyle: { backgroundColor: colors.neutral[50] },
+      }}
+    >
+      <RequestsStack.Screen name="MyRequests" component={MyRequestsScreen} />
+      <RequestsStack.Screen name="RequestDetail" component={RequestDetailScreen} />
+      <RequestsStack.Screen name="RateProvider" component={RateProviderScreen} />
+    </RequestsStack.Navigator>
   );
 }
 
@@ -82,6 +104,8 @@ interface TabBarIconProps {
 
 export default function MainTabs() {
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const isClient = user?.role === 'client';
 
   return (
     <Tab.Navigator
@@ -130,6 +154,20 @@ export default function MainTabs() {
           ),
         }}
       />
+      {isClient && (
+        <Tab.Screen
+          name="RequestsTab"
+          component={RequestsStackNavigator}
+          options={{
+            tabBarLabel: 'Requests',
+            tabBarIcon: ({ focused, color }: TabBarIconProps) => (
+              <TabIcon focused={focused}>
+                <ClockIcon color={color} size={22} />
+              </TabIcon>
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
         name="MatchesTab"
         component={() => <PlaceholderScreen title="Matches" icon={<MatchIcon size={48} color={colors.neutral[0]} />} />}
