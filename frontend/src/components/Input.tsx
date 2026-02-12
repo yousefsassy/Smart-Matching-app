@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, forwardRef } from 'react';
 import {
   View,
   TextInput,
@@ -19,7 +19,7 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
   containerStyle?: object;
 }
 
-export default function Input({
+const Input = forwardRef<TextInput, InputProps>(function Input({
   label,
   error,
   icon,
@@ -29,7 +29,7 @@ export default function Input({
   onFocus,
   onBlur,
   ...props
-}: InputProps) {
+}, ref) {
   const [isFocused, setIsFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const borderAnim = useRef(new Animated.Value(0)).current;
@@ -82,6 +82,7 @@ export default function Input({
       >
         {icon && <View style={styles.iconLeft}>{icon}</View>}
         <TextInput
+          ref={ref}
           style={[
             styles.input,
             icon ? styles.inputWithIcon : null,
@@ -113,7 +114,9 @@ export default function Input({
       {error && <Text style={styles.error}>{error}</Text>}
     </View>
   );
-}
+});
+
+export default Input;
 
 const styles = StyleSheet.create({
   container: {

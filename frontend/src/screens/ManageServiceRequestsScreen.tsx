@@ -16,13 +16,14 @@ import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import { ServiceRequest, ServiceRequestStatus } from '../types/serviceRequest';
+import { STATUS_CONFIG } from '../constants/statusConfig';
+import Avatar from '../components/Avatar';
 import {
   ClockIcon,
   CheckCircleIcon,
   XCircleIcon,
   MapPinIcon,
   CalendarIcon,
-  UserIcon,
   TagIcon,
 } from '../components/Icons';
 
@@ -188,9 +189,7 @@ export default function ManageServiceRequestsScreen() {
       <View key={request.id} style={styles.requestCard}>
         {/* Client Info */}
         <View style={styles.clientInfo}>
-          <View style={styles.clientAvatar}>
-            <UserIcon size={20} color={colors.primary[600]} />
-          </View>
+          <Avatar name={request.clientName} size="sm" role="client" />
           <View style={styles.clientDetails}>
             <Text style={styles.clientName}>{request.clientName}</Text>
             <Text style={styles.requestDate}>{formatDate(request.createdAt)}</Text>
@@ -217,7 +216,7 @@ export default function ManageServiceRequestsScreen() {
           <View style={styles.detailRow}>
             <CalendarIcon size={14} color={colors.neutral[500]} />
             <Text style={styles.detailText}>
-              {request.timeSlot.date} • {request.timeSlot.startTime}
+              {request.timeSlot.date} • {request.timeSlot.startTime} - {request.timeSlot.endTime}
             </Text>
           </View>
           {request.budget && (
@@ -421,15 +420,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.md,
-  },
-  clientAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.sm,
   },
   clientDetails: {
     flex: 1,

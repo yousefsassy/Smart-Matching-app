@@ -7,17 +7,18 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  TextInput as RNTextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import { ServiceRequest } from '../types/serviceRequest';
 import PrimaryButton from '../components/PrimaryButton';
-import { StarIcon, UserIcon, CheckCircleIcon } from '../components/Icons';
+import BackButton from '../components/BackButton';
+import Avatar from '../components/Avatar';
+import Textarea from '../components/Textarea';
+import { StarIcon, CheckCircleIcon } from '../components/Icons';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'RateProvider'>;
 
@@ -100,12 +101,7 @@ export default function RateProviderScreen({ route, navigation }: Props) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
+          <BackButton />
         </View>
 
         <View style={styles.content}>
@@ -117,9 +113,11 @@ export default function RateProviderScreen({ route, navigation }: Props) {
 
           {/* Provider Info Card */}
           <View style={styles.providerCard}>
-            <View style={styles.providerAvatar}>
-              <UserIcon size={32} color={colors.primary[600]} />
-            </View>
+            <Avatar
+              name={request.assignedProviderName || 'Service Provider'}
+              size="lg"
+              role="provider"
+            />
             <View style={styles.providerInfo}>
               <Text style={styles.providerName}>
                 {request.assignedProviderName || 'Service Provider'}
@@ -170,22 +168,15 @@ export default function RateProviderScreen({ route, navigation }: Props) {
             <Text style={styles.sectionDescription}>
               Share more about your experience to help others
             </Text>
-            <View style={styles.textAreaContainer}>
-              <RNTextInput
-                style={styles.textArea}
-                value={review}
-                onChangeText={setReview}
-                placeholder="Write your review here..."
-                placeholderTextColor={colors.neutral[400]}
-                multiline
-                numberOfLines={6}
-                textAlignVertical="top"
-                maxLength={500}
-              />
-              <Text style={styles.charCount}>
-                {review.length} / 500
-              </Text>
-            </View>
+            <Textarea
+              value={review}
+              onChangeText={setReview}
+              placeholder="Write your review here..."
+              maxLength={500}
+              showCharCount
+              minHeight={120}
+              maxHeight={200}
+            />
           </View>
 
           {/* Submit Button */}
@@ -239,14 +230,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
   },
-  backButton: {
-    paddingVertical: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.medium,
-    color: colors.primary[600],
-  },
   content: {
     paddingHorizontal: spacing.xl,
   },
@@ -271,15 +254,6 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     marginBottom: spacing.xl,
     ...shadows.sm,
-  },
-  providerAvatar: {
-    width: 64,
-    height: 64,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
   },
   providerInfo: {
     flex: 1,
@@ -342,27 +316,6 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     marginBottom: spacing.lg,
     ...shadows.sm,
-  },
-  textAreaContainer: {
-    position: 'relative',
-  },
-  textArea: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    padding: spacing.base,
-    fontSize: typography.size.base,
-    color: colors.neutral[800],
-    minHeight: 120,
-    maxHeight: 200,
-  },
-  charCount: {
-    position: 'absolute',
-    bottom: spacing.sm,
-    right: spacing.sm,
-    fontSize: typography.size.xs,
-    color: colors.neutral[500],
   },
   submitSection: {
     marginBottom: spacing.md,

@@ -16,59 +16,17 @@ import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import { ServiceRequest, ServiceRequestStatus } from '../types/serviceRequest';
+import { STATUS_CONFIG } from '../constants/statusConfig';
+import StatusBadge from '../components/StatusBadge';
+import Avatar from '../components/Avatar';
 import {
   ClockIcon,
-  CheckCircleIcon,
-  XCircleIcon,
   MapPinIcon,
   CalendarIcon,
-  UserIcon,
   StarIcon,
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
-
-const STATUS_CONFIG: Record<
-  ServiceRequestStatus,
-  { color: string; bgColor: string; label: string; icon: React.ReactElement }
-> = {
-  pending: {
-    color: colors.accent.gold,
-    bgColor: `${colors.accent.gold}15`,
-    label: 'Pending',
-    icon: <ClockIcon size={16} color={colors.accent.gold} />,
-  },
-  accepted: {
-    color: colors.accent.cyan,
-    bgColor: `${colors.accent.cyan}15`,
-    label: 'Accepted',
-    icon: <CheckCircleIcon size={16} color={colors.accent.cyan} />,
-  },
-  in_progress: {
-    color: colors.primary[600],
-    bgColor: colors.primary[50],
-    label: 'In Progress',
-    icon: <ClockIcon size={16} color={colors.primary[600]} />,
-  },
-  completed: {
-    color: colors.success,
-    bgColor: `${colors.success}15`,
-    label: 'Completed',
-    icon: <CheckCircleIcon size={16} color={colors.success} />,
-  },
-  rejected: {
-    color: colors.error,
-    bgColor: `${colors.error}15`,
-    label: 'Rejected',
-    icon: <XCircleIcon size={16} color={colors.error} />,
-  },
-  cancelled: {
-    color: colors.neutral[500],
-    bgColor: colors.neutral[100],
-    label: 'Cancelled',
-    icon: <XCircleIcon size={16} color={colors.neutral[500]} />,
-  },
-};
 
 export default function MyRequestsScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -136,8 +94,6 @@ export default function MyRequestsScreen() {
   );
 
   const renderRequestCard = (request: ServiceRequest) => {
-    const statusConfig = STATUS_CONFIG[request.status];
-
     return (
       <TouchableOpacity
         key={request.id}
@@ -146,12 +102,7 @@ export default function MyRequestsScreen() {
         activeOpacity={0.8}
       >
         {/* Status Badge */}
-        <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-          {statusConfig.icon}
-          <Text style={[styles.statusText, { color: statusConfig.color }]}>
-            {statusConfig.label}
-          </Text>
-        </View>
+        <StatusBadge status={request.status} />
 
         {/* Request Info */}
         <View style={styles.requestHeader}>
@@ -176,7 +127,7 @@ export default function MyRequestsScreen() {
           <View style={styles.detailRow}>
             <CalendarIcon size={14} color={colors.neutral[500]} />
             <Text style={styles.detailText}>
-              {request.timeSlot.date} • {formatTime(request.timeSlot.startTime)}
+              {request.timeSlot.date} • {formatTime(request.timeSlot.startTime)} - {formatTime(request.timeSlot.endTime)}
             </Text>
           </View>
         </View>
@@ -184,9 +135,7 @@ export default function MyRequestsScreen() {
         {/* Provider Info (if assigned) */}
         {request.assignedProviderName && (
           <View style={styles.providerInfo}>
-            <View style={styles.providerAvatar}>
-              <UserIcon size={16} color={colors.primary[600]} />
-            </View>
+            <Avatar name={request.assignedProviderName} size="sm" role="provider" />
             <Text style={styles.providerName}>{request.assignedProviderName}</Text>
           </View>
         )}
@@ -280,20 +229,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...shadows.sm,
   },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.md,
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  statusText: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.semibold,
-  },
   requestHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -336,14 +271,6 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.neutral[100],
     gap: spacing.sm,
-  },
-  providerAvatar: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   providerName: {
     fontSize: typography.size.sm,

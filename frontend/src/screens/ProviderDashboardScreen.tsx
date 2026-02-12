@@ -17,6 +17,8 @@ import { useAuth } from '../context/AuthContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import Card from '../components/Card';
 import StatWidget from '../components/StatWidget';
+import Avatar from '../components/Avatar';
+import Badge from '../components/Badge';
 import {
   BriefcaseIcon,
   TrendingUpIcon,
@@ -25,7 +27,6 @@ import {
   HeartIcon,
   SparkleIcon,
   BellIcon,
-  UserIcon,
   ClockIcon,
 } from '../components/Icons';
 
@@ -80,9 +81,7 @@ export default function ProviderDashboardScreen() {
             onPress={() => Alert.alert('Notifications', 'You have 5 new notifications')}
           >
             <BellIcon size={24} color={colors.neutral[700]} />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>5</Text>
-            </View>
+            <Badge content={5} variant="notification" />
           </TouchableOpacity>
         </View>
 
@@ -236,7 +235,7 @@ export default function ProviderDashboardScreen() {
         {/* New Requests */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>New Requests</Text>
-          <TouchableOpacity onPress={() => Alert.alert('View All', 'See all requests')}>
+          <TouchableOpacity onPress={() => navigation.navigate('IncomingRequests')}>
             <Text style={styles.seeAll}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -244,11 +243,7 @@ export default function ProviderDashboardScreen() {
           <Card
             title="Alex Johnson"
             subtitle="Looking for marketing consultation • Budget: $500-1000"
-            icon={
-              <View style={styles.avatarPlaceholder}>
-                <UserIcon size={20} color={colors.primary[600]} />
-              </View>
-            }
+            icon={<Avatar name="Alex Johnson" size="md" role="client" />}
             badge="NEW"
             onPress={() => handleViewRequest('Alex Johnson')}
             style={styles.requestCard}
@@ -256,11 +251,7 @@ export default function ProviderDashboardScreen() {
           <Card
             title="Emma Davis"
             subtitle="Need web development services • Budget: $2000-3000"
-            icon={
-              <View style={styles.avatarPlaceholder}>
-                <UserIcon size={20} color={colors.primary[600]} />
-              </View>
-            }
+            icon={<Avatar name="Emma Davis" size="md" role="client" />}
             badge="HOT"
             onPress={() => handleViewRequest('Emma Davis')}
             style={styles.requestCard}
@@ -268,11 +259,7 @@ export default function ProviderDashboardScreen() {
           <Card
             title="David Miller"
             subtitle="Seeking business strategy advice • Budget: $800-1200"
-            icon={
-              <View style={styles.avatarPlaceholder}>
-                <UserIcon size={20} color={colors.primary[600]} />
-              </View>
-            }
+            icon={<Avatar name="David Miller" size="md" role="client" />}
             onPress={() => handleViewRequest('David Miller')}
             style={styles.requestCard}
           />

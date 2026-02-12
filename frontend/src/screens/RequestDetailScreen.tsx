@@ -15,61 +15,20 @@ import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import { ServiceRequest, ServiceRequestStatus } from '../types/serviceRequest';
+import { STATUS_CONFIG } from '../constants/statusConfig';
 import PrimaryButton from '../components/PrimaryButton';
+import StatusBadge from '../components/StatusBadge';
+import Avatar from '../components/Avatar';
+import BackButton from '../components/BackButton';
 import {
   MapPinIcon,
   CalendarIcon,
-  ClockIcon,
-  UserIcon,
   TagIcon,
-  CheckCircleIcon,
   XCircleIcon,
   StarIcon,
 } from '../components/Icons';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'RequestDetail'>;
-
-const STATUS_CONFIG: Record<
-  ServiceRequestStatus,
-  { color: string; bgColor: string; label: string; icon: React.ReactElement }
-> = {
-  pending: {
-    color: colors.accent.gold,
-    bgColor: `${colors.accent.gold}15`,
-    label: 'Pending',
-    icon: <ClockIcon size={20} color={colors.accent.gold} />,
-  },
-  accepted: {
-    color: colors.accent.cyan,
-    bgColor: `${colors.accent.cyan}15`,
-    label: 'Accepted',
-    icon: <CheckCircleIcon size={20} color={colors.accent.cyan} />,
-  },
-  in_progress: {
-    color: colors.primary[600],
-    bgColor: colors.primary[50],
-    label: 'In Progress',
-    icon: <ClockIcon size={20} color={colors.primary[600]} />,
-  },
-  completed: {
-    color: colors.success,
-    bgColor: `${colors.success}15`,
-    label: 'Completed',
-    icon: <CheckCircleIcon size={20} color={colors.success} />,
-  },
-  rejected: {
-    color: colors.error,
-    bgColor: `${colors.error}15`,
-    label: 'Rejected',
-    icon: <XCircleIcon size={20} color={colors.error} />,
-  },
-  cancelled: {
-    color: colors.neutral[500],
-    bgColor: colors.neutral[100],
-    label: 'Cancelled',
-    icon: <XCircleIcon size={20} color={colors.neutral[500]} />,
-  },
-};
 
 export default function RequestDetailScreen({ route, navigation }: Props) {
   const { requestId } = route.params;
@@ -145,7 +104,6 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
     );
   }
 
-  const statusConfig = STATUS_CONFIG[request.status];
   const canCancel = request.status === 'pending';
   const canRate = request.status === 'completed' && !request.rating;
 
@@ -158,18 +116,8 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.backButtonText}>← Back</Text>
-          </TouchableOpacity>
-          <View style={[styles.statusBadge, { backgroundColor: statusConfig.bgColor }]}>
-            {statusConfig.icon}
-            <Text style={[styles.statusText, { color: statusConfig.color }]}>
-              {statusConfig.label}
-            </Text>
-          </View>
+          <BackButton />
+          <StatusBadge status={request.status} size="md" />
         </View>
 
         {/* Request Info Card */}
@@ -224,9 +172,7 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Assigned Provider</Text>
             <View style={styles.providerInfo}>
-              <View style={styles.providerAvatar}>
-                <UserIcon size={24} color={colors.primary[600]} />
-              </View>
+              <Avatar name={request.assignedProviderName} size="lg" role="provider" />
               <View style={styles.providerDetails}>
                 <Text style={styles.providerName}>
                   {request.assignedProviderName}
@@ -288,7 +234,7 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
                         { backgroundColor: entryConfig.bgColor },
                       ]}
                     >
-                      {entryConfig.icon}
+                      {entryConfig.icon(20)}
                     </View>
                     {!isLast && <View style={styles.timelineLine} />}
                   </View>
@@ -369,26 +315,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.lg,
   },
-  backButton: {
-    paddingVertical: spacing.sm,
-  },
-  backButtonText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.medium,
-    color: colors.primary[600],
-  },
-  statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
-  },
-  statusText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-  },
   card: {
     backgroundColor: colors.neutral[0],
     borderRadius: borderRadius.xl,
@@ -443,14 +369,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.md,
-  },
-  providerAvatar: {
-    width: 56,
-    height: 56,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   providerDetails: {
     flex: 1,

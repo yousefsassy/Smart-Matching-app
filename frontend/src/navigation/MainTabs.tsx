@@ -14,7 +14,7 @@ import RequestDetailScreen from '../screens/RequestDetailScreen';
 import RateProviderScreen from '../screens/RateProviderScreen';
 import ManageServiceRequestsScreen from '../screens/ManageServiceRequestsScreen';
 import { SearchIcon, BriefcaseIcon, CalendarIcon, ClockIcon } from '../components/Icons';
-import { colors, borderRadius, shadows } from '../theme';
+import { colors, borderRadius, shadows, typography } from '../theme';
 import { HomeIcon, MatchIcon, MessageIcon, ProfileIcon } from '../components/Icons';
 
 export type MainTabParamList = {
@@ -65,6 +65,7 @@ function HomeStackNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.neutral[50] },
+        animation: 'slide_from_right',
       }}
     >
       <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
@@ -74,9 +75,9 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="IncomingRequests" component={ManageServiceRequestsScreen} />
       <HomeStack.Screen name="MyServices" component={MyServicesScreen} />
       <HomeStack.Screen name="Availability" component={AvailabilityScreen} />
-      <HomeStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} />
+      <HomeStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
       <HomeStack.Screen name="RequestDetail" component={RequestDetailScreen} />
-      <HomeStack.Screen name="RateProvider" component={RateProviderScreen} />
+      <HomeStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
     </HomeStack.Navigator>
   );
 }
@@ -87,11 +88,13 @@ function RequestsStackNavigator() {
       screenOptions={{
         headerShown: false,
         contentStyle: { backgroundColor: colors.neutral[50] },
+        animation: 'slide_from_right',
       }}
     >
       <RequestsStack.Screen name="MyRequests" component={MyRequestsScreen} />
+      <RequestsStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
       <RequestsStack.Screen name="RequestDetail" component={RequestDetailScreen} />
-      <RequestsStack.Screen name="RateProvider" component={RateProviderScreen} />
+      <RequestsStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
     </RequestsStack.Navigator>
   );
 }
@@ -133,8 +136,8 @@ export default function MainTabs() {
         tabBarActiveTintColor: colors.primary[600],
         tabBarInactiveTintColor: colors.neutral[400],
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '600',
+          fontSize: typography.size.xs,
+          fontWeight: typography.weight.semibold,
           marginTop: 4,
         },
         tabBarItemStyle: {

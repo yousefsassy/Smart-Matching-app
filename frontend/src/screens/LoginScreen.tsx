@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  LayoutAnimation,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -28,7 +30,9 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showDemo, setShowDemo] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const passwordRef = useRef<TextInput>(null);
 
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
@@ -115,9 +119,12 @@ export default function LoginScreen() {
                 autoCorrect={false}
                 icon={<MailIcon size={20} color={colors.neutral[400]} />}
                 error={errors.email}
+                returnKeyType="next"
+                onSubmitEditing={() => passwordRef.current?.focus()}
               />
 
               <Input
+                ref={passwordRef}
                 label="Password"
                 placeholder="Enter your password"
                 value={password}
@@ -128,6 +135,8 @@ export default function LoginScreen() {
                 secureTextEntry
                 icon={<LockIcon size={20} color={colors.neutral[400]} />}
                 error={errors.password}
+                returnKeyType="go"
+                onSubmitEditing={handleLogin}
               />
 
               <TouchableOpacity
@@ -152,21 +161,31 @@ export default function LoginScreen() {
               </View>
 
               {/* Social Login */}
-              <TouchableOpacity
-                style={styles.googleButton}
+              <PrimaryButton
+                variant="outline"
+                title="Sign in with Google"
+                icon={<GoogleIcon size={20} />}
                 onPress={handleGoogleLogin}
-                activeOpacity={0.8}
-              >
-                <GoogleIcon size={20} />
-                <Text style={styles.googleButtonText}>Sign in with Google</Text>
-              </TouchableOpacity>
+              />
 
               {/* Demo Credentials */}
-              <View style={styles.demoSection}>
-                <Text style={styles.demoTitle}>Demo Accounts:</Text>
-                <Text style={styles.demoText}>Client: client@demo.com / demo123</Text>
-                <Text style={styles.demoText}>Provider: provider@demo.com / demo123</Text>
-              </View>
+              <TouchableOpacity
+                style={styles.demoToggle}
+                onPress={() => {
+                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                  setShowDemo(!showDemo);
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.demoToggleText}>Demo credentials</Text>
+              </TouchableOpacity>
+              {showDemo && (
+                <View style={styles.demoSection}>
+                  <Text style={styles.demoTitle}>Demo Accounts:</Text>
+                  <Text style={styles.demoText}>Client: client@demo.com / demo123</Text>
+                  <Text style={styles.demoText}>Provider: provider@demo.com / demo123</Text>
+                </View>
+              )}
             </View>
           </View>
 
@@ -252,23 +271,15 @@ const styles = StyleSheet.create({
     color: colors.neutral[500],
     marginHorizontal: spacing.md,
   },
-  googleButton: {
-    flexDirection: 'row',
+  demoToggle: {
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: colors.neutral[0],
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md + 2,
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.lg,
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
   },
-  googleButtonText: {
-    fontSize: typography.size.base,
+  demoToggleText: {
+    fontSize: typography.size.sm,
     fontWeight: typography.weight.medium,
-    color: colors.neutral[700],
-    marginLeft: spacing.md,
+    color: colors.primary[600],
   },
   demoSection: {
     backgroundColor: colors.primary[50],

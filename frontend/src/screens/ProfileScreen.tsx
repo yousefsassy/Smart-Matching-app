@@ -26,6 +26,8 @@ import {
   EditIcon,
   XIcon,
 } from '../components/Icons';
+import Avatar from '../components/Avatar';
+import Chip from '../components/Chip';
 
 interface ClientProfileData {
   fullName: string;
@@ -194,12 +196,7 @@ export default function ProfileScreen() {
     <>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        <LinearGradient
-          colors={[colors.primary[500], colors.primary[700]]}
-          style={styles.avatarContainer}
-        >
-          <UserIcon size={48} color={colors.neutral[0]} />
-        </LinearGradient>
+        <Avatar name={clientProfile.fullName || user?.fullName || 'User'} size="xl" role="client" />
         <Text style={styles.profileName}>{clientProfile.fullName}</Text>
         <View style={styles.roleBadge}>
           <Text style={styles.roleBadgeText}>Client</Text>
@@ -265,17 +262,13 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={styles.chipsContainer}>
             {clientProfile.preferences.map((pref, index) => (
-              <View key={index} style={styles.chip}>
-                <Text style={styles.chipText}>{pref}</Text>
-                {isEditing && (
-                  <TouchableOpacity
-                    onPress={() => removePreference(index)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <XIcon size={14} color={colors.primary[600]} />
-                  </TouchableOpacity>
-                )}
-              </View>
+              <Chip
+                key={index}
+                label={pref}
+                variant="primary"
+                selected
+                onRemove={isEditing ? () => removePreference(index) : undefined}
+              />
             ))}
           </View>
           {isEditing && (
@@ -327,12 +320,7 @@ export default function ProfileScreen() {
     <>
       {/* Profile Header */}
       <View style={styles.profileHeader}>
-        <LinearGradient
-          colors={[colors.accent.cyan, colors.primary[500]]}
-          style={styles.avatarContainer}
-        >
-          <BriefcaseIcon size={48} color={colors.neutral[0]} />
-        </LinearGradient>
+        <Avatar name={providerProfile.fullName || user?.fullName || 'User'} size="xl" role="provider" />
         <Text style={styles.profileName}>{providerProfile.businessName || providerProfile.fullName}</Text>
         <View style={[styles.roleBadge, styles.roleBadgeProvider]}>
           <Text style={styles.roleBadgeText}>Provider</Text>
@@ -407,17 +395,13 @@ export default function ProfileScreen() {
         <View style={styles.card}>
           <View style={styles.chipsContainer}>
             {providerProfile.serviceCategories.map((category, index) => (
-              <View key={index} style={[styles.chip, styles.chipProvider]}>
-                <Text style={[styles.chipText, styles.chipTextProvider]}>{category}</Text>
-                {isEditing && (
-                  <TouchableOpacity
-                    onPress={() => removeCategory(index)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <XIcon size={14} color={colors.accent.cyan} />
-                  </TouchableOpacity>
-                )}
-              </View>
+              <Chip
+                key={index}
+                label={category}
+                variant="accent"
+                selected
+                onRemove={isEditing ? () => removeCategory(index) : undefined}
+              />
             ))}
           </View>
           {isEditing && (
@@ -614,15 +598,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xl,
     paddingHorizontal: spacing.xl,
   },
-  avatarContainer: {
-    width: 96,
-    height: 96,
-    borderRadius: borderRadius.full,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.base,
-    ...shadows.lg,
-  },
   profileName: {
     fontSize: typography.size['2xl'],
     fontWeight: typography.weight.bold,
@@ -687,26 +662,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
     marginBottom: spacing.md,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    gap: spacing.xs,
-  },
-  chipProvider: {
-    backgroundColor: colors.accent.cyanLight,
-  },
-  chipText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-    color: colors.primary[700],
-  },
-  chipTextProvider: {
-    color: colors.accent.cyan,
   },
   addChipContainer: {
     flexDirection: 'row',

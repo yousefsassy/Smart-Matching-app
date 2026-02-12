@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
-  TextInput as RNTextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -23,13 +22,18 @@ import {
 } from '../types/serviceRequest';
 import Input from '../components/Input';
 import PrimaryButton from '../components/PrimaryButton';
+import LocationPicker from '../components/LocationPicker';
+import DatePickerField from '../components/DatePickerField';
+import TimePickerField from '../components/TimePickerField';
+import Chip from '../components/Chip';
+import Textarea from '../components/Textarea';
+import Avatar from '../components/Avatar';
 import {
   SearchIcon,
   MapPinIcon,
   CalendarIcon,
   ClockIcon,
   TagIcon,
-  UserIcon,
   SparkleIcon,
   CheckCircleIcon,
 } from '../components/Icons';
@@ -54,12 +58,18 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   // Form state
   const [serviceCategory, setServiceCategory] = useState<ServiceCategory | null>(null);
   const [description, setDescription] = useState('');
-  const [address, setAddress] = useState('');
-  const [date, setDate] = useState('');
-  const [startTime, setStartTime] = useState('');
-  const [endTime, setEndTime] = useState('');
+  const [location, setLocation] = useState('');
+  const [date, setDate] = useState<Date | null>(null);
+  const [startTime, setStartTime] = useState<Date | null>(null);
+  const [endTime, setEndTime] = useState<Date | null>(null);
   const [budgetMin, setBudgetMin] = useState('');
   const [budgetMax, setBudgetMax] = useState('');
+
+  // Inline error state
+  const [locationError, setLocationError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [startTimeError, setStartTimeError] = useState('');
+  const [endTimeError, setEndTimeError] = useState('');
 
   // UI state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -69,12 +79,39 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   const [showSuccess, setShowSuccess] = useState(false);
 
   const validate = (): string | null => {
+    let hasError = false;
+
+    if (!location) {
+      setLocationError('Please select a location');
+      hasError = true;
+    } else {
+      setLocationError('');
+    }
+
+    if (!date) {
+      setDateError('Please select a date');
+      hasError = true;
+    } else {
+      setDateError('');
+    }
+
+    if (!startTime) {
+      setStartTimeError('Please select a start time');
+      hasError = true;
+    } else {
+      setStartTimeError('');
+    }
+
+    if (!endTime) {
+      setEndTimeError('Please select an end time');
+      hasError = true;
+    } else {
+      setEndTimeError('');
+    }
+
     if (!serviceCategory) return 'Please select a service category';
     if (!description.trim()) return 'Please enter a description';
-    if (!address.trim()) return 'Please enter a location';
-    if (!date) return 'Please select a date';
-    if (!startTime) return 'Please select a start time';
-    if (!endTime) return 'Please select an end time';
+    if (hasError) return 'Please fix the errors above';
     return null;
   };
 
@@ -89,17 +126,24 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
       setIsSubmitting(true);
 
       // Create location object (mock coordinates for demo)
-      const location: Location = {
-        latitude: 37.7749,
-        longitude: -122.4194,
-        address,
+      const locationObj: Location = {
+        latitude: 36.8065,
+        longitude: 10.1815,
+        address: location,
       };
+
+      // Format date as YYYY-MM-DD for the time slot
+      const formattedDate = date!.toISOString().split('T')[0];
+
+      // Format times as HH:mm strings
+      const fmtTime = (d: Date) =>
+        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 
       // Create time slot
       const timeSlot: TimeSlot = {
-        date,
-        startTime,
-        endTime,
+        date: formattedDate,
+        startTime: fmtTime(startTime!),
+        endTime: fmtTime(endTime!),
       };
 
       // Create budget range if provided
@@ -108,14 +152,14 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         budget = {
           min: parseFloat(budgetMin),
           max: parseFloat(budgetMax),
-          currency: 'USD',
+          currency: 'TND',
         };
       }
 
       const request = await createServiceRequest({
         serviceCategory: serviceCategory!,
         description,
-        location,
+        location: locationObj,
         timeSlot,
         budget,
       });
@@ -212,9 +256,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
 
                 <View style={styles.providerContent}>
                   <View style={styles.providerHeader}>
-                    <View style={styles.providerAvatar}>
-                      <UserIcon size={24} color={colors.primary[600]} />
-                    </View>
+                    <Avatar name={provider.providerName} size="md" role="provider" />
                     <View style={styles.providerInfo}>
                       <View style={styles.providerNameRow}>
                         <Text style={styles.providerName}>{provider.providerName}</Text>
@@ -291,82 +333,77 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
           <Text style={styles.sectionTitle}>Service Category *</Text>
           <View style={styles.categoriesGrid}>
             {SERVICE_CATEGORIES.map((category) => (
-              <TouchableOpacity
+              <Chip
                 key={category.value}
-                style={[
-                  styles.categoryChip,
-                  serviceCategory === category.value && styles.categoryChipSelected,
-                ]}
+                label={category.label}
+                selected={serviceCategory === category.value}
                 onPress={() => setServiceCategory(category.value)}
-                activeOpacity={0.8}
-              >
-                <Text
-                  style={[
-                    styles.categoryChipText,
-                    serviceCategory === category.value && styles.categoryChipTextSelected,
-                  ]}
-                >
-                  {category.label}
-                </Text>
-              </TouchableOpacity>
+                variant="primary"
+              />
             ))}
           </View>
         </View>
 
         {/* Description */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Description *</Text>
-          <View style={styles.textAreaContainer}>
-            <RNTextInput
-              style={styles.textArea}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="Describe what you need..."
-              placeholderTextColor={colors.neutral[400]}
-              multiline
-              numberOfLines={4}
-              textAlignVertical="top"
-            />
-          </View>
+          <Textarea
+            label="Description *"
+            value={description}
+            onChangeText={setDescription}
+            placeholder="Describe what you need..."
+            maxLength={500}
+            showCharCount
+          />
         </View>
 
         {/* Location */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Location *</Text>
-          <Input
-            value={address}
-            onChangeText={setAddress}
-            placeholder="Enter service address"
-            icon={<MapPinIcon size={20} color={colors.neutral[400]} />}
+          <LocationPicker
+            value={location}
+            onSelect={(val) => {
+              setLocation(val);
+              if (val) setLocationError('');
+            }}
+            error={locationError}
           />
         </View>
 
         {/* Date & Time */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Date & Time *</Text>
-          <Input
-            value={date}
-            onChangeText={setDate}
-            placeholder="YYYY-MM-DD"
-            icon={<CalendarIcon size={20} color={colors.neutral[400]} />}
-            containerStyle={styles.inputSpacing}
-          />
+          <View style={styles.inputSpacing}>
+            <DatePickerField
+              value={date}
+              onChange={(d) => {
+                setDate(d);
+                if (d) setDateError('');
+              }}
+              error={dateError}
+            />
+          </View>
           <View style={styles.timeRow}>
             <View style={styles.timeInput}>
-              <Input
+              <TimePickerField
                 value={startTime}
-                onChangeText={setStartTime}
-                placeholder="Start (HH:mm)"
-                icon={<ClockIcon size={20} color={colors.neutral[400]} />}
+                onChange={(t) => {
+                  setStartTime(t);
+                  if (t) setStartTimeError('');
+                }}
+                placeholder="Start"
+                error={startTimeError}
               />
             </View>
             <Text style={styles.timeDivider}>to</Text>
             <View style={styles.timeInput}>
-              <Input
+              <TimePickerField
                 value={endTime}
-                onChangeText={setEndTime}
-                placeholder="End (HH:mm)"
-                icon={<ClockIcon size={20} color={colors.neutral[400]} />}
+                onChange={(t) => {
+                  setEndTime(t);
+                  if (t) setEndTimeError('');
+                }}
+                placeholder="End"
+                error={endTimeError}
               />
             </View>
           </View>
@@ -380,7 +417,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
               <Input
                 value={budgetMin}
                 onChangeText={setBudgetMin}
-                placeholder="Min ($)"
+                placeholder="Min (TND)"
                 keyboardType="numeric"
                 icon={<TagIcon size={20} color={colors.neutral[400]} />}
               />
@@ -390,7 +427,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
               <Input
                 value={budgetMax}
                 onChangeText={setBudgetMax}
-                placeholder="Max ($)"
+                placeholder="Max (TND)"
                 keyboardType="numeric"
                 icon={<TagIcon size={20} color={colors.neutral[400]} />}
               />
@@ -460,39 +497,6 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.sm,
   },
-  categoryChip: {
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.neutral[0],
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-  },
-  categoryChipSelected: {
-    backgroundColor: colors.primary[50],
-    borderColor: colors.primary[600],
-  },
-  categoryChipText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-    color: colors.neutral[600],
-  },
-  categoryChipTextSelected: {
-    color: colors.primary[700],
-    fontWeight: typography.weight.semibold,
-  },
-  textAreaContainer: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    padding: spacing.base,
-  },
-  textArea: {
-    fontSize: typography.size.base,
-    color: colors.neutral[800],
-    minHeight: 100,
-  },
   inputSpacing: {
     marginBottom: spacing.md,
   },
@@ -561,15 +565,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.sm,
-  },
-  providerAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
   },
   providerInfo: {
     flex: 1,

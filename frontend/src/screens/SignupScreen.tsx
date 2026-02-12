@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  LayoutAnimation,
+  TextInput,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useNavigation } from '@react-navigation/native';
@@ -18,7 +20,7 @@ import Input from '../components/Input';
 import PrimaryButton from '../components/PrimaryButton';
 import RoleSelector from '../components/RoleSelector';
 import Checkbox from '../components/Checkbox';
-import { MailIcon, LockIcon, UserIcon, BriefcaseIcon, AIBrainIcon } from '../components/Icons';
+import { MailIcon, LockIcon, UserIcon, BriefcaseIcon, AIBrainIcon, CheckCircleIcon, XCircleIcon } from '../components/Icons';
 import { AuthStackParamList } from '../navigation/AuthStack';
 
 type SignupScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -43,6 +45,14 @@ export default function SignupScreen() {
     businessName?: string;
     terms?: string;
   }>({});
+  const emailRef = useRef<TextInput>(null);
+  const businessNameRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
+  const confirmPasswordRef = useRef<TextInput>(null);
+
+  useEffect(() => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+  }, [role]);
 
   const validateForm = (): boolean => {
     const newErrors: typeof errors = {};
@@ -151,9 +161,12 @@ export default function SignupScreen() {
                 autoCapitalize="words"
                 icon={<UserIcon size={20} color={colors.neutral[400]} />}
                 error={errors.fullName}
+                returnKeyType="next"
+                onSubmitEditing={() => emailRef.current?.focus()}
               />
 
               <Input
+                ref={emailRef}
                 label="Email Address"
                 placeholder="your.email@example.com"
                 value={email}
@@ -166,10 +179,19 @@ export default function SignupScreen() {
                 autoCorrect={false}
                 icon={<MailIcon size={20} color={colors.neutral[400]} />}
                 error={errors.email}
+                returnKeyType="next"
+                onSubmitEditing={() => {
+                  if (role === 'provider') {
+                    businessNameRef.current?.focus();
+                  } else {
+                    passwordRef.current?.focus();
+                  }
+                }}
               />
 
               {role === 'provider' && (
                 <Input
+                  ref={businessNameRef}
                   label="Business Name"
                   placeholder="Your Company Name"
                   value={businessName}
@@ -180,10 +202,13 @@ export default function SignupScreen() {
                   autoCapitalize="words"
                   icon={<BriefcaseIcon size={20} color={colors.neutral[400]} />}
                   error={errors.businessName}
+                  returnKeyType="next"
+                  onSubmitEditing={() => passwordRef.current?.focus()}
                 />
               )}
 
               <Input
+                ref={passwordRef}
                 label="Password"
                 placeholder="Create a strong password"
                 value={password}
@@ -194,9 +219,12 @@ export default function SignupScreen() {
                 secureTextEntry
                 icon={<LockIcon size={20} color={colors.neutral[400]} />}
                 error={errors.password}
+                returnKeyType="next"
+                onSubmitEditing={() => confirmPasswordRef.current?.focus()}
               />
 
               <Input
+                ref={confirmPasswordRef}
                 label="Confirm Password"
                 placeholder="Re-enter your password"
                 value={confirmPassword}
@@ -208,7 +236,25 @@ export default function SignupScreen() {
                 secureTextEntry
                 icon={<LockIcon size={20} color={colors.neutral[400]} />}
                 error={errors.confirmPassword}
+                returnKeyType="go"
+                onSubmitEditing={handleSignup}
               />
+
+              {confirmPassword.length > 0 && (
+                <View style={styles.passwordMatchContainer}>
+                  {password === confirmPassword ? (
+                    <>
+                      <CheckCircleIcon size={16} color={colors.success} />
+                      <Text style={styles.passwordMatchText}>Passwords match</Text>
+                    </>
+                  ) : (
+                    <>
+                      <XCircleIcon size={16} color={colors.error} />
+                      <Text style={styles.passwordMismatchText}>Passwords don't match</Text>
+                    </>
+                  )}
+                </View>
+              )}
 
               {/* Terms & Conditions */}
               <View style={styles.termsContainer}>
@@ -326,6 +372,22 @@ const styles = StyleSheet.create({
     color: colors.primary[600],
     fontWeight: typography.weight.medium,
     lineHeight: typography.size.sm * 1.5,
+  },
+  passwordMatchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginBottom: spacing.sm,
+  },
+  passwordMatchText: {
+    fontSize: typography.size.xs,
+    color: colors.success,
+    fontWeight: typography.weight.medium,
+  },
+  passwordMismatchText: {
+    fontSize: typography.size.xs,
+    color: colors.error,
+    fontWeight: typography.weight.medium,
   },
   signupButton: {
     marginTop: spacing.sm,

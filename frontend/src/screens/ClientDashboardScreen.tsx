@@ -18,6 +18,8 @@ import { HomeStackParamList } from '../navigation/MainTabs';
 import Card from '../components/Card';
 import StatWidget from '../components/StatWidget';
 import PrimaryButton from '../components/PrimaryButton';
+import Avatar from '../components/Avatar';
+import Badge from '../components/Badge';
 import {
   SearchIcon,
   MatchIcon,
@@ -26,7 +28,6 @@ import {
   MessageIcon,
   SparkleIcon,
   BellIcon,
-  UserIcon,
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
@@ -81,9 +82,7 @@ export default function ClientDashboardScreen() {
             onPress={() => Alert.alert('Notifications', 'You have 3 new notifications')}
           >
             <BellIcon size={24} color={colors.neutral[700]} />
-            <View style={styles.notificationBadge}>
-              <Text style={styles.notificationBadgeText}>3</Text>
-            </View>
+            <Badge content={3} variant="notification" />
           </TouchableOpacity>
         </View>
 
@@ -159,7 +158,7 @@ export default function ClientDashboardScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => Alert.alert('My Matches', 'View all your AI-matched providers')}
+            onPress={() => navigation.getParent()?.navigate('MatchesTab')}
             activeOpacity={0.8}
           >
             <LinearGradient
@@ -173,7 +172,7 @@ export default function ClientDashboardScreen() {
 
           <TouchableOpacity
             style={styles.actionButton}
-            onPress={() => Alert.alert('Messages', 'View all conversations')}
+            onPress={() => navigation.getParent()?.navigate('MessagesTab')}
             activeOpacity={0.8}
           >
             <LinearGradient
@@ -203,7 +202,7 @@ export default function ClientDashboardScreen() {
         {/* Top AI Matches */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Top AI Matches</Text>
-          <TouchableOpacity onPress={() => Alert.alert('View All', 'See all matches')}>
+          <TouchableOpacity onPress={() => navigation.getParent()?.navigate('MatchesTab')}>
             <Text style={styles.seeAll}>See All</Text>
           </TouchableOpacity>
         </View>
@@ -211,11 +210,7 @@ export default function ClientDashboardScreen() {
           <Card
             title="Sarah Chen"
             subtitle="Business Consultant • 98% match • 4.9★"
-            icon={
-              <View style={styles.avatarPlaceholder}>
-                <UserIcon size={20} color={colors.primary[600]} />
-              </View>
-            }
+            icon={<Avatar name="Sarah Chen" size="md" role="provider" />}
             badge="NEW"
             onPress={() => handleViewMatch('Sarah Chen')}
             style={styles.matchCard}
@@ -223,22 +218,14 @@ export default function ClientDashboardScreen() {
           <Card
             title="Michael Roberts"
             subtitle="Marketing Expert • 95% match • 4.8★"
-            icon={
-              <View style={styles.avatarPlaceholder}>
-                <UserIcon size={20} color={colors.primary[600]} />
-              </View>
-            }
+            icon={<Avatar name="Michael Roberts" size="md" role="provider" />}
             onPress={() => handleViewMatch('Michael Roberts')}
             style={styles.matchCard}
           />
           <Card
             title="Emma Williams"
             subtitle="Web Developer • 92% match • 5.0★"
-            icon={
-              <View style={styles.avatarPlaceholder}>
-                <UserIcon size={20} color={colors.primary[600]} />
-              </View>
-            }
+            icon={<Avatar name="Emma Williams" size="md" role="provider" />}
             badge="HOT"
             onPress={() => handleViewMatch('Emma Williams')}
             style={styles.matchCard}
@@ -324,24 +311,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     ...shadows.sm,
   },
-  notificationBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: colors.accent.coral,
-    borderRadius: borderRadius.full,
-    width: 18,
-    height: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: colors.neutral[50],
-  },
-  notificationBadgeText: {
-    fontSize: 10,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
-  },
   heroCard: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.xl,
@@ -405,14 +374,6 @@ const styles = StyleSheet.create({
   },
   matchCard: {
     marginBottom: spacing.md,
-  },
-  avatarPlaceholder: {
-    width: 44,
-    height: 44,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   activityList: {
     paddingHorizontal: spacing.xl,
