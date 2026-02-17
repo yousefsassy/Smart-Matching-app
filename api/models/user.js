@@ -1,23 +1,3 @@
-// const mongoose = require("mongoose");
-
-// const userSchema = new mongoose.Schema(
-//   {
-//     email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-//     passwordHash: { type: String, required: true },
-
-//     role: { type: String, enum: ["client", "provider", "admin"], required: true },
-
-//     phone: { type: String, required: true, trim: true },
-//     photoUrl: { type: String, default: "" }, // store cloudinary URL
-
-//     isVerified: { type: Boolean, default: false },
-//   },
-//   { timestamps: true }
-// );
-
-// module.exports = mongoose.model("User", userSchema);
-
-
 const mongoose = require("mongoose");
 
 const userSchema = new mongoose.Schema(
@@ -43,18 +23,17 @@ const userSchema = new mongoose.Schema(
       required: true,
     },
 
-    phone: { type: String, required: true, trim: true },
-    photoUrl: { type: String, default: "" }, // cloundinary url
-
+    phone: { type: String, trim: true },
+    photoUrl: { type: String, default: "" }, // cloudinary URL
     isVerified: { type: Boolean, default: false },
 
     // ===== Role-specific details =====
     clientDetails: {
-      location: { type: String, trim: true },
+      location: { type: String, trim: true }, // optional at first
     },
 
     providerDetails: {
-      location: { type: String, trim: true },   // may be coordinates later 
+      location: { type: String, trim: true },   // optional at first
       fieldOfService: { type: String, trim: true },
       skills: [{ type: String, trim: true }],
       cv: { type: String, trim: true }, // cloudinary URL
@@ -63,53 +42,14 @@ const userSchema = new mongoose.Schema(
       completedJobs: [{ type: mongoose.Schema.Types.ObjectId, ref: "ServiceRequest" }],
       isAvailable: { type: Boolean, default: true },
     },
-
-    adminDetails: {
-      permissions: [
-        {
-          type: String,
-          enum: [
-            "MANAGE_USERS",
-            "MANAGE_PROVIDERS",
-            "VIEW_LOGS",
-            "VIEW_ANALYTICS",
-            "MANAGE_SETTINGS",
-          ],
-        },
-      ],
-      lastLoginAt: { type: Date, default: null },
-    },
   },
   { timestamps: true }
 );
 
-// ===== Role validations (to enforce required fields depending on role) ===== 
-
-userSchema.pre("validate", function (next) {
-  if (this.role === "client") {
-    if (!this.clientDetails?.location) {
-      return next(new Error("clientDetails.location is required for client role"));
-    }
-  }
-
-  if (this.role === "provider") {
-    if (!this.providerDetails?.location) {
-      return next(new Error("providerDetails.location is required for provider role"));
-    }
-    // if (!this.providerDetails?.fieldOfService) {
-    //   return next(new Error("providerDetails.fieldOfService is required for provider role"));
-    // }
-  }
-
-  // admin can be created with empty permissions.
-  next();
-});
-
-// ===== Index to replace Provider index({ fieldOfService, location }) ===== : useful later 
-
+// ===== Index for searching providers efficiently =====
 userSchema.index(
   { "providerDetails.fieldOfService": 1, "providerDetails.location": 1 },
-  { partialFilterExpression: { role: "provider" } }  
+  { partialFilterExpression: { role: "provider" } }
 );
 
 module.exports = mongoose.model("User", userSchema);
