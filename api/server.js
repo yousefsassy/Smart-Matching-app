@@ -4,9 +4,9 @@ require('./config/connect');
 
 const cors = require('cors');
 
-const userRoute = require('./routes/user');
-const adminRoute = require('./routes/admin');
-const profileRoute = require('./routes/profile');
+// const userRoute = require('./routes/user');
+// const adminRoute = require('./routes/admin');
+// const profileRoute = require('./routes/profile');
 
 
 const express = require("express");
@@ -15,14 +15,15 @@ const Port = process.env.PORT|| 3000
 
 const app = express();
 
-app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+// app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
+app.use(cors())
 
 
 app.use(express.json());
 
-app.use("/user", userRoute);
-app.use("/admin", adminRoute);
-app.use("/profile", profileRoute);
+// app.use("/user", userRoute);
+// app.use("/admin", adminRoute);
+// app.use("/profile", profileRoute);
 
 
 
