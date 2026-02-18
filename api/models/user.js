@@ -37,18 +37,27 @@ const userSchema = new mongoose.Schema(
 
     // ===== Role-specific details =====
     clientDetails: {
-      // Optional: client can enter one location or use current location
-      location: locationSchema,
+      location: locationSchema, // optional
     },
 
     providerDetails: {
-      location: { type: locationSchema, required: true }, // mandatory for provider
-      fieldOfService: { type: String, trim: true },
-      skills: [{ type: String, trim: true }], // tags in frontend
-      cvUrl: { type: String, trim: true }, // Cloudinary URL
-      trustScore: { type: Number, default: 0, min: 0, max: 5 },
-      isAvailable: { type: Boolean, default: true },
-      isVerified: { type: Boolean, default: false }, // only for providers
+      type: new mongoose.Schema({
+        location: {
+          type: locationSchema,
+          required: function () {
+            return this.parent().role === "provider"; // only required for providers
+          },
+        },
+        fieldOfService: { type: String, trim: true },
+        skills: [{ type: String, trim: true }],
+        cvUrl: { type: String, trim: true },
+        trustScore: { type: Number, default: 0, min: 0, max: 5 },
+        isAvailable: { type: Boolean, default: true },
+        isVerified: { type: Boolean, default: false },
+      }),
+      required: function () {
+        return this.role === "provider"; // providerDetails object required only for providers
+      },
     },
   },
   { timestamps: true }

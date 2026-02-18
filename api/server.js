@@ -1,45 +1,32 @@
 require("dotenv").config();
-
 require('./config/connect');
 
-const cors = require('cors');
-
-// const userRoute = require('./routes/user');
-// const adminRoute = require('./routes/admin');
-// const profileRoute = require('./routes/profile');
-
-
 const express = require("express");
+const cors = require('cors');
+const userRoute = require('./routes/userRoute');
 
-const Port = process.env.PORT|| 3000
-
+const Port = process.env.PORT || 3000;
 const app = express();
 
-// app.use(cors({ origin: process.env.FRONTEND_URL, credentials: true }));
-app.use(cors())
-
-
+// Middleware
+app.use(cors({ origin: process.env.FRONTEND_URL || "*" }));
 app.use(express.json());
 
-// app.use("/user", userRoute);
-// app.use("/admin", adminRoute);
-// app.use("/profile", profileRoute);
+// Routes
+app.use("/user", userRoute);
 
-
-
-
-app.listen(Port, (err) => {
-    if (err) 
-        { console.error('server failed ', err.message) }
-    
-    console.log(`Server Listening on port ${Port}`);
+// Home route
+app.get('/', (req, res) => {
+    res.send("Welcome E-learning ISS Server");
 });
 
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ msg: "Route not found" });
+});
 
-
-
-
-app.get('/', (req, res) => {
-    
-    res.send("Welcome E-learning ISS Server")
+// Start server
+app.listen(Port, (err) => {
+    if (err) console.error('Server failed ', err.message);
+    console.log(`Server Listening on port ${Port}`);
 });
