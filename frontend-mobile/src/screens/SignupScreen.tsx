@@ -50,6 +50,15 @@ export default function SignupScreen() {
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
 
+  // Navigate to stepper when provider role is selected
+  const handleRoleChange = (newRole: UserRole) => {
+    if (newRole === 'provider') {
+      navigation.navigate('ProviderSignup');
+      return;
+    }
+    setRole(newRole);
+  };
+
   useEffect(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
   }, [role]);
@@ -148,7 +157,7 @@ export default function SignupScreen() {
           <View style={styles.card}>
             <View style={styles.form}>
               {/* Role Selection */}
-              <RoleSelector selectedRole={role} onSelectRole={setRole} />
+              <RoleSelector selectedRole={role} onSelectRole={handleRoleChange} />
 
               <Input
                 label="Full Name"

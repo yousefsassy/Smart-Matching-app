@@ -2,11 +2,13 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
+import ProviderSignupScreen from '../screens/ProviderSignupScreen';
 import { colors } from '../theme';
 
 export type AuthStackParamList = {
   Login: undefined;
   Signup: undefined;
+  ProviderSignup: undefined;
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
@@ -22,6 +24,7 @@ export default function AuthStack() {
     >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Signup" component={SignupScreen} />
+      <Stack.Screen name="ProviderSignup" component={ProviderSignupScreen} />
     </Stack.Navigator>
   );
 }
