@@ -7,8 +7,9 @@ import {
   ScrollView,
   Animated,
   Dimensions,
+  StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, spacing, animations } from '../theme';
@@ -40,6 +41,7 @@ interface FormData {
 export default function ProviderSignupScreen() {
   const navigation = useNavigation<ProviderSignupNav>();
   const { signup } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -249,13 +251,11 @@ export default function ProviderSignupScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[colors.primary[900], colors.primary[700], colors.primary[500]]}
-        style={styles.gradient}
-      >
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.screen}>
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.xl }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
@@ -276,37 +276,36 @@ export default function ProviderSignupScreen() {
           </Animated.View>
 
           <View style={styles.navButtons}>
-              <PrimaryButton
-                title={currentStep === 0 ? 'Cancel' : 'Back'}
-                onPress={handleBack}
-                variant="outline"
-                fullWidth={false}
-                style={styles.backButton}
-                textStyle={{ color: colors.neutral[0] }}
-                icon={currentStep > 0 ? <ChevronLeftIcon size={18} color={colors.neutral[0]} /> : undefined}
-              />
+            <PrimaryButton
+              title={currentStep === 0 ? 'Cancel' : 'Back'}
+              onPress={handleBack}
+              variant="outline"
+              fullWidth={false}
+              style={styles.backButton}
+              icon={currentStep > 0 ? <ChevronLeftIcon size={18} color={colors.primary[600]} /> : undefined}
+            />
 
-              {currentStep < 3 ? (
-                <PrimaryButton
-                  title="Next"
-                  onPress={handleNext}
-                  variant="primary"
-                  fullWidth={false}
-                  style={styles.nextButton}
-                />
-              ) : (
-                <PrimaryButton
-                  title="Create Account"
-                  onPress={handleSubmit}
-                  variant="primary"
-                  loading={isSubmitting}
-                  fullWidth={false}
-                  style={styles.nextButton}
-                />
-              )}
-            </View>
+            {currentStep < 3 ? (
+              <PrimaryButton
+                title="Next"
+                onPress={handleNext}
+                variant="primary"
+                fullWidth={false}
+                style={styles.nextButton}
+              />
+            ) : (
+              <PrimaryButton
+                title="Create Account"
+                onPress={handleSubmit}
+                variant="primary"
+                loading={isSubmitting}
+                fullWidth={false}
+                style={styles.nextButton}
+              />
+            )}
+          </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -315,13 +314,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
+  screen: {
     flex: 1,
+    backgroundColor: colors.neutral[50],
   },
   scrollContent: {
     flexGrow: 1,
     padding: spacing.xl,
-    paddingTop: spacing['3xl'],
     paddingBottom: spacing['3xl'],
   },
   navButtons: {

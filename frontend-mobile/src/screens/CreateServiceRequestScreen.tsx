@@ -1,17 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
-  Text,
   StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
-  TouchableOpacity,
-  Alert,
-  ActivityIndicator,
+  Animated,
+  Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, borderRadius, shadows } from '../theme';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { colors, spacing, animations } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import {
   ServiceCategory,
@@ -20,162 +19,254 @@ import {
   BudgetRange,
   ProviderRanking,
 } from '../types/serviceRequest';
-import Input from '../components/Input';
+import StepperHeader from '../components/StepperHeader';
 import PrimaryButton from '../components/PrimaryButton';
-import LocationPicker from '../components/LocationPicker';
-import DatePickerField from '../components/DatePickerField';
-import TimePickerField from '../components/TimePickerField';
-import Chip from '../components/Chip';
-import Textarea from '../components/Textarea';
-import Avatar from '../components/Avatar';
-import {
-  SearchIcon,
-  MapPinIcon,
-  CalendarIcon,
-  ClockIcon,
-  TagIcon,
-  SparkleIcon,
-  CheckCircleIcon,
-} from '../components/Icons';
+import { ChevronLeftIcon } from '../components/Icons';
 import { HomeStackParamList } from '../navigation/MainTabs';
+
+import ServiceTypeStep from '../components/ServiceRequest/ServiceTypeStep';
+import DescribeJobStep, { DescribeJobData } from '../components/ServiceRequest/DescribeJobStep';
+import ScheduleStep, {
+  ScheduleData,
+  TimeSlotKey,
+  TIME_SLOT_RANGES,
+} from '../components/ServiceRequest/ScheduleStep';
+import BudgetStep, { BudgetData, BudgetPreset } from '../components/ServiceRequest/BudgetStep';
+import MatchingScreen from '../components/ServiceRequest/MatchingScreen';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'CreateRequest'>;
 
-const SERVICE_CATEGORIES: { value: ServiceCategory; label: string }[] = [
-  { value: 'plumbing', label: 'Plumbing' },
-  { value: 'electrical', label: 'Electrical' },
-  { value: 'cleaning', label: 'Cleaning' },
-  { value: 'gardening', label: 'Gardening' },
-  { value: 'painting', label: 'Painting' },
-  { value: 'carpentry', label: 'Carpentry' },
-  { value: 'moving', label: 'Moving' },
-  { value: 'other', label: 'Other' },
-];
+const STEP_LABELS = ['Service', 'Describe', 'Schedule', 'Budget'];
+const TOTAL_STEPS = 4;
+const SCREEN_WIDTH = Dimensions.get('window').width;
+
+const BUDGET_PRESET_RANGES: Record<BudgetPreset, { min: number; max: number }> = {
+  economy:  { min: 50,  max: 150 },
+  standard: { min: 150, max: 400 },
+  premium:  { min: 400, max: 800 },
+};
+
+interface FormData {
+  serviceCategory: ServiceCategory | null;
+  describe: DescribeJobData;
+  schedule: ScheduleData;
+  budget: BudgetData;
+}
 
 export default function CreateServiceRequestScreen({ navigation }: Props) {
   const { createServiceRequest } = useServiceRequests();
 
-  // Form state
-  const [serviceCategory, setServiceCategory] = useState<ServiceCategory | null>(null);
-  const [description, setDescription] = useState('');
-  const [location, setLocation] = useState('');
-  const [date, setDate] = useState<Date | null>(null);
-  const [startTime, setStartTime] = useState<Date | null>(null);
-  const [endTime, setEndTime] = useState<Date | null>(null);
-  const [budgetMin, setBudgetMin] = useState('');
-  const [budgetMax, setBudgetMax] = useState('');
+  // ── Step state ─────────────────────────────────────────────────────────────
+  const [currentStep, setCurrentStep] = useState(0);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Inline error state
-  const [locationError, setLocationError] = useState('');
-  const [dateError, setDateError] = useState('');
-  const [startTimeError, setStartTimeError] = useState('');
-  const [endTimeError, setEndTimeError] = useState('');
-
-  // UI state
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showProviders, setShowProviders] = useState(false);
+  // ── Matching state ─────────────────────────────────────────────────────────
+  const [showMatching, setShowMatching] = useState(false);
+  const [isLoadingProviders, setIsLoadingProviders] = useState(false);
   const [rankedProviders, setRankedProviders] = useState<ProviderRanking[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  const validate = (): string | null => {
-    let hasError = false;
+  // ── Form data ──────────────────────────────────────────────────────────────
+  const [formData, setFormData] = useState<FormData>({
+    serviceCategory: null,
+    describe: { description: '', location: '' },
+    schedule: { isAsap: false, date: null, timeSlotKey: null },
+    budget: { preset: null, isFlexible: false, customMin: '', customMax: '' },
+  });
 
-    if (!location) {
-      setLocationError('Please select a location');
-      hasError = true;
-    } else {
-      setLocationError('');
+  // ── Animation refs (mirrors ProviderSignupScreen) ──────────────────────────
+  const slideAnim = useRef(new Animated.Value(0)).current;
+  const opacityAnim = useRef(new Animated.Value(1)).current;
+  const scrollViewRef = useRef<ScrollView>(null);
+
+  // ── Field change handlers ──────────────────────────────────────────────────
+
+  const handleCategoryChange = useCallback((category: ServiceCategory) => {
+    setFormData((prev) => ({ ...prev, serviceCategory: category }));
+    if (errors.serviceCategory) {
+      setErrors((prev) => { const e = { ...prev }; delete e.serviceCategory; return e; });
+    }
+  }, [errors]);
+
+  const handleDescribeChange = useCallback((field: keyof DescribeJobData, value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      describe: { ...prev.describe, [field]: value },
+    }));
+    if (errors[field]) {
+      setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
+    }
+  }, [errors]);
+
+  const handleScheduleChange = useCallback(
+    (field: keyof ScheduleData, value: boolean | Date | TimeSlotKey | null) => {
+      setFormData((prev) => ({
+        ...prev,
+        schedule: { ...prev.schedule, [field]: value },
+      }));
+      if (errors[field]) {
+        setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
+      }
+    },
+    [errors]
+  );
+
+  const handleBudgetChange = useCallback(
+    (field: keyof BudgetData, value: BudgetPreset | boolean | string | null) => {
+      setFormData((prev) => ({
+        ...prev,
+        budget: { ...prev.budget, [field]: value },
+      }));
+    },
+    []
+  );
+
+  // ── Per-step validation ────────────────────────────────────────────────────
+
+  const validateStep = (step: number): boolean => {
+    const errs: Record<string, string> = {};
+
+    switch (step) {
+      case 0: {
+        if (!formData.serviceCategory) {
+          errs.serviceCategory = 'Please select a service type to continue';
+        }
+        break;
+      }
+      case 1: {
+        if (!formData.describe.description.trim() || formData.describe.description.trim().length < 10) {
+          errs.description = 'Please describe the job (at least 10 characters)';
+        }
+        if (!formData.describe.location) {
+          errs.location = 'Please select your location';
+        }
+        break;
+      }
+      case 2: {
+        if (!formData.schedule.isAsap) {
+          if (!formData.schedule.date) {
+            errs.date = 'Please select a date';
+          }
+          if (!formData.schedule.timeSlotKey) {
+            errs.timeSlot = 'Please select a time slot';
+          }
+        }
+        break;
+      }
+      case 3: {
+        // Budget is fully optional — always valid
+        break;
+      }
     }
 
-    if (!date) {
-      setDateError('Please select a date');
-      hasError = true;
-    } else {
-      setDateError('');
-    }
-
-    if (!startTime) {
-      setStartTimeError('Please select a start time');
-      hasError = true;
-    } else {
-      setStartTimeError('');
-    }
-
-    if (!endTime) {
-      setEndTimeError('Please select an end time');
-      hasError = true;
-    } else {
-      setEndTimeError('');
-    }
-
-    if (!serviceCategory) return 'Please select a service category';
-    if (!description.trim()) return 'Please enter a description';
-    if (hasError) return 'Please fix the errors above';
-    return null;
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
-  const handleSubmit = async () => {
-    const error = validate();
-    if (error) {
-      Alert.alert('Validation Error', error);
-      return;
+  // ── Step transition animation (copied from ProviderSignupScreen) ───────────
+
+  const animateTransition = (direction: 'forward' | 'backward', callback: () => void) => {
+    const exitX  = direction === 'forward' ? -SCREEN_WIDTH * 0.2 :  SCREEN_WIDTH * 0.2;
+    const enterX = direction === 'forward' ?  SCREEN_WIDTH * 0.2 : -SCREEN_WIDTH * 0.2;
+
+    Animated.parallel([
+      Animated.timing(slideAnim, { toValue: exitX, duration: 150, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
+    ]).start(() => {
+      callback();
+      slideAnim.setValue(enterX);
+      Animated.parallel([
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, ...animations.spring.snappy }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    });
+  };
+
+  // ── Navigation ─────────────────────────────────────────────────────────────
+
+  const handleNext = () => {
+    if (!validateStep(currentStep)) return;
+
+    if (currentStep < TOTAL_STEPS - 1) {
+      animateTransition('forward', () => setCurrentStep((s) => s + 1));
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    } else {
+      // Last step → trigger matching flow
+      handleFindProviders();
     }
+  };
+
+  const handleBack = () => {
+    if (currentStep > 0) {
+      animateTransition('backward', () => setCurrentStep((s) => s - 1));
+      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
+    } else {
+      navigation.goBack();
+    }
+  };
+
+  // ── Matching flow ──────────────────────────────────────────────────────────
+
+  const handleFindProviders = async () => {
+    setShowMatching(true);
+    setIsLoadingProviders(true);
 
     try {
-      setIsSubmitting(true);
+      // Build TimeSlot
+      const { schedule } = formData;
+      const timeSlot: TimeSlot = schedule.isAsap
+        ? {
+            date: new Date().toISOString().split('T')[0],
+            startTime: '07:00',
+            endTime: '21:00',
+          }
+        : {
+            date: schedule.date!.toISOString().split('T')[0],
+            ...TIME_SLOT_RANGES[schedule.timeSlotKey!],
+          };
 
-      // Create location object (mock coordinates for demo)
+      // Build BudgetRange
+      let budget: BudgetRange | undefined;
+      const { budget: bd } = formData;
+      if (!bd.isFlexible) {
+        if (bd.preset) {
+          budget = { ...BUDGET_PRESET_RANGES[bd.preset], currency: 'TND' };
+        } else if (bd.customMin && bd.customMax) {
+          budget = {
+            min: parseFloat(bd.customMin),
+            max: parseFloat(bd.customMax),
+            currency: 'TND',
+          };
+        }
+      }
+
+      // Build Location (mock coordinates for demo)
       const locationObj: Location = {
         latitude: 36.8065,
         longitude: 10.1815,
-        address: location,
+        address: formData.describe.location,
       };
-
-      // Format date as YYYY-MM-DD for the time slot
-      const formattedDate = date!.toISOString().split('T')[0];
-
-      // Format times as HH:mm strings
-      const fmtTime = (d: Date) =>
-        `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-
-      // Create time slot
-      const timeSlot: TimeSlot = {
-        date: formattedDate,
-        startTime: fmtTime(startTime!),
-        endTime: fmtTime(endTime!),
-      };
-
-      // Create budget range if provided
-      let budget: BudgetRange | undefined;
-      if (budgetMin && budgetMax) {
-        budget = {
-          min: parseFloat(budgetMin),
-          max: parseFloat(budgetMax),
-          currency: 'TND',
-        };
-      }
 
       const request = await createServiceRequest({
-        serviceCategory: serviceCategory!,
-        description,
+        serviceCategory: formData.serviceCategory!,
+        description: formData.describe.description,
         location: locationObj,
         timeSlot,
         budget,
       });
 
-      // Show ranked providers
+      // Cosmetic delay so the loading animation has time to breathe
+      await new Promise((resolve) => setTimeout(resolve, 700));
+
       if (request.rankedProviders && request.rankedProviders.length > 0) {
         setRankedProviders(request.rankedProviders);
-        setShowProviders(true);
-      } else {
-        // No providers available - navigate directly to Requests tab
-        navigation.getParent()?.navigate('RequestsTab');
       }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to create request. Please try again.');
+    } catch {
+      // On error: go back to the stepper
+      setShowMatching(false);
     } finally {
-      setIsSubmitting(false);
+      setIsLoadingProviders(false);
     }
   };
 
@@ -183,466 +274,158 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     setSelectedProviderId(providerId);
   };
 
-  const handleConfirmSelection = () => {
-    if (!selectedProviderId) {
-      Alert.alert('No Provider Selected', 'Please select a provider or skip this step.');
-      return;
-    }
-
-    // Show success message briefly, then navigate
+  const handleConfirm = () => {
+    if (!selectedProviderId) return;
     setShowSuccess(true);
     setTimeout(() => {
       navigation.getParent()?.navigate('RequestsTab');
     }, 1200);
   };
 
-  const handleSkipSelection = () => {
-    // Show success message briefly, then navigate
+  const handleSkip = () => {
     setShowSuccess(true);
     setTimeout(() => {
       navigation.getParent()?.navigate('RequestsTab');
     }, 1200);
   };
 
-  if (showProviders) {
+  // ── Matching screen ────────────────────────────────────────────────────────
+
+  if (showMatching) {
     return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        {/* Success Banner */}
-        {showSuccess && (
-          <View style={styles.successBanner}>
-            <CheckCircleIcon size={20} color={colors.neutral[0]} />
-            <Text style={styles.successText}>Request created successfully!</Text>
-          </View>
-        )}
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Header */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.title}>AI-Matched Providers</Text>
-              <Text style={styles.subtitle}>
-                {rankedProviders.length} providers ranked by AI matching
-              </Text>
-            </View>
-          </View>
-
-          {/* Provider List */}
-          <View style={styles.providersContainer}>
-            {rankedProviders.map((provider, index) => (
-              <TouchableOpacity
-                key={provider.providerId}
-                style={[
-                  styles.providerCard,
-                  selectedProviderId === provider.providerId && styles.providerCardSelected,
-                ]}
-                onPress={() => handleSelectProvider(provider.providerId)}
-                activeOpacity={0.8}
-              >
-                <View style={styles.providerRank}>
-                  <LinearGradient
-                    colors={
-                      index === 0
-                        ? [colors.accent.gold, colors.accent.coral]
-                        : [colors.primary[500], colors.primary[600]]
-                    }
-                    style={styles.rankBadge}
-                  >
-                    <Text style={styles.rankText}>#{index + 1}</Text>
-                  </LinearGradient>
-                </View>
-
-                <View style={styles.providerContent}>
-                  <View style={styles.providerHeader}>
-                    <Avatar name={provider.providerName} size="md" role="provider" />
-                    <View style={styles.providerInfo}>
-                      <View style={styles.providerNameRow}>
-                        <Text style={styles.providerName}>{provider.providerName}</Text>
-                        {provider.isVerified && (
-                          <View style={styles.verifiedBadge}>
-                            <CheckCircleIcon size={14} color={colors.accent.cyan} />
-                          </View>
-                        )}
-                      </View>
-                      {provider.businessName && (
-                        <Text style={styles.businessName}>{provider.businessName}</Text>
-                      )}
-                    </View>
-                  </View>
-
-                  <View style={styles.matchScoreContainer}>
-                    <SparkleIcon size={16} color={colors.accent.gold} />
-                    <Text style={styles.matchScore}>{provider.matchScore}% Match</Text>
-                  </View>
-
-                  <View style={styles.providerStats}>
-                    <Text style={styles.statText}>⭐ {provider.averageRating.toFixed(1)}</Text>
-                    <Text style={styles.statDivider}>•</Text>
-                    <Text style={styles.statText}>{provider.totalReviews} reviews</Text>
-                    <Text style={styles.statDivider}>•</Text>
-                    <Text style={styles.statText}>{provider.distance.toFixed(1)} km</Text>
-                  </View>
-                </View>
-
-                {selectedProviderId === provider.providerId && (
-                  <View style={styles.selectedIndicator}>
-                    <CheckCircleIcon size={24} color={colors.primary[600]} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Action Buttons */}
-          <View style={styles.actionsContainer}>
-            <PrimaryButton
-              title={selectedProviderId ? 'Confirm Selection' : 'Skip for Now'}
-              onPress={selectedProviderId ? handleConfirmSelection : handleSkipSelection}
-            />
-            {selectedProviderId && (
-              <TouchableOpacity style={styles.skipButton} onPress={handleSkipSelection}>
-                <Text style={styles.skipButtonText}>Skip for Now</Text>
-              </TouchableOpacity>
-            )}
-          </View>
-
-          <View style={{ height: spacing['4xl'] }} />
-        </ScrollView>
-      </SafeAreaView>
+      <MatchingScreen
+        isLoading={isLoadingProviders}
+        providers={rankedProviders}
+        selectedProviderId={selectedProviderId}
+        showSuccess={showSuccess}
+        onSelectProvider={handleSelectProvider}
+        onConfirm={handleConfirm}
+        onSkip={handleSkip}
+      />
     );
   }
 
+  // ── Step content renderer ──────────────────────────────────────────────────
+
+  const renderStep = () => {
+    switch (currentStep) {
+      case 0:
+        return (
+          <ServiceTypeStep
+            selectedCategory={formData.serviceCategory}
+            error={errors.serviceCategory}
+            onChange={handleCategoryChange}
+          />
+        );
+      case 1:
+        return (
+          <DescribeJobStep
+            data={formData.describe}
+            errors={{ description: errors.description, location: errors.location }}
+            onChange={handleDescribeChange}
+          />
+        );
+      case 2:
+        return (
+          <ScheduleStep
+            data={formData.schedule}
+            errors={{ date: errors.date, timeSlot: errors.timeSlot }}
+            onChange={handleScheduleChange}
+          />
+        );
+      case 3:
+        return (
+          <BudgetStep
+            data={formData.budget}
+            onChange={handleBudgetChange}
+          />
+        );
+      default:
+        return null;
+    }
+  };
+
+  // ── Stepper UI ─────────────────────────────────────────────────────────────
+
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <LinearGradient
+        colors={[colors.primary[900], colors.primary[700], colors.primary[500]]}
+        style={styles.gradient}
       >
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>Create Service Request</Text>
-          <Text style={styles.subtitle}>AI will find the best providers for you</Text>
-        </View>
-
-        {/* Service Category */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Service Category *</Text>
-          <View style={styles.categoriesGrid}>
-            {SERVICE_CATEGORIES.map((category) => (
-              <Chip
-                key={category.value}
-                label={category.label}
-                selected={serviceCategory === category.value}
-                onPress={() => setServiceCategory(category.value)}
-                variant="primary"
-              />
-            ))}
-          </View>
-        </View>
-
-        {/* Description */}
-        <View style={styles.section}>
-          <Textarea
-            label="Description *"
-            value={description}
-            onChangeText={setDescription}
-            placeholder="Describe what you need..."
-            maxLength={500}
-            showCharCount
+        <ScrollView
+          ref={scrollViewRef}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <StepperHeader
+            currentStep={currentStep}
+            totalSteps={TOTAL_STEPS}
+            stepLabels={STEP_LABELS}
           />
-        </View>
 
-        {/* Location */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Location *</Text>
-          <LocationPicker
-            value={location}
-            onSelect={(val) => {
-              setLocation(val);
-              if (val) setLocationError('');
+          {/* Animated step content */}
+          <Animated.View
+            style={{
+              transform: [{ translateX: slideAnim }],
+              opacity: opacityAnim,
             }}
-            error={locationError}
-          />
-        </View>
+          >
+            {renderStep()}
+          </Animated.View>
 
-        {/* Date & Time */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Date & Time *</Text>
-          <View style={styles.inputSpacing}>
-            <DatePickerField
-              value={date}
-              onChange={(d) => {
-                setDate(d);
-                if (d) setDateError('');
-              }}
-              error={dateError}
+          {/* Navigation buttons */}
+          <View style={styles.navButtons}>
+            <PrimaryButton
+              title={currentStep === 0 ? 'Cancel' : 'Back'}
+              onPress={handleBack}
+              variant="outline"
+              fullWidth={false}
+              style={styles.backButton}
+              textStyle={{ color: colors.neutral[0] }}
+              icon={currentStep > 0 ? <ChevronLeftIcon size={18} color={colors.neutral[0]} /> : undefined}
+            />
+            <PrimaryButton
+              title={currentStep === TOTAL_STEPS - 1 ? 'Find Providers' : 'Next'}
+              onPress={handleNext}
+              variant="primary"
+              fullWidth={false}
+              style={styles.nextButton}
             />
           </View>
-          <View style={styles.timeRow}>
-            <View style={styles.timeInput}>
-              <TimePickerField
-                value={startTime}
-                onChange={(t) => {
-                  setStartTime(t);
-                  if (t) setStartTimeError('');
-                }}
-                placeholder="Start"
-                error={startTimeError}
-              />
-            </View>
-            <Text style={styles.timeDivider}>to</Text>
-            <View style={styles.timeInput}>
-              <TimePickerField
-                value={endTime}
-                onChange={(t) => {
-                  setEndTime(t);
-                  if (t) setEndTimeError('');
-                }}
-                placeholder="End"
-                error={endTimeError}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Budget (Optional) */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Budget (Optional)</Text>
-          <View style={styles.budgetRow}>
-            <View style={styles.budgetInput}>
-              <Input
-                value={budgetMin}
-                onChangeText={setBudgetMin}
-                placeholder="Min (TND)"
-                keyboardType="numeric"
-                icon={<TagIcon size={20} color={colors.neutral[400]} />}
-              />
-            </View>
-            <Text style={styles.budgetDivider}>-</Text>
-            <View style={styles.budgetInput}>
-              <Input
-                value={budgetMax}
-                onChangeText={setBudgetMax}
-                placeholder="Max (TND)"
-                keyboardType="numeric"
-                icon={<TagIcon size={20} color={colors.neutral[400]} />}
-              />
-            </View>
-          </View>
-        </View>
-
-        {/* Submit Button */}
-        <View style={styles.section}>
-          <PrimaryButton
-            title={isSubmitting ? 'Creating Request...' : 'Find Providers'}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-            icon={
-              isSubmitting ? (
-                <ActivityIndicator size="small" color={colors.neutral[0]} />
-              ) : (
-                <SearchIcon size={20} color={colors.neutral[0]} />
-              )
-            }
-          />
-        </View>
-
-        <View style={{ height: spacing['4xl'] }} />
-      </ScrollView>
-    </SafeAreaView>
+        </ScrollView>
+      </LinearGradient>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
   },
-  scrollView: {
+  gradient: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.xl,
+    flexGrow: 1,
+    padding: spacing.xl,
+    paddingTop: spacing['3xl'],
+    paddingBottom: spacing['3xl'],
   },
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-  },
-  title: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    marginBottom: spacing.xs,
-  },
-  subtitle: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[500],
-  },
-  section: {
-    paddingHorizontal: spacing.xl,
-    marginBottom: spacing.lg,
-  },
-  sectionTitle: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[800],
-    marginBottom: spacing.md,
-  },
-  categoriesGrid: {
+  navButtons: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  inputSpacing: {
-    marginBottom: spacing.md,
-  },
-  timeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.xl,
     gap: spacing.md,
   },
-  timeInput: {
+  backButton: {
     flex: 1,
   },
-  timeDivider: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[500],
-    fontWeight: typography.weight.medium,
-  },
-  budgetRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  budgetInput: {
-    flex: 1,
-  },
-  budgetDivider: {
-    fontSize: typography.size.lg,
-    color: colors.neutral[500],
-    fontWeight: typography.weight.medium,
-  },
-  providersContainer: {
-    paddingHorizontal: spacing.xl,
-  },
-  providerCard: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing.base,
-    marginBottom: spacing.md,
-    borderWidth: 2,
-    borderColor: colors.neutral[100],
-    ...shadows.sm,
-  },
-  providerCardSelected: {
-    borderColor: colors.primary[600],
-    ...shadows.md,
-  },
-  providerRank: {
-    position: 'absolute',
-    top: spacing.base,
-    right: spacing.base,
-    zIndex: 1,
-  },
-  rankBadge: {
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 4,
-    borderRadius: borderRadius.md,
-  },
-  rankText: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
-  },
-  providerContent: {
-    paddingRight: 48,
-  },
-  providerHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  providerInfo: {
-    flex: 1,
-  },
-  providerNameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  providerName: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-  },
-  verifiedBadge: {
-    width: 16,
-    height: 16,
-  },
-  businessName: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[600],
-    marginTop: 2,
-  },
-  matchScoreContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginBottom: spacing.sm,
-  },
-  matchScore: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.semibold,
-    color: colors.accent.gold,
-  },
-  providerStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  statText: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[600],
-  },
-  statDivider: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[300],
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    bottom: spacing.base,
-    right: spacing.base,
-  },
-  actionsContainer: {
-    paddingHorizontal: spacing.xl,
-    marginTop: spacing.base,
-  },
-  skipButton: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    marginTop: spacing.md,
-  },
-  skipButtonText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[600],
-  },
-  successBanner: {
-    backgroundColor: colors.success,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    gap: spacing.sm,
-  },
-  successText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[0],
+  nextButton: {
+    flex: 1.5,
   },
 });

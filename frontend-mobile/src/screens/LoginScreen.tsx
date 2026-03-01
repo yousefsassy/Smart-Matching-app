@@ -10,15 +10,16 @@ import {
   Alert,
   LayoutAnimation,
   TextInput,
+  StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/Input';
 import PrimaryButton from '../components/PrimaryButton';
-import { MailIcon, LockIcon, AIBrainIcon, GoogleIcon } from '../components/Icons';
+import { MailIcon, LockIcon, GoogleIcon, ChevronLeftIcon } from '../components/Icons';
 import { AuthStackParamList } from '../navigation/AuthStack';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
@@ -26,6 +27,7 @@ type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, '
 export default function LoginScreen() {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const { login } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -83,23 +85,23 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[colors.primary[900], colors.primary[700], colors.primary[500]]}
-        style={styles.gradient}
-      >
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.screen}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Back button */}
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ChevronLeftIcon size={22} color={colors.primary[600]} />
+          </TouchableOpacity>
+
           {/* Hero Section */}
           <View style={styles.hero}>
-            <View style={styles.logoContainer}>
-              <AIBrainIcon size={64} />
-            </View>
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>
-              Sign in to continue your SmartMatch journey
+              Sign in to your TawTaw account
             </Text>
           </View>
 
@@ -197,7 +199,7 @@ export default function LoginScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -206,33 +208,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
+  screen: {
     flex: 1,
+    backgroundColor: colors.neutral[50],
   },
   scrollContent: {
     flexGrow: 1,
-    paddingVertical: spacing['2xl'],
+    paddingBottom: spacing['2xl'],
+  },
+  backButton: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    alignSelf: 'flex-start',
   },
   hero: {
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     marginBottom: spacing['2xl'],
-  },
-  logoContainer: {
-    marginBottom: spacing.lg,
+    marginTop: spacing.md,
   },
   title: {
     fontSize: typography.size['3xl'],
     fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
+    color: colors.neutral[800],
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.size.base,
-    color: colors.neutral[100],
+    color: colors.neutral[500],
     textAlign: 'center',
-    opacity: 0.9,
   },
   card: {
     marginHorizontal: spacing.xl,
@@ -307,11 +313,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: typography.size.base,
-    color: colors.neutral[100],
+    color: colors.neutral[600],
   },
   footerLink: {
     fontSize: typography.size.base,
-    color: colors.neutral[0],
+    color: colors.primary[600],
     fontWeight: typography.weight.bold,
   },
 });
