@@ -74,7 +74,7 @@ export default function ClientDashboardScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View>
-            <Text style={styles.greeting}>Hello, {user?.fullName?.split(' ')[0] || 'User'}!</Text>
+            <Text style={styles.greeting}>Hello, Faten </Text>
             <Text style={styles.tagline}>Let's find your perfect match today</Text>
           </View>
           <TouchableOpacity
@@ -208,26 +208,26 @@ export default function ClientDashboardScreen() {
         </View>
         <View style={styles.matchesList}>
           <Card
-            title="Sarah Chen"
+            title="Firas Saidi"
             subtitle="Business Consultant • 98% match • 4.9★"
-            icon={<Avatar name="Sarah Chen" size="md" role="provider" />}
+            icon={<Avatar name="Firas Saidi" size="md" role="provider" />}
             badge="NEW"
-            onPress={() => handleViewMatch('Sarah Chen')}
+            onPress={() => handleViewMatch('Firas Saidi')}
             style={styles.matchCard}
           />
           <Card
-            title="Michael Roberts"
+            title="Aziz Benzarti"
             subtitle="Marketing Expert • 95% match • 4.8★"
-            icon={<Avatar name="Michael Roberts" size="md" role="provider" />}
-            onPress={() => handleViewMatch('Michael Roberts')}
+            icon={<Avatar name="Aziz Benzarti" size="md" role="provider" />}
+            onPress={() => handleViewMatch('Aziz Benzarti')}
             style={styles.matchCard}
           />
           <Card
-            title="Emma Williams"
+            title="Youssef Sassi"
             subtitle="Web Developer • 92% match • 5.0★"
-            icon={<Avatar name="Emma Williams" size="md" role="provider" />}
+            icon={<Avatar name="Youssef Sassi" size="md" role="provider" />}
             badge="HOT"
-            onPress={() => handleViewMatch('Emma Williams')}
+            onPress={() => handleViewMatch('Youssef Sassi')}
             style={styles.matchCard}
           />
         </View>
@@ -242,7 +242,7 @@ export default function ClientDashboardScreen() {
               <MessageIcon size={16} color={colors.primary[600]} />
             </View>
             <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>New message from Sarah Chen</Text>
+              <Text style={styles.activityTitle}>New message from Firas Saidi</Text>
               <Text style={styles.activityTime}>2 hours ago</Text>
             </View>
           </View>
@@ -260,7 +260,7 @@ export default function ClientDashboardScreen() {
               <HeartIcon size={16} color={colors.accent.coral} />
             </View>
             <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>Michael Roberts saved your request</Text>
+              <Text style={styles.activityTitle}>Aziz Roberts saved your request</Text>
               <Text style={styles.activityTime}>1 day ago</Text>
             </View>
           </View>

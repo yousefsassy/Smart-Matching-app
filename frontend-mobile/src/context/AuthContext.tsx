@@ -38,7 +38,7 @@ const STORAGE_KEY = '@smartmatch_user';
 const mockUsers: Record<string, User & { password: string }> = {
   'client@demo.com': {
     id: '1',
-    fullName: 'Alex Johnson',
+    fullName: 'Faten',
     email: 'client@demo.com',
     password: 'demo123',
     role: 'client',
@@ -46,11 +46,11 @@ const mockUsers: Record<string, User & { password: string }> = {
   },
   'provider@demo.com': {
     id: '2',
-    fullName: 'Sarah Chen',
+    fullName: 'Firas Saidi',
     email: 'provider@demo.com',
     password: 'demo123',
     role: 'provider',
-    businessName: 'Chen Consulting',
+    businessName: 'Consulting',
     avatar: undefined,
   },
 };

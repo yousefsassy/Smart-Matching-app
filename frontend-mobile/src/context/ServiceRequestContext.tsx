@@ -52,8 +52,8 @@ const STORAGE_KEY = '@smartmatch_requests';
 const mockProviders: ProviderRanking[] = [
   {
     providerId: '2',
-    providerName: 'Sarah Chen',
-    businessName: 'Chen Consulting',
+    providerName: 'Firas Saidi',
+    businessName: 'Consulting',
     matchScore: 98,
     trustScore: 4.9,
     distance: 2.3,

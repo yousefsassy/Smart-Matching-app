@@ -241,26 +241,26 @@ export default function ProviderDashboardScreen() {
         </View>
         <View style={styles.requestsList}>
           <Card
-            title="Alex Johnson"
+            title="Faten"
             subtitle="Looking for marketing consultation • Budget: $500-1000"
-            icon={<Avatar name="Alex Johnson" size="md" role="client" />}
+            icon={<Avatar name="Faten" size="md" role="client" />}
             badge="NEW"
-            onPress={() => handleViewRequest('Alex Johnson')}
+            onPress={() => handleViewRequest('Faten')}
             style={styles.requestCard}
           />
           <Card
-            title="Emma Davis"
+            title="Emna Smaali"
             subtitle="Need web development services • Budget: $2000-3000"
-            icon={<Avatar name="Emma Davis" size="md" role="client" />}
+            icon={<Avatar name="Emna Smaali" size="md" role="client" />}
             badge="HOT"
-            onPress={() => handleViewRequest('Emma Davis')}
+            onPress={() => handleViewRequest('Emna Smaali')}
             style={styles.requestCard}
           />
           <Card
-            title="David Miller"
+            title="Asma Turki"
             subtitle="Seeking business strategy advice • Budget: $800-1200"
-            icon={<Avatar name="David Miller" size="md" role="client" />}
-            onPress={() => handleViewRequest('David Miller')}
+            icon={<Avatar name="Asma Turki" size="md" role="client" />}
+            onPress={() => handleViewRequest('Asma Turki')}
             style={styles.requestCard}
           />
         </View>
@@ -275,7 +275,7 @@ export default function ProviderDashboardScreen() {
               <MessageIcon size={16} color={colors.primary[600]} />
             </View>
             <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>New message from Alex Johnson</Text>
+              <Text style={styles.activityTitle}>New message from Faten</Text>
               <Text style={styles.activityTime}>1 hour ago</Text>
             </View>
           </View>
@@ -284,7 +284,7 @@ export default function ProviderDashboardScreen() {
               <CalendarIcon size={16} color={colors.accent.cyan} />
             </View>
             <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>Emma Davis booked a consultation</Text>
+              <Text style={styles.activityTitle}>Emna Smaali</Text>
               <Text style={styles.activityTime}>3 hours ago</Text>
             </View>
           </View>
