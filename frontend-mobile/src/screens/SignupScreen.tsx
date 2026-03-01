@@ -10,8 +10,9 @@ import {
   Alert,
   LayoutAnimation,
   TextInput,
+  StatusBar,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
@@ -20,7 +21,7 @@ import Input from '../components/Input';
 import PrimaryButton from '../components/PrimaryButton';
 import RoleSelector from '../components/RoleSelector';
 import Checkbox from '../components/Checkbox';
-import { MailIcon, LockIcon, UserIcon, BriefcaseIcon, AIBrainIcon, CheckCircleIcon, XCircleIcon } from '../components/Icons';
+import { MailIcon, LockIcon, UserIcon, BriefcaseIcon, CheckCircleIcon, XCircleIcon, ChevronLeftIcon } from '../components/Icons';
 import { AuthStackParamList } from '../navigation/AuthStack';
 
 type SignupScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Signup'>;
@@ -28,6 +29,7 @@ type SignupScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 
 export default function SignupScreen() {
   const navigation = useNavigation<SignupScreenNavigationProp>();
   const { signup } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
@@ -49,6 +51,15 @@ export default function SignupScreen() {
   const businessNameRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
   const confirmPasswordRef = useRef<TextInput>(null);
+
+  // Navigate to stepper when provider role is selected
+  const handleRoleChange = (newRole: UserRole) => {
+    if (newRole === 'provider') {
+      navigation.navigate('ProviderSignup');
+      return;
+    }
+    setRole(newRole);
+  };
 
   useEffect(() => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -124,23 +135,23 @@ export default function SignupScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[colors.primary[900], colors.primary[700], colors.primary[500]]}
-        style={styles.gradient}
-      >
+      <StatusBar barStyle="dark-content" />
+      <View style={styles.screen}>
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Back button */}
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <ChevronLeftIcon size={22} color={colors.primary[600]} />
+          </TouchableOpacity>
+
           {/* Hero Section */}
           <View style={styles.hero}>
-            <View style={styles.logoContainer}>
-              <AIBrainIcon size={56} />
-            </View>
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
-              Join SmartMatch and discover your perfect connections
+              Join TawTaw and get matched instantly
             </Text>
           </View>
 
@@ -148,7 +159,7 @@ export default function SignupScreen() {
           <View style={styles.card}>
             <View style={styles.form}>
               {/* Role Selection */}
-              <RoleSelector selectedRole={role} onSelectRole={setRole} />
+              <RoleSelector selectedRole={role} onSelectRole={handleRoleChange} />
 
               <Input
                 label="Full Name"
@@ -302,7 +313,7 @@ export default function SignupScreen() {
             </TouchableOpacity>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -311,33 +322,37 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
+  screen: {
     flex: 1,
+    backgroundColor: colors.neutral[50],
   },
   scrollContent: {
     flexGrow: 1,
-    paddingVertical: spacing['2xl'],
+    paddingBottom: spacing['2xl'],
+  },
+  backButton: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.sm,
+    alignSelf: 'flex-start',
   },
   hero: {
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     marginBottom: spacing.xl,
-  },
-  logoContainer: {
-    marginBottom: spacing.md,
+    marginTop: spacing.md,
   },
   title: {
     fontSize: typography.size['3xl'],
     fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
+    color: colors.neutral[800],
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
     fontSize: typography.size.base,
-    color: colors.neutral[100],
+    color: colors.neutral[500],
     textAlign: 'center',
-    opacity: 0.9,
   },
   card: {
     marginHorizontal: spacing.xl,
@@ -401,11 +416,11 @@ const styles = StyleSheet.create({
   },
   footerText: {
     fontSize: typography.size.base,
-    color: colors.neutral[100],
+    color: colors.neutral[600],
   },
   footerLink: {
     fontSize: typography.size.base,
-    color: colors.neutral[0],
+    color: colors.primary[600],
     fontWeight: typography.weight.bold,
   },
 });

@@ -77,7 +77,7 @@ export default function PrimaryButton({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? colors.neutral[0] : colors.primary[600]}
+          color={variant === 'primary' ? colors.neutral[900] : colors.primary[600]}
         />
       ) : (
         <>
@@ -124,7 +124,7 @@ export default function PrimaryButton({
             colors={
               isDisabled
                 ? [colors.neutral[300], colors.neutral[400]]
-                : [colors.primary[500], colors.primary[700]]
+                : [colors.accent.mustard, '#F59500']
             }
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
@@ -206,7 +206,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   textPrimary: {
-    color: colors.neutral[0],
+    color: colors.neutral[900],
   },
   textSecondary: {
     color: colors.primary[700],

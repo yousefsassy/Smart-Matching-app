@@ -1,68 +1,77 @@
-// SmartMatch Theme - "Intelligent Trust" Premium Design System
-// Deep blues, soft whites, gradient accents with a modern, trustworthy feel
+// SmartMatch Theme - "Mediterranean Artisan" Design System
+// Dark cerulean trust blues, warm old lace backgrounds, mustard & CG red accents
 
 import { StyleSheet, Platform } from 'react-native';
 
 export const colors = {
-  // Primary palette - Deep trust blues
+  // Primary palette - Dark Cerulean (#134686 anchor)
   primary: {
-    50: '#E8F4FD',
-    100: '#C5E3FA',
-    200: '#9ED0F7',
-    300: '#77BCF3',
-    400: '#5AACF0',
-    500: '#3D9DED', // Main primary
-    600: '#2E7DC4',
-    700: '#1F5E9B',
-    800: '#143F72',
-    900: '#0A2449', // Deep navy
+    50: '#EBF1FA',   // Tinted backgrounds, icon wells
+    100: '#C8D9F2',  // Borders, dividers
+    200: '#9FBDE8',  // Disabled states
+    300: '#6E9BD8',  // Placeholder text
+    400: '#4479C7',  // Hover/pressed states
+    500: '#2660AF',  // Interactive elements (focus rings, links)
+    600: '#134686',  // ← THE brand cerulean (active tint, headers)
+    700: '#0E3366',  // Pressed/active button states
+    800: '#092247',  // Dark headings
+    900: '#050F1E',  // Deep navy — gradient backgrounds, auth screens
   },
 
-  // Secondary - Warm accent for AI highlights
+  // Accent — Mustard, CG Red, Mediterranean Teal
   accent: {
-    cyan: '#00D4AA',
-    cyanLight: '#E0FFF7',
-    purple: '#8B5CF6',
-    purpleLight: '#EDE9FE',
-    coral: '#FF6B6B',
-    gold: '#FFB347',
-    goldLight: '#FFF8E1',
+    // Mustard — primary CTA, highlights, energy
+    mustard:      '#FEB21A',
+    mustardLight: '#FFF4D6',
+    // CG Red — promotions, hot badges, alerts
+    coral:        '#ED3F27',
+    coralLight:   '#FDECEA',
+    // Semantic aliases used by statusConfig (keys must be preserved)
+    gold:         '#FEB21A',   // mustard alias — pending status badge
+    goldLight:    '#FFF4D6',
+    // Mediterranean teal — accepted status badge, AI highlights
+    cyan:         '#0EA5A0',
+    cyanLight:    '#E0F7F6',
+    // Purple — kept for ProviderDashboard stats
+    purple:       '#8B5CF6',
+    purpleLight:  '#EDE9FE',
   },
 
-  // Neutrals
+  // Neutrals — Warm sand tones (neutral[50] = Old Lace app background)
   neutral: {
-    0: '#FFFFFF',
-    50: '#F8FAFC',
-    100: '#F1F5F9',
-    200: '#E2E8F0',
-    300: '#CBD5E1',
-    400: '#94A3B8',
-    500: '#64748B',
-    600: '#475569',
-    700: '#334155',
-    800: '#1E293B',
-    900: '#0F172A',
+    0:   '#FFFFFF',  // Pure white — cards, modals, surfaces
+    50:  '#FDF4E3',  // ← OLD LACE — main app background (auto-cascades everywhere)
+    100: '#F5E8CC',  // Input backgrounds, subtle borders
+    200: '#E8D4AA',  // Dividers
+    300: '#D4B887',  // Disabled text
+    400: '#B09060',  // Placeholder text
+    500: '#8A6E45',  // Secondary text
+    600: '#6B5234',  // Body text
+    700: '#4F3B24',  // Dark body text
+    800: '#342518',  // Headings
+    900: '#1A110A',  // Near black
   },
 
   // Semantic
   success: '#10B981',
   successLight: '#D1FAE5',
-  warning: '#F59E0B',
-  warningLight: '#FEF3C7',
+  warning: '#FEB21A',
+  warningLight: '#FFF4D6',
   error: '#EF4444',
   errorLight: '#FEE2E2',
-  info: '#3B82F6',
-  infoLight: '#DBEAFE',
+  info: '#134686',
+  infoLight: '#EBF1FA',
 
   // Gradients (as array for LinearGradient)
   gradients: {
-    primary: ['#3D9DED', '#1F5E9B'],
-    hero: ['#0A2449', '#1F5E9B', '#3D9DED'],
-    accent: ['#00D4AA', '#3D9DED'],
-    success: ['#10B981', '#059669'],
-    warmGlow: ['#FFB347', '#FF6B6B'],
-    card: ['#FFFFFF', '#F8FAFC'],
-    dark: ['#0F172A', '#1E293B'],
+    primary:  ['#2660AF', '#134686'],              // Cerulean button gradient
+    hero:     ['#050F1E', '#0E3366', '#134686'],   // Auth screen headers
+    accent:   ['#FEB21A', '#ED3F27'],              // Mustard → CG red (energy)
+    success:  ['#10B981', '#059669'],              // Unchanged
+    warmGlow: ['#FEB21A', '#ED3F27'],              // Mustard → red (replaces gold/coral)
+    card:     ['#FFFFFF', '#FDF4E3'],              // White → old lace (warm cards)
+    dark:     ['#050F1E', '#0E3366'],              // Deep navy
+    mustard:  ['#FEB21A', '#F59500'],              // Pure mustard CTA gradient
   },
 };
 
