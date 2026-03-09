@@ -182,28 +182,33 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
   },
   primaryButton: {
-    ...shadows.md,
+    borderRadius: borderRadius.full,
+    ...shadows.mustard,
   },
   secondaryButton: {
     backgroundColor: colors.primary[50],
+    borderRadius: borderRadius.xl,
   },
   outlineButton: {
     backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.primary[500],
+    borderWidth: 1.5,
+    borderColor: colors.primary[200],
+    borderRadius: borderRadius.xl,
   },
   ghostButton: {
     backgroundColor: 'transparent',
+    borderRadius: borderRadius.xl,
   },
   disabled: {
     opacity: 0.6,
   },
   text: {
-    fontWeight: typography.weight.semibold,
+    fontWeight: typography.weight.bold,
     textAlign: 'center',
+    letterSpacing: typography.letterSpacing.tight,
   },
   textPrimary: {
     color: colors.neutral[900],

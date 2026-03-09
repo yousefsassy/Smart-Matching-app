@@ -116,20 +116,20 @@ export default function MainTabs() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: colors.neutral[0],
-          borderTopWidth: 0,
-          height: 70 + insets.bottom,
-          paddingTop: 8,
-          paddingBottom: insets.bottom + 8,
-          ...shadows.md,
+          borderTopWidth: 1,
+          borderTopColor: colors.neutral[100],
+          height: 72 + insets.bottom,
+          paddingTop: 10,
+          paddingBottom: insets.bottom + 10,
           ...Platform.select({
             ios: {
               shadowColor: colors.primary[900],
-              shadowOffset: { width: 0, height: -4 },
-              shadowOpacity: 0.08,
-              shadowRadius: 12,
+              shadowOffset: { width: 0, height: -3 },
+              shadowOpacity: 0.10,
+              shadowRadius: 16,
             },
             android: {
-              elevation: 8,
+              elevation: 12,
             },
           }),
         },
@@ -137,11 +137,12 @@ export default function MainTabs() {
         tabBarInactiveTintColor: colors.neutral[400],
         tabBarLabelStyle: {
           fontSize: typography.size.xs,
-          fontWeight: typography.weight.semibold,
-          marginTop: 4,
+          fontWeight: typography.weight.bold,
+          marginTop: 3,
+          letterSpacing: typography.letterSpacing.wide,
         },
         tabBarItemStyle: {
-          paddingVertical: 4,
+          paddingVertical: 2,
         },
       }}
     >
@@ -236,11 +237,11 @@ function TabIcon({ focused, children }: TabIconProps) {
 
 const styles = StyleSheet.create({
   tabIcon: {
-    width: 36,
-    height: 36,
+    width: 48,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.full,
   },
   tabIconFocused: {
     backgroundColor: colors.primary[50],

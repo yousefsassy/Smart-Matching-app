@@ -72,6 +72,13 @@ export const colors = {
     card:     ['#FFFFFF', '#FDF4E3'],              // White → old lace (warm cards)
     dark:     ['#050F1E', '#0E3366'],              // Deep navy
     mustard:  ['#FEB21A', '#F59500'],              // Pure mustard CTA gradient
+    // New tokens for redesign
+    header:   ['#0E3366', '#134686', '#1D5299'],   // Dashboard screen hero header
+    cardHero: ['#134686', '#2660AF'],              // Card gradient header band
+    surface:  ['#FFFFFF', '#F5E8CC'],              // Subtle warm card surface
+    coral:    ['#ED3F27', '#C0331F'],              // Promo/alert banner
+    teal:     ['#0EA5A0', '#0D7E7A'],              // Teal CTA gradient
+    sidebar:  ['#EBF1FA', '#FFFFFF'],              // Section accent left panel
   },
 };
 
@@ -183,23 +190,30 @@ export const shadows = {
   sm: {
     shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 2,
   },
   md: {
     shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
+    elevation: 5,
   },
   lg: {
     shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.12,
-    shadowRadius: 24,
-    elevation: 8,
+    shadowOpacity: 0.14,
+    shadowRadius: 28,
+    elevation: 10,
+  },
+  xl: {
+    shadowColor: colors.primary[900],
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.18,
+    shadowRadius: 36,
+    elevation: 14,
   },
   glow: {
     shadowColor: colors.accent.cyan,
@@ -207,6 +221,20 @@ export const shadows = {
     shadowOpacity: 0.4,
     shadowRadius: 20,
     elevation: 10,
+  },
+  mustard: {
+    shadowColor: '#FEB21A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  card: {
+    shadowColor: colors.primary[800],
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 3,
   },
   input: {
     shadowColor: colors.primary[500],
@@ -217,10 +245,10 @@ export const shadows = {
   },
   tabBar: {
     shadowColor: colors.primary[900],
-    shadowOffset: { width: 0, height: -4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowOffset: { width: 0, height: -3 },
+    shadowOpacity: 0.10,
+    shadowRadius: 16,
+    elevation: 12,
   },
 };
 

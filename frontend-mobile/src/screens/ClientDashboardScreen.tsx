@@ -53,44 +53,54 @@ const SERVICE_CATEGORIES = [
   {
     label: 'Plumbing',
     emoji: '🔧',
-    colors: [colors.primary[500], colors.primary[700]] as [string, string],
+    gradientColors: [colors.primary[500], colors.primary[700]] as [string, string],
   },
   {
     label: 'Electrical',
     emoji: '⚡',
-    colors: [colors.accent.mustard, '#F59500'] as [string, string],
+    gradientColors: [colors.accent.mustard, '#F59500'] as [string, string],
   },
   {
     label: 'Cleaning',
     emoji: '🧹',
-    colors: [colors.accent.cyan, colors.primary[600]] as [string, string],
+    gradientColors: [colors.accent.cyan, colors.primary[600]] as [string, string],
   },
   {
     label: 'Gardening',
     emoji: '🌿',
-    colors: ['#22C55E', '#16A34A'] as [string, string],
+    gradientColors: ['#22C55E', '#16A34A'] as [string, string],
   },
   {
     label: 'Painting',
     emoji: '🎨',
-    colors: [colors.accent.coral, '#C0331F'] as [string, string],
+    gradientColors: [colors.accent.coral, '#C0331F'] as [string, string],
   },
   {
     label: 'Carpentry',
     emoji: '🪚',
-    colors: ['#A16207', '#78420A'] as [string, string],
+    gradientColors: ['#A16207', '#78420A'] as [string, string],
   },
   {
     label: 'Moving',
     emoji: '📦',
-    colors: [colors.primary[400], colors.primary[700]] as [string, string],
+    gradientColors: [colors.primary[400], colors.primary[700]] as [string, string],
   },
   {
     label: 'More',
     emoji: '⚙️',
-    colors: [colors.neutral[500], colors.neutral[700]] as [string, string],
+    gradientColors: [colors.neutral[500], colors.neutral[700]] as [string, string],
   },
 ];
+
+// Status → left border color map
+const STATUS_BORDER: Record<string, string> = {
+  pending:     colors.accent.gold,
+  accepted:    colors.accent.cyan,
+  in_progress: colors.primary[500],
+  completed:   colors.success,
+  rejected:    colors.error,
+  cancelled:   colors.neutral[400],
+};
 
 // ── Screen ─────────────────────────────────────────────────────────────────────
 
@@ -108,7 +118,6 @@ export default function ClientDashboardScreen() {
   const completedCount = requests.filter((r) => r.status === 'completed').length;
   const firstName = user?.fullName?.split(' ')[0] || 'there';
 
-  // Show up to 3 most recent requests in the dashboard
   const recentRequests = [...requests]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
     .slice(0, 3);
@@ -122,20 +131,28 @@ export default function ClientDashboardScreen() {
   return (
     <View style={styles.root}>
 
-      {/* ── Flat warm header — same bg as page, fully seamless ─────────────── */}
-      <View style={[styles.header, { paddingTop: insets.top + spacing.sm }]}>
+      {/* ── Gradient Hero Header ──────────────────────────────────────────────── */}
+      <LinearGradient
+        colors={['#0A2744', '#134686', '#1a5699']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.header, { paddingTop: insets.top + spacing.base }]}
+      >
+        {/* Decorative glow circle */}
+        <View style={styles.headerGlowCircle} />
+
         {/* Row 1: Location + Bell */}
         <View style={styles.headerTopRow}>
           <TouchableOpacity style={styles.locationPill} activeOpacity={0.75}>
-            <MapPinIcon size={13} color={colors.primary[600]} />
+            <MapPinIcon size={13} color="rgba(255,255,255,0.9)" />
             <Text style={styles.locationText}>{MOCK_LOCATION}</Text>
-            <ChevronRightIcon size={12} color={colors.primary[600]} />
+            <ChevronRightIcon size={12} color="rgba(255,255,255,0.7)" />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.bellButton}
             onPress={() => Alert.alert('Notifications', 'You have 3 new notifications')}
           >
-            <BellIcon size={20} color={colors.primary[600]} />
+            <BellIcon size={20} color={colors.neutral[0]} />
             <View style={styles.bellBadge}>
               <Text style={styles.bellBadgeText}>3</Text>
             </View>
@@ -143,13 +160,11 @@ export default function ClientDashboardScreen() {
         </View>
 
         {/* Row 2: Greeting */}
-        <Text style={styles.greeting}>
-          {getGreeting()}, {firstName} 👋
-        </Text>
-        <Text style={styles.tagline}>What service do you need?</Text>
-      </View>
+        <Text style={styles.tagline}>{getGreeting()} 👋</Text>
+        <Text style={styles.greeting}>{firstName}, what do you need today?</Text>
+      </LinearGradient>
 
-      {/* ── Scrollable body ────────────────────────────────────────────────── */}
+      {/* ── Scrollable body ────────────────────────────────────────────────────── */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={{ paddingBottom: insets.bottom + spacing['4xl'] }}
@@ -163,69 +178,68 @@ export default function ClientDashboardScreen() {
           />
         }
       >
-<<<<<<< HEAD
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.greeting}>Hello, Faten </Text>
-            <Text style={styles.tagline}>Let's find your perfect match today</Text>
-=======
 
-        {/* ── Search bar ────────────────────────────────────────────────────── */}
+        {/* ── Search bar (floating over header→body transition) ───────────────── */}
         <TouchableOpacity
           onPress={() => navigation.navigate('CreateRequest')}
           activeOpacity={0.8}
           style={styles.searchBar}
         >
-          <SearchIcon size={18} color={colors.neutral[400]} />
-          <Text style={styles.searchPlaceholder}>Search for a service...</Text>
-          <View style={styles.searchPostButton}>
-            <Text style={styles.searchPostButtonText}>Post</Text>
->>>>>>> c718a8721c73424300a2ae46c4864a5f70cc9bfa
+          <View style={styles.searchIconWrap}>
+            <SearchIcon size={17} color={colors.primary[500]} />
           </View>
+          <Text style={styles.searchPlaceholder}>Search for a service...</Text>
+          <LinearGradient
+            colors={colors.gradients.mustard as [string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.searchPostButton}
+          >
+            <Text style={styles.searchPostButtonText}>Post</Text>
+          </LinearGradient>
         </TouchableOpacity>
 
-        {/* ── Stats strip ───────────────────────────────────────────────────── */}
+        {/* ── Stats strip ─────────────────────────────────────────────────────── */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.statsRow}
         >
-          {/* Active */}
-          <View style={styles.statChip}>
-            <View style={[styles.statChipIcon, { backgroundColor: colors.primary[50] }]}>
-              <ClockIcon size={15} color={colors.primary[600]} />
+          <View style={styles.statCard}>
+            <View style={[styles.statCardBorder, { backgroundColor: colors.primary[500] }]} />
+            <View style={[styles.statIconWrap, { backgroundColor: colors.primary[50] }]}>
+              <ClockIcon size={16} color={colors.primary[600]} />
             </View>
             <View>
-              <Text style={styles.statChipValue}>{activeCount}</Text>
-              <Text style={styles.statChipLabel}>Active</Text>
+              <Text style={styles.statValue}>{activeCount}</Text>
+              <Text style={styles.statLabel}>Active</Text>
             </View>
           </View>
 
-          {/* Completed */}
-          <View style={styles.statChip}>
-            <View style={[styles.statChipIcon, { backgroundColor: colors.successLight }]}>
-              <CheckCircleIcon size={15} color={colors.success} />
+          <View style={styles.statCard}>
+            <View style={[styles.statCardBorder, { backgroundColor: colors.success }]} />
+            <View style={[styles.statIconWrap, { backgroundColor: colors.successLight }]}>
+              <CheckCircleIcon size={16} color={colors.success} />
             </View>
             <View>
-              <Text style={styles.statChipValue}>{completedCount}</Text>
-              <Text style={styles.statChipLabel}>Done</Text>
+              <Text style={styles.statValue}>{completedCount}</Text>
+              <Text style={styles.statLabel}>Done</Text>
             </View>
           </View>
 
-          {/* AI Matches */}
-          <View style={styles.statChip}>
-            <View style={[styles.statChipIcon, { backgroundColor: colors.accent.mustardLight }]}>
-              <SparkleIcon size={15} color={colors.accent.mustard} />
+          <View style={styles.statCard}>
+            <View style={[styles.statCardBorder, { backgroundColor: colors.accent.mustard }]} />
+            <View style={[styles.statIconWrap, { backgroundColor: colors.accent.mustardLight }]}>
+              <SparkleIcon size={16} color={colors.accent.mustard} />
             </View>
             <View>
-              <Text style={styles.statChipValue}>12</Text>
-              <Text style={styles.statChipLabel}>Matches</Text>
+              <Text style={styles.statValue}>12</Text>
+              <Text style={styles.statLabel}>Matches</Text>
             </View>
           </View>
         </ScrollView>
 
-        {/* ── Mustard CTA ───────────────────────────────────────────────────── */}
+        {/* ── Mustard CTA ─────────────────────────────────────────────────────── */}
         <TouchableOpacity
           onPress={() => navigation.navigate('CreateRequest')}
           activeOpacity={0.9}
@@ -237,181 +251,116 @@ export default function ClientDashboardScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.ctaGradient}
           >
-            <SparkleIcon size={20} color={colors.neutral[900]} />
+            <View style={styles.ctaIconCircle}>
+              <SparkleIcon size={18} color={colors.neutral[900]} />
+            </View>
             <Text style={styles.ctaText}>Post a Service Request</Text>
-            <ChevronRightIcon size={18} color={colors.neutral[900]} />
+            <View style={styles.ctaArrow}>
+              <ChevronRightIcon size={16} color={colors.neutral[900]} />
+            </View>
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* ── Service Categories ────────────────────────────────────────────── */}
+        {/* ── Service Categories ───────────────────────────────────────────────── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Service Categories</Text>
-          <TouchableOpacity onPress={() => navigation.navigate('CreateRequest')}>
+          <View>
+            <Text style={styles.sectionEyebrow}>BROWSE</Text>
+            <Text style={styles.sectionTitle}>Service Categories</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.seeAllBtn}
+            onPress={() => navigation.navigate('CreateRequest')}
+          >
             <Text style={styles.seeAll}>View all</Text>
+            <ChevronRightIcon size={12} color={colors.primary[600]} />
           </TouchableOpacity>
         </View>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesRow}
-        >
+
+        <View style={styles.categoriesGrid}>
           {SERVICE_CATEGORIES.map((item) => (
             <TouchableOpacity
               key={item.label}
               onPress={() => navigation.navigate('CreateRequest')}
-              activeOpacity={0.85}
-              style={styles.categoryItem}
+              activeOpacity={0.82}
+              style={styles.categoryCard}
             >
-              <LinearGradient colors={item.colors} style={styles.categoryTile}>
+              <LinearGradient
+                colors={item.gradientColors}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.categoryIconWrap}
+              >
                 <Text style={styles.categoryEmoji}>{item.emoji}</Text>
               </LinearGradient>
-              <Text style={styles.categoryLabel}>{item.label}</Text>
+              <Text style={styles.categoryLabel} numberOfLines={1}>{item.label}</Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </View>
 
-        {/* ── Promo banner (CG Red) ─────────────────────────────────────────── */}
+        {/* ── Promo banner ────────────────────────────────────────────────────── */}
         <View style={styles.promoBannerWrapper}>
           <LinearGradient
-            colors={['#ED3F27', '#C0331F']}
+            colors={['#ED3F27', '#B02B18']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.promoBanner}
           >
+            <View style={styles.promoDecoCircle} />
             <View style={styles.promoContent}>
-              <Text style={styles.promoEyebrow}>#PromoToday</Text>
+              <View style={styles.promoEyebrowBadge}>
+                <Text style={styles.promoEyebrow}>LIMITED OFFER</Text>
+              </View>
               <Text style={styles.promoTitle}>Work with our best{'\n'}service providers</Text>
+              <TouchableOpacity
+                style={styles.promoButton}
+                onPress={() => navigation.navigate('CreateRequest')}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.promoButtonText}>Book Now →</Text>
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              style={styles.promoButton}
-              onPress={() => navigation.navigate('CreateRequest')}
-              activeOpacity={0.85}
-            >
-              <Text style={styles.promoButtonText}>Book Now</Text>
-            </TouchableOpacity>
+            <Text style={styles.promoDecorEmoji}>🏆</Text>
           </LinearGradient>
         </View>
 
-        {/* ── My Requests ───────────────────────────────────────────────────── */}
+        {/* ── My Requests ─────────────────────────────────────────────────────── */}
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>My Requests</Text>
-          <TouchableOpacity onPress={() => navigation.getParent()?.navigate('RequestsTab')}>
+          <View>
+            <Text style={styles.sectionEyebrow}>RECENT</Text>
+            <Text style={styles.sectionTitle}>My Requests</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.seeAllBtn}
+            onPress={() => navigation.getParent()?.navigate('RequestsTab')}
+          >
             <Text style={styles.seeAll}>See all</Text>
+            <ChevronRightIcon size={12} color={colors.primary[600]} />
           </TouchableOpacity>
         </View>
 
         {recentRequests.length === 0 ? (
           /* Empty state */
           <View style={styles.emptyState}>
-            <Text style={styles.emptyEmoji}>🗂️</Text>
+            <View style={styles.emptyIconCircle}>
+              <Text style={styles.emptyEmoji}>🗂️</Text>
+            </View>
             <Text style={styles.emptyTitle}>No requests yet</Text>
             <Text style={styles.emptySubtitle}>
               Post your first service request to get matched with top providers near you.
             </Text>
             <TouchableOpacity
-              style={styles.emptyButton}
               onPress={() => navigation.navigate('CreateRequest')}
               activeOpacity={0.85}
             >
-<<<<<<< HEAD
-              <SearchIcon size={24} color={colors.neutral[0]} />
-            </LinearGradient>
-            <Text style={styles.actionText}>Find Providers</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.getParent()?.navigate('MatchesTab')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[colors.accent.cyan, colors.primary[500]]}
-              style={styles.actionGradient}
-            >
-              <MatchIcon size={24} color={colors.neutral[0]} />
-            </LinearGradient>
-            <Text style={styles.actionText}>My Matches</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => navigation.getParent()?.navigate('MessagesTab')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[colors.accent.purple, colors.primary[600]]}
-              style={styles.actionGradient}
-            >
-              <MessageIcon size={24} color={colors.neutral[0]} />
-            </LinearGradient>
-            <Text style={styles.actionText}>Messages</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.actionButton}
-            onPress={() => Alert.alert('Saved', 'View saved providers')}
-            activeOpacity={0.8}
-          >
-            <LinearGradient
-              colors={[colors.accent.coral, colors.accent.gold]}
-              style={styles.actionGradient}
-            >
-              <HeartIcon size={24} color={colors.neutral[0]} />
-            </LinearGradient>
-            <Text style={styles.actionText}>Saved</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Top AI Matches */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Top AI Matches</Text>
-          <TouchableOpacity onPress={() => navigation.getParent()?.navigate('MatchesTab')}>
-            <Text style={styles.seeAll}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.matchesList}>
-          <Card
-            title="Firas Saidi"
-            subtitle="Business Consultant • 98% match • 4.9★"
-            icon={<Avatar name="Firas Saidi" size="md" role="provider" />}
-            badge="NEW"
-            onPress={() => handleViewMatch('Firas Saidi')}
-            style={styles.matchCard}
-          />
-          <Card
-            title="Aziz Benzarti"
-            subtitle="Marketing Expert • 95% match • 4.8★"
-            icon={<Avatar name="Aziz Benzarti" size="md" role="provider" />}
-            onPress={() => handleViewMatch('Aziz Benzarti')}
-            style={styles.matchCard}
-          />
-          <Card
-            title="Youssef Sassi"
-            subtitle="Web Developer • 92% match • 5.0★"
-            icon={<Avatar name="Youssef Sassi" size="md" role="provider" />}
-            badge="HOT"
-            onPress={() => handleViewMatch('Youssef Sassi')}
-            style={styles.matchCard}
-          />
-        </View>
-
-        {/* Recent Activity */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recent Activity</Text>
-        </View>
-        <View style={styles.activityList}>
-          <View style={styles.activityItem}>
-            <View style={styles.activityIcon}>
-              <MessageIcon size={16} color={colors.primary[600]} />
-            </View>
-            <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>New message from Firas Saidi</Text>
-              <Text style={styles.activityTime}>2 hours ago</Text>
-            </View>
-=======
-              <Text style={styles.emptyButtonText}>Post a Request</Text>
+              <LinearGradient
+                colors={colors.gradients.primary as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.emptyButton}
+              >
+                <Text style={styles.emptyButtonText}>Post a Request</Text>
+              </LinearGradient>
             </TouchableOpacity>
->>>>>>> c718a8721c73424300a2ae46c4864a5f70cc9bfa
           </View>
         ) : (
           /* Request cards */
@@ -423,47 +372,40 @@ export default function ClientDashboardScreen() {
                 onPress={() => navigation.navigate('RequestDetail', { requestId: request.id })}
                 activeOpacity={0.8}
               >
-                <View style={styles.requestCardTop}>
-                  <Text style={styles.requestCardCategory}>
-                    {request.serviceCategory.charAt(0).toUpperCase() +
-                      request.serviceCategory.slice(1)}
+                {/* Status left border */}
+                <View
+                  style={[
+                    styles.requestCardAccent,
+                    { backgroundColor: STATUS_BORDER[request.status] || colors.neutral[300] },
+                  ]}
+                />
+                <View style={styles.requestCardBody}>
+                  <View style={styles.requestCardTop}>
+                    <Text style={styles.requestCardCategory}>
+                      {request.serviceCategory.charAt(0).toUpperCase() +
+                        request.serviceCategory.slice(1)}
+                    </Text>
+                    <StatusBadge status={request.status} />
+                  </View>
+                  <Text style={styles.requestCardDesc} numberOfLines={2}>
+                    {request.description}
                   </Text>
-                  <StatusBadge status={request.status} />
-                </View>
-                <Text style={styles.requestCardDesc} numberOfLines={2}>
-                  {request.description}
-                </Text>
-                <View style={styles.requestCardMeta}>
-                  <MapPinIcon size={12} color={colors.neutral[500]} />
-                  <Text style={styles.requestCardMetaText} numberOfLines={1}>
-                    {request.location.address}
-                  </Text>
-                  <Text style={styles.requestCardDot}>·</Text>
-                  <CalendarIcon size={12} color={colors.neutral[500]} />
-                  <Text style={styles.requestCardDate}>
-                    {formatDate(request.createdAt)}
-                  </Text>
+                  <View style={styles.requestCardMeta}>
+                    <MapPinIcon size={11} color={colors.neutral[400]} />
+                    <Text style={styles.requestCardMetaText} numberOfLines={1}>
+                      {request.location.address}
+                    </Text>
+                    <View style={styles.requestCardDot} />
+                    <CalendarIcon size={11} color={colors.neutral[400]} />
+                    <Text style={styles.requestCardDate}>
+                      {formatDate(request.createdAt)}
+                    </Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
-<<<<<<< HEAD
-          <View style={styles.activityItem}>
-            <View style={styles.activityIcon}>
-              <HeartIcon size={16} color={colors.accent.coral} />
-            </View>
-            <View style={styles.activityContent}>
-              <Text style={styles.activityTitle}>Aziz Roberts saved your request</Text>
-              <Text style={styles.activityTime}>1 day ago</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Bottom padding */}
-        <View style={{ height: spacing['4xl'] }} />
-=======
         )}
->>>>>>> c718a8721c73424300a2ae46c4864a5f70cc9bfa
       </ScrollView>
     </View>
   );
@@ -477,68 +419,88 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[50],
   },
 
-  // ── Header (flat, warm — same bg as page)
+  // ── Gradient Hero Header
   header: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.base,
-    backgroundColor: colors.neutral[50],
+    paddingBottom: spacing['2xl'],
+    overflow: 'visible',
+    position: 'relative',
+  },
+  headerGlowCircle: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(38, 96, 175, 0.25)',
+    top: -60,
+    right: -40,
   },
   headerTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   locationPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: colors.primary[50],
+    backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   locationText: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: colors.primary[600],
+    color: 'rgba(255,255,255,0.92)',
   },
   bellButton: {
     position: 'relative',
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.lg,
-    backgroundColor: colors.neutral[100],
+    width: 42,
+    height: 42,
+    borderRadius: borderRadius.xl,
+    backgroundColor: 'rgba(255,255,255,0.15)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.2)',
   },
   bellBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
+    top: 8,
+    right: 8,
     backgroundColor: colors.accent.coral,
     borderRadius: borderRadius.full,
-    minWidth: 16,
-    height: 16,
+    minWidth: 14,
+    height: 14,
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 3,
+    borderWidth: 1.5,
+    borderColor: colors.primary[700],
   },
   bellBadgeText: {
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: typography.weight.bold,
     color: colors.neutral[0],
-    lineHeight: 11,
+    lineHeight: 10,
+  },
+  tagline: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: 'rgba(255,255,255,0.7)',
+    marginBottom: spacing.xs,
+    letterSpacing: typography.letterSpacing.wide,
   },
   greeting: {
     fontSize: typography.size['2xl'],
     fontWeight: typography.weight.bold,
-    color: colors.neutral[800],
-    marginBottom: spacing.xs,
-  },
-  tagline: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[500],
+    color: colors.neutral[0],
+    lineHeight: typography.lineHeight['2xl'],
+    letterSpacing: typography.letterSpacing.tight,
   },
 
   // ── Scroll wrapper
@@ -553,12 +515,20 @@ const styles = StyleSheet.create({
     backgroundColor: colors.neutral[0],
     borderRadius: borderRadius.xl,
     marginHorizontal: spacing.xl,
-    marginTop: spacing.sm,
-    marginBottom: spacing.lg,
+    marginTop: -spacing.xl,
+    marginBottom: spacing.xl,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.md,
     gap: spacing.sm,
-    ...shadows.sm,
+    ...shadows.lg,
+  },
+  searchIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: borderRadius.md,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   searchPlaceholder: {
     flex: 1,
@@ -566,71 +536,99 @@ const styles = StyleSheet.create({
     color: colors.neutral[400],
   },
   searchPostButton: {
-    backgroundColor: colors.primary[600],
     borderRadius: borderRadius.md,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
   },
   searchPostButtonText: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
+    color: colors.neutral[900],
   },
 
   // ── Stats strip
   statsRow: {
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
-  statChip: {
+  statCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
     backgroundColor: colors.neutral[0],
     borderRadius: borderRadius.xl,
     paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    ...shadows.sm,
+    paddingVertical: spacing.md,
+    overflow: 'hidden',
+    ...shadows.card,
   },
-  statChipIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.md,
+  statCardBorder: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 4,
+    borderTopLeftRadius: borderRadius.xl,
+    borderBottomLeftRadius: borderRadius.xl,
+  },
+  statIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
     justifyContent: 'center',
     alignItems: 'center',
+    marginLeft: 4,
   },
-  statChipValue: {
+  statValue: {
     fontSize: typography.size.lg,
     fontWeight: typography.weight.bold,
     color: colors.neutral[800],
     lineHeight: typography.lineHeight.lg,
   },
-  statChipLabel: {
+  statLabel: {
     fontSize: typography.size.xs,
     color: colors.neutral[500],
+    fontWeight: typography.weight.medium,
   },
 
   // ── Mustard CTA
   ctaWrapper: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.xl,
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius['2xl'],
     overflow: 'hidden',
-    ...shadows.md,
+    ...shadows.mustard,
   },
   ctaGradient: {
-    height: 56,
+    height: 62,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    gap: spacing.sm,
+    gap: spacing.md,
+  },
+  ctaIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   ctaText: {
     flex: 1,
     fontSize: typography.size.base,
     fontWeight: typography.weight.bold,
-    color: colors.neutral[900], // Dark text on mustard for WCAG contrast
+    color: colors.neutral[900],
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  ctaArrow: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
   // ── Section header
@@ -639,44 +637,64 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    marginBottom: spacing.md,
+    marginBottom: spacing.base,
+  },
+  sectionEyebrow: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.primary[500],
+    letterSpacing: typography.letterSpacing.widest,
+    textTransform: 'uppercase',
+    marginBottom: 2,
   },
   sectionTitle: {
-    fontSize: typography.size.base,
+    fontSize: typography.size.md,
     fontWeight: typography.weight.bold,
     color: colors.neutral[800],
+    letterSpacing: typography.letterSpacing.tight,
+  },
+  seeAllBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
   },
   seeAll: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
+    fontWeight: typography.weight.semibold,
     color: colors.primary[600],
   },
 
-  // ── Service Categories
-  categoriesRow: {
+  // ── Service Categories (2-column grid)
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
     marginBottom: spacing.xl,
   },
-  categoryItem: {
+  categoryCard: {
+    width: '22%',
     alignItems: 'center',
-    gap: spacing.xs,
+    gap: spacing.sm,
+    flexGrow: 1,
   },
-  categoryTile: {
-    width: 64,
-    height: 64,
+  categoryIconWrap: {
+    width: '100%',
+    aspectRatio: 1,
     borderRadius: borderRadius.xl,
     justifyContent: 'center',
     alignItems: 'center',
     ...shadows.sm,
+    minHeight: 64,
+    minWidth: 64,
   },
   categoryEmoji: {
-    fontSize: 24,
+    fontSize: 26,
   },
   categoryLabel: {
     fontSize: typography.size.xs,
     color: colors.neutral[700],
-    fontWeight: typography.weight.medium,
+    fontWeight: typography.weight.semibold,
     textAlign: 'center',
   },
 
@@ -684,27 +702,45 @@ const styles = StyleSheet.create({
   promoBannerWrapper: {
     marginHorizontal: spacing.xl,
     marginBottom: spacing.xl,
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius['2xl'],
     overflow: 'hidden',
     ...shadows.md,
   },
   promoBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: spacing.base,
-    gap: spacing.md,
-    minHeight: 90,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
+    minHeight: 110,
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  promoDecoCircle: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    right: -30,
+    top: -50,
   },
   promoContent: {
     flex: 1,
+    gap: spacing.sm,
+  },
+  promoEyebrowBadge: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 3,
+    alignSelf: 'flex-start',
   },
   promoEyebrow: {
-    fontSize: typography.size.xs,
+    fontSize: typography.size.xs - 1,
     fontWeight: typography.weight.bold,
-    color: 'rgba(255,255,255,0.8)',
+    color: 'rgba(255,255,255,0.9)',
     letterSpacing: typography.letterSpacing.wider,
     textTransform: 'uppercase',
-    marginBottom: spacing.xs,
   },
   promoTitle: {
     fontSize: typography.size.base,
@@ -713,17 +749,23 @@ const styles = StyleSheet.create({
     lineHeight: typography.lineHeight.base,
   },
   promoButton: {
-    backgroundColor: 'rgba(0,0,0,0.25)',
+    backgroundColor: 'rgba(255,255,255,0.2)',
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.base,
     paddingVertical: spacing.sm,
+    alignSelf: 'flex-start',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.35)',
+    borderColor: 'rgba(255,255,255,0.3)',
   },
   promoButtonText: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.bold,
     color: colors.neutral[0],
+  },
+  promoDecorEmoji: {
+    fontSize: 52,
+    opacity: 0.7,
+    marginLeft: spacing.md,
   },
 
   // ── My Requests section
@@ -735,8 +777,16 @@ const styles = StyleSheet.create({
   requestCard: {
     backgroundColor: colors.neutral[0],
     borderRadius: borderRadius.xl,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    ...shadows.card,
+  },
+  requestCardAccent: {
+    width: 4,
+  },
+  requestCardBody: {
+    flex: 1,
     padding: spacing.base,
-    ...shadows.sm,
   },
   requestCardTop: {
     flexDirection: 'row',
@@ -750,6 +800,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[800],
     flex: 1,
     marginRight: spacing.sm,
+    letterSpacing: typography.letterSpacing.tight,
   },
   requestCardDesc: {
     fontSize: typography.size.sm,
@@ -764,14 +815,16 @@ const styles = StyleSheet.create({
   },
   requestCardMetaText: {
     fontSize: typography.size.xs,
-    color: colors.neutral[500],
+    color: colors.neutral[400],
     flex: 1,
   },
-  requestCardDate: {
-    fontSize: typography.size.xs,
-    color: colors.neutral[500],
-  },
   requestCardDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: colors.neutral[300],
+  },
+  requestCardDate: {
     fontSize: typography.size.xs,
     color: colors.neutral[400],
   },
@@ -781,14 +834,23 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xl,
     marginBottom: spacing.xl,
     backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing['2xl'],
+    borderRadius: borderRadius['2xl'],
+    paddingVertical: spacing['2xl'],
+    paddingHorizontal: spacing.xl,
     alignItems: 'center',
-    ...shadows.sm,
+    ...shadows.card,
+  },
+  emptyIconCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.base,
   },
   emptyEmoji: {
-    fontSize: 44,
-    marginBottom: spacing.md,
+    fontSize: 36,
   },
   emptyTitle: {
     fontSize: typography.size.lg,
@@ -796,6 +858,7 @@ const styles = StyleSheet.create({
     color: colors.neutral[800],
     marginBottom: spacing.sm,
     textAlign: 'center',
+    letterSpacing: typography.letterSpacing.tight,
   },
   emptySubtitle: {
     fontSize: typography.size.sm,
@@ -805,10 +868,9 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   emptyButton: {
-    backgroundColor: colors.primary[600],
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.full,
     paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm,
+    paddingVertical: spacing.md,
     ...shadows.sm,
   },
   emptyButtonText: {
