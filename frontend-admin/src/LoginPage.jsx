@@ -57,15 +57,14 @@ export default function LoginPage({ onLoginSuccess }) {
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 900));
       
-      // Demo credentials check
-      if (email === 'admin@smartmatch.com' && password === 'admin123') {
-        // Success - call parent callback
-        onLoginSuccess({
-          name: 'Admin User',
-          email,
-          role: 'superadmin',
-          avatar: 'AU'
-        });
+      // Admin credentials lookup
+      const ADMIN_ACCOUNTS = [
+        { email: 'admin@smartmatch.com', password: 'admin123', name: 'Admin User',  avatar: 'AU' },
+        { email: 'firas@smartmatch.com', password: 'firas123', name: 'Firas Saidi', avatar: 'FS' },
+      ];
+      const match = ADMIN_ACCOUNTS.find(a => a.email === email && a.password === password);
+      if (match) {
+        onLoginSuccess({ name: match.name, email, role: 'superadmin', avatar: match.avatar });
       } else {
         throw new Error('Invalid admin credentials');
       }
@@ -76,10 +75,10 @@ export default function LoginPage({ onLoginSuccess }) {
     }
   };
 
-  // Auto-fill demo credentials
+  // Auto-fill demo credentials (Firas admin account)
   const fillDemo = () => {
-    setEmail('admin@smartmatch.com');
-    setPassword('admin123');
+    setEmail('firas@smartmatch.com');
+    setPassword('firas123');
     setErrors({});
     setGlobalError('');
   };
@@ -194,7 +193,7 @@ export default function LoginPage({ onLoginSuccess }) {
                 Use demo credentials
               </button>
               <div style={styles.demoBox}>
-                📧 admin@smartmatch.com &nbsp;|&nbsp; 🔑 admin123
+                📧 firas@smartmatch.com &nbsp;|&nbsp; 🔑 firas123
               </div>
             </div>
           </form>

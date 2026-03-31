@@ -19,13 +19,17 @@
 import { useState } from 'react';
 import LoginPage from './LoginPage';
 import DashboardPage from './Dashboardpage';
+import ClientsPage from './ClientsPage';
+import ProvidersPage from './ProvidersPage';
+import RequestsPage from './RequestsPage';
 import { colors, spacing } from './theme';
 import './App.css';
 
 // Navigation items
 const NAV_ITEMS = [
   { id: 'dashboard',  label: 'Dashboard',  icon: '⊞' },
-  { id: 'users',      label: 'Users',      icon: '👥' },
+  { id: 'clients',    label: 'Clients',    icon: '👤' },
+  { id: 'providers',  label: 'Providers',  icon: '🔧' },
   { id: 'requests',   label: 'Requests',   icon: '📋' },
   { id: 'analytics',  label: 'Analytics',  icon: '📈' },
   { id: 'settings',   label: 'Settings',   icon: '⚙️' },
@@ -363,8 +367,9 @@ function App() {
 
   const PAGE_TITLES = {
     dashboard:  'Dashboard',
-    users:      'User Management',
-    requests:   'Service Requests',
+    clients:    'Clients Management',
+    providers:  'Service Providers',
+    requests:   'Requests Management',
     analytics:  'Analytics',
     settings:   'Settings',
   };
@@ -374,11 +379,14 @@ function App() {
     switch (activePage) {
       case 'dashboard':
         return <DashboardPage />;
-      case 'users':
+      case 'clients':
+        return <ClientsPage />;
+      case 'providers':
+        return <ProvidersPage />;
       case 'requests':
+        return <RequestsPage />;
       case 'analytics':
       case 'settings':
-        // Placeholder for other pages (you'll add these later)
         return (
           <div style={{
             display: 'flex',
