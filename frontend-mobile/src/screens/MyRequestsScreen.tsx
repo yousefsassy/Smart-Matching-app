@@ -24,8 +24,6 @@ import {
   StarIcon,
   ChevronRightIcon,
   SparkleIcon,
-  CheckCircleIcon,
-  XCircleIcon,
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
@@ -55,20 +53,16 @@ const CATEGORY_COLORS: Record<string, [string, string]> = {
 const STATUS_BORDER: Record<string, string> = {
   pending: colors.accent.gold,
   accepted: colors.accent.cyan,
-  in_progress: colors.primary[500],
   completed: colors.success,
-  rejected: colors.error,
-  cancelled: colors.neutral[400],
 };
 
-type FilterKey = 'all' | 'pending' | 'in_progress' | 'completed' | 'cancelled';
+type FilterKey = 'all' | 'pending' | 'accepted' | 'completed';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'pending', label: 'Pending' },
-  { key: 'in_progress', label: 'Active' },
-  { key: 'completed', label: 'Done' },
-  { key: 'cancelled', label: 'Cancelled' },
+  { key: 'accepted', label: 'Accepted' },
+  { key: 'completed', label: 'Completed' },
 ];
 
 export default function MyRequestsScreen() {
@@ -78,6 +72,7 @@ export default function MyRequestsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
+  const VISIBLE_STATUSES = ['pending', 'accepted', 'completed'];
 
   useEffect(() => {
     loadRequests();
@@ -91,9 +86,11 @@ export default function MyRequestsScreen() {
 
   const loadRequests = () => {
     const clientRequests = getClientRequests();
-    setRequests(clientRequests.sort((a, b) =>
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ));
+    setRequests(
+      clientRequests
+        .filter((r) => VISIBLE_STATUSES.includes(r.status))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    );
   };
 
   const onRefresh = async () => {
@@ -105,15 +102,7 @@ export default function MyRequestsScreen() {
 
   const filteredRequests = activeFilter === 'all'
     ? requests
-    : requests.filter((r) => {
-        if (activeFilter === 'in_progress') {
-          return r.status === 'accepted' || r.status === 'in_progress';
-        }
-        if (activeFilter === 'cancelled') {
-          return r.status === 'cancelled' || r.status === 'rejected';
-        }
-        return r.status === activeFilter;
-      });
+    : requests.filter((r) => r.status === activeFilter);
 
   const formatDate = (isoDate: string): string => {
     const date = new Date(isoDate);
@@ -149,11 +138,7 @@ export default function MyRequestsScreen() {
             const isActive = activeFilter === f.key;
             const count = f.key === 'all'
               ? requests.length
-              : requests.filter((r) => {
-                  if (f.key === 'in_progress') return r.status === 'accepted' || r.status === 'in_progress';
-                  if (f.key === 'cancelled') return r.status === 'cancelled' || r.status === 'rejected';
-                  return r.status === f.key;
-                }).length;
+              : requests.filter((r) => r.status === f.key).length;
 
             return (
               <TouchableOpacity
@@ -212,7 +197,7 @@ export default function MyRequestsScreen() {
               <ClockIcon size={40} color={colors.primary[400]} />
             </View>
             <Text style={styles.emptyTitle}>
-              {activeFilter === 'all' ? 'No requests yet' : `No ${activeFilter.replace('_', ' ')} requests`}
+              {activeFilter === 'all' ? 'No requests yet' : `No ${activeFilter} requests`}
             </Text>
             <Text style={styles.emptySubtitle}>
               {activeFilter === 'all'

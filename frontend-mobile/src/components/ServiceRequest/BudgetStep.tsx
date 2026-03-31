@@ -7,9 +7,7 @@ import {
   Animated,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
-import { TagIcon, CheckCircleIcon } from '../Icons';
-import ToggleSwitch from '../ToggleSwitch';
-import Input from '../Input';
+import { CheckCircleIcon } from '../Icons';
 
 export type BudgetPreset = 'economy' | 'standard' | 'premium';
 
@@ -51,14 +49,11 @@ const BUDGET_PRESETS: BudgetPresetConfig[] = [
 
 export interface BudgetData {
   preset: BudgetPreset | null;
-  isFlexible: boolean;
-  customMin: string;
-  customMax: string;
 }
 
 interface BudgetStepProps {
   data: BudgetData;
-  onChange: (field: keyof BudgetData, value: BudgetPreset | boolean | string | null) => void;
+  onChange: (field: keyof BudgetData, value: BudgetPreset | null) => void;
 }
 
 function PresetCard({
@@ -128,21 +123,6 @@ function PresetCard({
 }
 
 export default function BudgetStep({ data, onChange }: BudgetStepProps) {
-  const presetsOpacity = useRef(new Animated.Value(data.isFlexible ? 0.4 : 1)).current;
-  const [showCustom, setShowCustom] = React.useState(false);
-
-  const handleFlexibleToggle = (value: boolean) => {
-    onChange('isFlexible', value);
-    Animated.timing(presetsOpacity, {
-      toValue: value ? 0.4 : 1,
-      duration: 200,
-      useNativeDriver: true,
-    }).start();
-    if (value) {
-      onChange('preset', null);
-    }
-  };
-
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -152,74 +132,18 @@ export default function BudgetStep({ data, onChange }: BudgetStepProps) {
         <Text style={styles.subtitle}>This is optional — you can skip and decide later</Text>
       </View>
 
-      {/* Flexible toggle */}
-      <View style={styles.flexibleRow}>
-        <View style={styles.flexibleLeft}>
-          <Text style={styles.flexibleTitle}>I'm flexible on budget</Text>
-          <Text style={styles.flexibleSubtitle}>Let providers suggest their rates</Text>
-        </View>
-        <ToggleSwitch
-          value={data.isFlexible}
-          onValueChange={handleFlexibleToggle}
-        />
-      </View>
-
       {/* Preset tier cards */}
-      <Animated.View style={{ opacity: presetsOpacity }}>
-        <View style={styles.presetsContainer}>
-          {BUDGET_PRESETS.map((preset) => (
-            <PresetCard
-              key={preset.key}
-              config={preset}
-              isSelected={data.preset === preset.key}
-              disabled={data.isFlexible}
-              onPress={() => onChange('preset', data.preset === preset.key ? null : preset.key)}
-            />
-          ))}
-        </View>
-      </Animated.View>
-
-      {/* Custom range (collapsible) */}
-      {!data.isFlexible && (
-        <TouchableOpacity
-          style={styles.customToggle}
-          onPress={() => setShowCustom(!showCustom)}
-          activeOpacity={0.7}
-        >
-          <TagIcon size={14} color={colors.primary[500]} />
-          <Text style={styles.customToggleText}>
-            {showCustom ? 'Hide custom range' : 'Set a custom range instead'}
-          </Text>
-        </TouchableOpacity>
-      )}
-
-      {showCustom && !data.isFlexible && (
-        <View style={styles.customInputsRow}>
-          <View style={styles.customInput}>
-            <Input
-              label="Min (TND)"
-              value={data.customMin}
-              onChangeText={(v) => onChange('customMin', v)}
-              placeholder="e.g. 100"
-              keyboardType="numeric"
-              icon={<TagIcon size={18} color={colors.neutral[400]} />}
-              containerStyle={{ marginBottom: 0 }}
-            />
-          </View>
-          <Text style={styles.customDivider}>–</Text>
-          <View style={styles.customInput}>
-            <Input
-              label="Max (TND)"
-              value={data.customMax}
-              onChangeText={(v) => onChange('customMax', v)}
-              placeholder="e.g. 300"
-              keyboardType="numeric"
-              icon={<TagIcon size={18} color={colors.neutral[400]} />}
-              containerStyle={{ marginBottom: 0 }}
-            />
-          </View>
-        </View>
-      )}
+      <View style={styles.presetsContainer}>
+        {BUDGET_PRESETS.map((preset) => (
+          <PresetCard
+            key={preset.key}
+            config={preset}
+            isSelected={data.preset === preset.key}
+            disabled={false}
+            onPress={() => onChange('preset', data.preset === preset.key ? null : preset.key)}
+          />
+        ))}
+      </View>
 
       {/* Skip note */}
       <View style={styles.skipNote}>
@@ -258,31 +182,6 @@ const styles = StyleSheet.create({
     color: colors.neutral[500],
     textAlign: 'center',
   },
-  flexibleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    padding: spacing.base,
-    marginBottom: spacing.lg,
-  },
-  flexibleLeft: {
-    flex: 1,
-    marginRight: spacing.md,
-  },
-  flexibleTitle: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[800],
-    marginBottom: 2,
-  },
-  flexibleSubtitle: {
-    fontSize: typography.size.xs,
-    color: colors.neutral[500],
-  },
   presetsContainer: {
     gap: spacing.sm,
     marginBottom: spacing.md,
@@ -297,9 +196,6 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     ...shadows.sm,
     gap: spacing.md,
-  },
-  presetCardDisabled: {
-    opacity: 0.5,
   },
   presetEmoji: {
     fontSize: 28,
@@ -327,33 +223,6 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     fontWeight: typography.weight.medium,
     color: colors.neutral[600],
-  },
-  customToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    paddingVertical: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  customToggleText: {
-    fontSize: typography.size.sm,
-    color: colors.primary[500],
-    fontWeight: typography.weight.medium,
-  },
-  customInputsRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: spacing.md,
-    marginBottom: spacing.md,
-  },
-  customInput: {
-    flex: 1,
-  },
-  customDivider: {
-    fontSize: typography.size.lg,
-    color: colors.neutral[400],
-    fontWeight: typography.weight.medium,
-    paddingBottom: spacing.md,
   },
   skipNote: {
     backgroundColor: colors.neutral[50],

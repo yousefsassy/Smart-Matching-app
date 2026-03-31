@@ -3,7 +3,6 @@ import {
   View,
   Text,
   StyleSheet,
-  TouchableOpacity,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
 import { MapPinIcon } from '../Icons';
@@ -58,15 +57,6 @@ export default function DescribeJobStep({ data, errors, onChange }: DescribeJobS
         />
       </View>
 
-      {/* Photo placeholder */}
-      <View style={styles.section}>
-        <Text style={styles.sectionLabel}>Photos (optional)</Text>
-        <TouchableOpacity style={styles.photoPlaceholder} activeOpacity={0.7}>
-          <Text style={styles.photoEmoji}>📷</Text>
-          <Text style={styles.photoText}>Add Photos</Text>
-          <Text style={styles.photoSubtext}>Help providers see the job clearly</Text>
-        </TouchableOpacity>
-      </View>
     </View>
   );
 }
@@ -112,29 +102,5 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.medium,
     color: colors.neutral[700],
     marginBottom: spacing.sm,
-  },
-  photoPlaceholder: {
-    borderWidth: 1.5,
-    borderColor: colors.neutral[300],
-    borderStyle: 'dashed',
-    borderRadius: borderRadius.lg,
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.base,
-    backgroundColor: colors.neutral[50],
-  },
-  photoEmoji: {
-    fontSize: 28,
-    marginBottom: spacing.sm,
-  },
-  photoText: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[500],
-    marginBottom: 2,
-  },
-  photoSubtext: {
-    fontSize: typography.size.xs,
-    color: colors.neutral[400],
   },
 });

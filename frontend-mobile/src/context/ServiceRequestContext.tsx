@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from './AuthContext';
 import {
   ServiceRequest,
-  ServiceRequestStatus,
   ServiceCategory,
   Location,
   TimeSlot,
@@ -29,7 +28,7 @@ interface ServiceRequestContextType {
   getProviderRequests: () => ServiceRequest[];
   acceptRequest: (requestId: string) => Promise<void>;
   rejectRequest: (requestId: string, reason?: string) => Promise<void>;
-  updateRequestStatus: (requestId: string, status: ServiceRequestStatus) => Promise<void>;
+  updateRequestStatus: (requestId: string, status: 'completed') => Promise<void>;
 
   // Common
   getRequestById: (requestId: string) => ServiceRequest | null;
@@ -290,7 +289,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
 
   const updateRequestStatus = async (
     requestId: string,
-    status: ServiceRequestStatus
+    status: 'completed'
   ): Promise<void> => {
     const request = getRequestById(requestId);
     if (!request) {

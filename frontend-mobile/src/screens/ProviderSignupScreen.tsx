@@ -1,6 +1,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
@@ -8,24 +9,28 @@ import {
   Animated,
   Dimensions,
   StatusBar,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, animations } from '../theme';
+import { colors, spacing, typography, borderRadius, animations } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { AuthStackParamList } from '../navigation/AuthStack';
-import StepperHeader from '../components/StepperHeader';
+import { ServiceCategory } from '../types/serviceRequest';
 import PrimaryButton from '../components/PrimaryButton';
 import BasicInfoStep from '../components/ProviderSignup/BasicInfoStep';
 import SecurityStep from '../components/ProviderSignup/SecurityStep';
 import LocationStep from '../components/ProviderSignup/LocationStep';
 import AvailabilityStep, { AvailabilityData } from '../components/ProviderSignup/AvailabilityStep';
+import SuccessScreen from '../components/ProviderSignup/SuccessScreen';
 import { ChevronLeftIcon } from '../components/Icons';
 
 type ProviderSignupNav = NativeStackNavigationProp<AuthStackParamList, 'ProviderSignup'>;
 
-const STEP_LABELS = ['Basic Info', 'Security', 'Location', 'Availability'];
+// Step 0 = Account Info + Professional Details (scrollable single page)
+// Step 1 = Availability
+const TOTAL_STEPS = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 interface FormData {
@@ -34,9 +39,11 @@ interface FormData {
   password: string;
   confirmPassword: string;
   city: string;
-  radius: number;
+  serviceCategories: ServiceCategory[];
   availability: AvailabilityData;
 }
+
+const STEP_INDICATORS = ['Details', 'Availability'];
 
 export default function ProviderSignupScreen() {
   const navigation = useNavigation<ProviderSignupNav>();
@@ -45,13 +52,14 @@ export default function ProviderSignupScreen() {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
     city: '',
-    radius: 10,
+    serviceCategories: [],
     availability: {
       monday:    { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
       tuesday:   { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
@@ -64,12 +72,10 @@ export default function ProviderSignupScreen() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Animation refs
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
 
-  // Field change handler — clears related error
   const handleFieldChange = useCallback((field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) {
@@ -81,7 +87,6 @@ export default function ProviderSignupScreen() {
     }
   }, [errors]);
 
-  // Per-step validation
   const validateStep = (step: number): boolean => {
     const errs: Record<string, string> = {};
 
@@ -91,20 +96,14 @@ export default function ProviderSignupScreen() {
         else if (formData.fullName.trim().length < 2) errs.fullName = 'Name must be at least 2 characters';
         if (!formData.email.trim()) errs.email = 'Email is required';
         else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Please enter a valid email';
-        break;
-      }
-      case 1: {
         if (!formData.password) errs.password = 'Password is required';
         else if (formData.password.length < 8) errs.password = 'Must be at least 8 characters';
         if (!formData.confirmPassword) errs.confirmPassword = 'Please confirm your password';
         else if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
-        break;
-      }
-      case 2: {
         if (!formData.city) errs.city = 'Please select a city';
         break;
       }
-      case 3: {
+      case 1: {
         const enabledDays = Object.entries(formData.availability).filter(([_, c]) => c.enabled);
         if (enabledDays.length === 0) {
           errs.availability = 'Enable at least one day';
@@ -131,47 +130,26 @@ export default function ProviderSignupScreen() {
     return Object.keys(errs).length === 0;
   };
 
-  // Animate step transition
   const animateTransition = (direction: 'forward' | 'backward', callback: () => void) => {
     const exitX = direction === 'forward' ? -SCREEN_WIDTH * 0.2 : SCREEN_WIDTH * 0.2;
     const enterX = direction === 'forward' ? SCREEN_WIDTH * 0.2 : -SCREEN_WIDTH * 0.2;
 
-    // Slide out current
     Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: exitX,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
+      Animated.timing(slideAnim, { toValue: exitX, duration: 150, useNativeDriver: true }),
+      Animated.timing(opacityAnim, { toValue: 0, duration: 150, useNativeDriver: true }),
     ]).start(() => {
       callback();
-      // Reset position to enter from other side
       slideAnim.setValue(enterX);
-      // Slide in new
       Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          ...animations.spring.snappy,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
+        Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, ...animations.spring.snappy }),
+        Animated.timing(opacityAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
       ]).start();
     });
   };
 
   const handleNext = () => {
     if (!validateStep(currentStep)) return;
-
-    if (currentStep < 3) {
+    if (currentStep < TOTAL_STEPS - 1) {
       animateTransition('forward', () => setCurrentStep((s) => s + 1));
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
     }
@@ -187,53 +165,47 @@ export default function ProviderSignupScreen() {
   };
 
   const handleSubmit = async () => {
-    if (!validateStep(3)) return;
-
+    if (!validateStep(TOTAL_STEPS - 1)) return;
     setIsSubmitting(true);
+    setShowSuccess(true);
     try {
-      // Register the provider via AuthContext (adds to mock DB + auto-logs in)
       await signup({
         fullName: formData.fullName.trim(),
         email: formData.email.trim(),
         password: formData.password,
         role: 'provider',
       });
-      // signup() sets isAuthenticated=true, which triggers RootNavigator
-      // to switch to MainTabs → ProviderDashboard automatically
-    } catch (error) {
-      // If signup fails, stay on the form
+    } catch {
+      setShowSuccess(false);
       setIsSubmitting(false);
     }
   };
 
-  // Render current step content
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
         return (
-          <BasicInfoStep
-            data={{ fullName: formData.fullName, email: formData.email }}
-            errors={errors}
-            onChange={handleFieldChange}
-          />
+          <>
+            <BasicInfoStep
+              data={{ fullName: formData.fullName, email: formData.email }}
+              errors={errors}
+              onChange={handleFieldChange}
+            />
+            <View style={styles.stepGap} />
+            <SecurityStep
+              data={{ password: formData.password, confirmPassword: formData.confirmPassword }}
+              errors={errors}
+              onChange={handleFieldChange}
+            />
+            <View style={styles.stepGap} />
+            <LocationStep
+              data={{ city: formData.city, serviceCategories: formData.serviceCategories }}
+              errors={errors}
+              onChange={handleFieldChange}
+            />
+          </>
         );
       case 1:
-        return (
-          <SecurityStep
-            data={{ password: formData.password, confirmPassword: formData.confirmPassword }}
-            errors={errors}
-            onChange={handleFieldChange}
-          />
-        );
-      case 2:
-        return (
-          <LocationStep
-            data={{ city: formData.city, radius: formData.radius }}
-            errors={errors}
-            onChange={handleFieldChange}
-          />
-        );
-      case 3:
         return (
           <AvailabilityStep
             data={{ availability: formData.availability }}
@@ -245,6 +217,16 @@ export default function ProviderSignupScreen() {
         return null;
     }
   };
+
+  if (showSuccess) {
+    return (
+      <SuccessScreen
+        providerName={formData.fullName.trim()}
+        providerEmail={formData.email.trim()}
+        onBackToLogin={() => navigation.navigate('Login')}
+      />
+    );
+  }
 
   return (
     <KeyboardAvoidingView
@@ -259,13 +241,35 @@ export default function ProviderSignupScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <StepperHeader
-            currentStep={currentStep}
-            totalSteps={4}
-            stepLabels={STEP_LABELS}
-          />
+          {/* Step indicator — simple pills */}
+          <View style={styles.stepIndicatorRow}>
+            {STEP_INDICATORS.map((label, idx) => (
+              <View key={label} style={styles.stepIndicatorItem}>
+                <View style={[
+                  styles.stepDot,
+                  idx === currentStep && styles.stepDotActive,
+                  idx < currentStep && styles.stepDotDone,
+                ]}>
+                  <Text style={[
+                    styles.stepDotText,
+                    (idx === currentStep || idx < currentStep) && styles.stepDotTextActive,
+                  ]}>
+                    {idx + 1}
+                  </Text>
+                </View>
+                <Text style={[
+                  styles.stepLabel,
+                  idx === currentStep && styles.stepLabelActive,
+                ]}>
+                  {label}
+                </Text>
+                {idx < STEP_INDICATORS.length - 1 && (
+                  <View style={[styles.stepLine, idx < currentStep && styles.stepLineDone]} />
+                )}
+              </View>
+            ))}
+          </View>
 
-          {/* Step content with animation */}
           <Animated.View
             style={{
               transform: [{ translateX: slideAnim }],
@@ -285,7 +289,7 @@ export default function ProviderSignupScreen() {
               icon={currentStep > 0 ? <ChevronLeftIcon size={18} color={colors.primary[600]} /> : undefined}
             />
 
-            {currentStep < 3 ? (
+            {currentStep < TOTAL_STEPS - 1 ? (
               <PrimaryButton
                 title="Next"
                 onPress={handleNext}
@@ -323,6 +327,68 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: spacing['3xl'],
   },
+  stepGap: {
+    height: spacing.lg,
+  },
+
+  // ── Step indicator
+  stepIndicatorRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.xl,
+  },
+  stepIndicatorItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  stepDot: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: colors.neutral[100],
+    borderWidth: 1.5,
+    borderColor: colors.neutral[300],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  stepDotActive: {
+    backgroundColor: colors.primary[600],
+    borderColor: colors.primary[600],
+  },
+  stepDotDone: {
+    backgroundColor: colors.primary[100],
+    borderColor: colors.primary[400],
+  },
+  stepDotText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[400],
+  },
+  stepDotTextActive: {
+    color: colors.neutral[0],
+  },
+  stepLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[400],
+    marginLeft: spacing.xs,
+  },
+  stepLabelActive: {
+    color: colors.primary[600],
+    fontWeight: typography.weight.bold,
+  },
+  stepLine: {
+    flex: 1,
+    height: 1.5,
+    backgroundColor: colors.neutral[200],
+    marginHorizontal: spacing.sm,
+  },
+  stepLineDone: {
+    backgroundColor: colors.primary[400],
+  },
+
+  // ── Nav buttons
   navButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',

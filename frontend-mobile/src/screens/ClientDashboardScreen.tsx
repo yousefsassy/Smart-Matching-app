@@ -19,14 +19,11 @@ import { HomeStackParamList } from '../navigation/MainTabs';
 import StatusBadge from '../components/StatusBadge';
 import { ServiceRequest } from '../types/serviceRequest';
 import {
-  SparkleIcon,
   BellIcon,
   ChevronRightIcon,
   MapPinIcon,
   SearchIcon,
   CalendarIcon,
-  CheckCircleIcon,
-  ClockIcon,
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
@@ -112,10 +109,6 @@ export default function ClientDashboardScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const requests = getClientRequests();
-  const activeCount = requests.filter(
-    (r) => r.status === 'pending' || r.status === 'accepted' || r.status === 'in_progress'
-  ).length;
-  const completedCount = requests.filter((r) => r.status === 'completed').length;
   const firstName = user?.fullName?.split(' ')[0] || 'there';
 
   const recentRequests = [...requests]
@@ -199,46 +192,6 @@ export default function ClientDashboardScreen() {
           </LinearGradient>
         </TouchableOpacity>
 
-        {/* ── Stats strip ─────────────────────────────────────────────────────── */}
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.statsRow}
-        >
-          <View style={styles.statCard}>
-            <View style={[styles.statCardBorder, { backgroundColor: colors.primary[500] }]} />
-            <View style={[styles.statIconWrap, { backgroundColor: colors.primary[50] }]}>
-              <ClockIcon size={16} color={colors.primary[600]} />
-            </View>
-            <View>
-              <Text style={styles.statValue}>{activeCount}</Text>
-              <Text style={styles.statLabel}>Active</Text>
-            </View>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statCardBorder, { backgroundColor: colors.success }]} />
-            <View style={[styles.statIconWrap, { backgroundColor: colors.successLight }]}>
-              <CheckCircleIcon size={16} color={colors.success} />
-            </View>
-            <View>
-              <Text style={styles.statValue}>{completedCount}</Text>
-              <Text style={styles.statLabel}>Done</Text>
-            </View>
-          </View>
-
-          <View style={styles.statCard}>
-            <View style={[styles.statCardBorder, { backgroundColor: colors.accent.mustard }]} />
-            <View style={[styles.statIconWrap, { backgroundColor: colors.accent.mustardLight }]}>
-              <SparkleIcon size={16} color={colors.accent.mustard} />
-            </View>
-            <View>
-              <Text style={styles.statValue}>12</Text>
-              <Text style={styles.statLabel}>Matches</Text>
-            </View>
-          </View>
-        </ScrollView>
-
         {/* ── Mustard CTA ─────────────────────────────────────────────────────── */}
         <TouchableOpacity
           onPress={() => navigation.navigate('CreateRequest')}
@@ -251,9 +204,6 @@ export default function ClientDashboardScreen() {
             end={{ x: 1, y: 0 }}
             style={styles.ctaGradient}
           >
-            <View style={styles.ctaIconCircle}>
-              <SparkleIcon size={18} color={colors.neutral[900]} />
-            </View>
             <Text style={styles.ctaText}>Post a Service Request</Text>
             <View style={styles.ctaArrow}>
               <ChevronRightIcon size={16} color={colors.neutral[900]} />
@@ -295,32 +245,6 @@ export default function ClientDashboardScreen() {
               <Text style={styles.categoryLabel} numberOfLines={1}>{item.label}</Text>
             </TouchableOpacity>
           ))}
-        </View>
-
-        {/* ── Promo banner ────────────────────────────────────────────────────── */}
-        <View style={styles.promoBannerWrapper}>
-          <LinearGradient
-            colors={['#ED3F27', '#B02B18']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.promoBanner}
-          >
-            <View style={styles.promoDecoCircle} />
-            <View style={styles.promoContent}>
-              <View style={styles.promoEyebrowBadge}>
-                <Text style={styles.promoEyebrow}>LIMITED OFFER</Text>
-              </View>
-              <Text style={styles.promoTitle}>Work with our best{'\n'}service providers</Text>
-              <TouchableOpacity
-                style={styles.promoButton}
-                onPress={() => navigation.navigate('CreateRequest')}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.promoButtonText}>Book Now →</Text>
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.promoDecorEmoji}>🏆</Text>
-          </LinearGradient>
         </View>
 
         {/* ── My Requests ─────────────────────────────────────────────────────── */}
@@ -546,52 +470,6 @@ const styles = StyleSheet.create({
     color: colors.neutral[900],
   },
 
-  // ── Stats strip
-  statsRow: {
-    paddingHorizontal: spacing.xl,
-    gap: spacing.md,
-    marginBottom: spacing.xl,
-  },
-  statCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.md,
-    overflow: 'hidden',
-    ...shadows.card,
-  },
-  statCardBorder: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    width: 4,
-    borderTopLeftRadius: borderRadius.xl,
-    borderBottomLeftRadius: borderRadius.xl,
-  },
-  statIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.lg,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 4,
-  },
-  statValue: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[800],
-    lineHeight: typography.lineHeight.lg,
-  },
-  statLabel: {
-    fontSize: typography.size.xs,
-    color: colors.neutral[500],
-    fontWeight: typography.weight.medium,
-  },
-
   // ── Mustard CTA
   ctaWrapper: {
     marginHorizontal: spacing.xl,
@@ -606,14 +484,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     gap: spacing.md,
-  },
-  ctaIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.12)',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   ctaText: {
     flex: 1,
@@ -696,76 +566,6 @@ const styles = StyleSheet.create({
     color: colors.neutral[700],
     fontWeight: typography.weight.semibold,
     textAlign: 'center',
-  },
-
-  // ── Promo banner
-  promoBannerWrapper: {
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.xl,
-    borderRadius: borderRadius['2xl'],
-    overflow: 'hidden',
-    ...shadows.md,
-  },
-  promoBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.lg,
-    minHeight: 110,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  promoDecoCircle: {
-    position: 'absolute',
-    width: 160,
-    height: 160,
-    borderRadius: 80,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    right: -30,
-    top: -50,
-  },
-  promoContent: {
-    flex: 1,
-    gap: spacing.sm,
-  },
-  promoEyebrowBadge: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 3,
-    alignSelf: 'flex-start',
-  },
-  promoEyebrow: {
-    fontSize: typography.size.xs - 1,
-    fontWeight: typography.weight.bold,
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: typography.letterSpacing.wider,
-    textTransform: 'uppercase',
-  },
-  promoTitle: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
-    lineHeight: typography.lineHeight.base,
-  },
-  promoButton: {
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.base,
-    paddingVertical: spacing.sm,
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)',
-  },
-  promoButtonText: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
-  },
-  promoDecorEmoji: {
-    fontSize: 52,
-    opacity: 0.7,
-    marginLeft: spacing.md,
   },
 
   // ── My Requests section

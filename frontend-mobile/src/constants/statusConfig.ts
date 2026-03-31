@@ -8,6 +8,8 @@ export interface StatusConfigItem {
   bgColor: string;
   label: string;
   icon: (size: number) => React.ReactElement;
+  /** Hidden statuses are not shown in UI lists or filter chips */
+  hidden?: boolean;
 }
 
 export const STATUS_CONFIG: Record<ServiceRequestStatus, StatusConfigItem> = {
@@ -28,6 +30,7 @@ export const STATUS_CONFIG: Record<ServiceRequestStatus, StatusConfigItem> = {
     bgColor: colors.primary[50],
     label: 'In Progress',
     icon: (size: number) => React.createElement(ClockIcon, { size, color: colors.primary[600] }),
+    hidden: true,
   },
   completed: {
     color: colors.success,
@@ -40,11 +43,13 @@ export const STATUS_CONFIG: Record<ServiceRequestStatus, StatusConfigItem> = {
     bgColor: colors.errorLight,
     label: 'Rejected',
     icon: (size: number) => React.createElement(XCircleIcon, { size, color: colors.error }),
+    hidden: true,
   },
   cancelled: {
     color: colors.neutral[500],
     bgColor: colors.neutral[100],
     label: 'Cancelled',
     icon: (size: number) => React.createElement(XCircleIcon, { size, color: colors.neutral[500] }),
+    hidden: true,
   },
 };

@@ -31,19 +31,17 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
-type FilterTab = 'new' | 'accepted' | 'in_progress' | 'completed';
+type FilterTab = 'new' | 'accepted' | 'completed';
 
 const FILTER_TABS: { key: FilterTab; label: string; statuses: ServiceRequestStatus[]; color: string }[] = [
   { key: 'new', label: 'New', statuses: ['pending'], color: colors.accent.gold },
   { key: 'accepted', label: 'Accepted', statuses: ['accepted'], color: colors.accent.cyan },
-  { key: 'in_progress', label: 'In Progress', statuses: ['in_progress'], color: colors.primary[500] },
   { key: 'completed', label: 'Completed', statuses: ['completed'], color: colors.success },
 ];
 
 const STATUS_BORDER: Record<string, string> = {
   pending: colors.accent.gold,
   accepted: colors.accent.cyan,
-  in_progress: colors.primary[500],
   completed: colors.success,
 };
 
@@ -120,17 +118,6 @@ export default function ManageServiceRequestsScreen() {
         },
       },
     ]);
-  };
-
-  const handleMarkInProgress = async (requestId: string) => {
-    try {
-      setProcessingId(requestId);
-      await updateRequestStatus(requestId, 'in_progress');
-      Alert.alert('Status Updated', 'Request marked as in progress');
-      loadRequests();
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update status');
-    } finally { setProcessingId(null); }
   };
 
   const handleMarkCompleted = async (requestId: string) => {
@@ -250,7 +237,6 @@ export default function ManageServiceRequestsScreen() {
             <Text style={styles.emptySubtitle}>
               {activeTab === 'new' && 'New service requests will appear here'}
               {activeTab === 'accepted' && 'Accepted requests will appear here'}
-              {activeTab === 'in_progress' && 'In-progress requests will appear here'}
               {activeTab === 'completed' && 'Completed requests will appear here'}
             </Text>
           </View>
@@ -347,24 +333,6 @@ export default function ManageServiceRequestsScreen() {
                         )}
 
                         {request.status === 'accepted' && (
-                          <TouchableOpacity
-                            onPress={() => handleMarkInProgress(request.id)}
-                            activeOpacity={0.8}
-                            style={{ flex: 1, borderRadius: borderRadius.full, overflow: 'hidden' }}
-                          >
-                            <LinearGradient
-                              colors={[colors.accent.cyan, '#0D7E7A']}
-                              start={{ x: 0, y: 0 }}
-                              end={{ x: 1, y: 0 }}
-                              style={styles.acceptBtn}
-                            >
-                              <ClockIcon size={15} color={colors.neutral[0]} />
-                              <Text style={styles.acceptBtnText}>Start Job</Text>
-                            </LinearGradient>
-                          </TouchableOpacity>
-                        )}
-
-                        {request.status === 'in_progress' && (
                           <TouchableOpacity
                             onPress={() => handleMarkCompleted(request.id)}
                             activeOpacity={0.8}

@@ -8,7 +8,7 @@ import {
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows, animations } from '../../theme';
 import PrimaryButton from '../PrimaryButton';
-import { CheckIcon, MailIcon } from '../Icons';
+import { ClockIcon, MailIcon } from '../Icons';
 
 interface SuccessScreenProps {
   providerName: string;
@@ -18,26 +18,22 @@ interface SuccessScreenProps {
 
 export default function SuccessScreen({ providerName, providerEmail, onBackToLogin }: SuccessScreenProps) {
   const circleScale = useRef(new Animated.Value(0)).current;
-  const checkScale = useRef(new Animated.Value(0)).current;
+  const iconScale = useRef(new Animated.Value(0)).current;
   const contentOpacity = useRef(new Animated.Value(0)).current;
   const contentTranslateY = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    // Staggered entrance animation
     Animated.sequence([
-      // Circle scales in with a bounce
       Animated.spring(circleScale, {
         toValue: 1,
         useNativeDriver: true,
         ...animations.spring.bouncy,
       }),
-      // Checkmark pops in
-      Animated.spring(checkScale, {
+      Animated.spring(iconScale, {
         toValue: 1,
         useNativeDriver: true,
         ...animations.spring.snappy,
       }),
-      // Content fades in
       Animated.parallel([
         Animated.timing(contentOpacity, {
           toValue: 1,
@@ -55,7 +51,7 @@ export default function SuccessScreen({ providerName, providerEmail, onBackToLog
 
   return (
     <View style={styles.container}>
-      {/* Animated checkmark circle */}
+      {/* Animated clock circle */}
       <Animated.View
         style={[
           styles.circleOuter,
@@ -63,13 +59,13 @@ export default function SuccessScreen({ providerName, providerEmail, onBackToLog
         ]}
       >
         <LinearGradient
-          colors={[colors.success, colors.accent.cyan]}
+          colors={[colors.accent.mustard, colors.accent.gold]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.circleGradient}
         >
-          <Animated.View style={{ transform: [{ scale: checkScale }] }}>
-            <CheckIcon size={44} color={colors.neutral[0]} />
+          <Animated.View style={{ transform: [{ scale: iconScale }] }}>
+            <ClockIcon size={44} color={colors.neutral[0]} />
           </Animated.View>
         </LinearGradient>
       </Animated.View>
@@ -84,12 +80,12 @@ export default function SuccessScreen({ providerName, providerEmail, onBackToLog
           },
         ]}
       >
-        <Text style={styles.title}>Account Created!</Text>
+        <Text style={styles.title}>Account Created</Text>
         <Text style={styles.subtitle}>
-          {providerName}'s provider account has been set up successfully.
+          Your account is pending admin confirmation.{'\n'}You'll be notified once approved.
         </Text>
 
-        {/* Email confirmation mock */}
+        {/* Email confirmation */}
         <View style={styles.emailCard}>
           <MailIcon size={20} color={colors.primary[500]} />
           <View style={styles.emailTextContainer}>
@@ -98,13 +94,9 @@ export default function SuccessScreen({ providerName, providerEmail, onBackToLog
           </View>
         </View>
 
-        <Text style={styles.mockNote}>
-          This is a demo — no real account was created.
-        </Text>
-
         <View style={styles.buttonGroup}>
           <PrimaryButton
-            title="Back to Login"
+            title="Return to Login"
             onPress={onBackToLogin}
             variant="primary"
           />
@@ -121,7 +113,7 @@ const styles = StyleSheet.create({
   },
   circleOuter: {
     marginBottom: spacing.xl,
-    shadowColor: colors.success,
+    shadowColor: colors.accent.gold,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
@@ -161,7 +153,7 @@ const styles = StyleSheet.create({
     padding: spacing.base,
     gap: spacing.md,
     width: '100%',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.xl,
   },
   emailTextContainer: {
     flex: 1,
@@ -176,15 +168,7 @@ const styles = StyleSheet.create({
     color: colors.primary[700],
     marginTop: 2,
   },
-  mockNote: {
-    fontSize: typography.size.xs,
-    color: colors.neutral[400],
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginBottom: spacing.xl,
-  },
   buttonGroup: {
     width: '100%',
-    gap: spacing.md,
   },
 });

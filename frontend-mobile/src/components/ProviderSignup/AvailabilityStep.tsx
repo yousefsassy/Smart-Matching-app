@@ -77,8 +77,9 @@ export default function AvailabilityStep({ data, errors, onChange }: Availabilit
   };
 
   const addTimeRange = (dayKey: string) => {
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const dayRanges = availability[dayKey].ranges;
+    if (dayRanges.length >= 2) return;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     const lastEnd = dayRanges.length > 0 ? dayRanges[dayRanges.length - 1].end : '09:00';
     // Default new range: start 1 hour after last end
     const lastEndHour = parseInt(lastEnd.split(':')[0], 10);
@@ -212,15 +213,17 @@ export default function AvailabilityStep({ data, errors, onChange }: Availabilit
                   </View>
                 ))}
 
-                {/* Add time slot */}
-                <TouchableOpacity
-                  style={styles.addButton}
-                  onPress={() => addTimeRange(day.key)}
-                  activeOpacity={0.7}
-                >
-                  <PlusIcon size={14} color={colors.primary[600]} />
-                  <Text style={styles.addButtonText}>Add time slot</Text>
-                </TouchableOpacity>
+                {/* Add time slot — hidden when at 2-slot limit */}
+                {config.ranges.length < 2 && (
+                  <TouchableOpacity
+                    style={styles.addButton}
+                    onPress={() => addTimeRange(day.key)}
+                    activeOpacity={0.7}
+                  >
+                    <PlusIcon size={14} color={colors.primary[600]} />
+                    <Text style={styles.addButtonText}>Add time slot</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             )}
           </View>

@@ -71,8 +71,8 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   const [formData, setFormData] = useState<FormData>({
     serviceCategory: null,
     describe: { description: '', location: '' },
-    schedule: { isAsap: false, date: null, timeSlotKey: null },
-    budget: { preset: null, isFlexible: false, customMin: '', customMax: '' },
+    schedule: { date: null, timeSlotKey: null },
+    budget: { preset: null },
   });
 
   // ── Animation refs (mirrors ProviderSignupScreen) ──────────────────────────
@@ -100,7 +100,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   }, [errors]);
 
   const handleScheduleChange = useCallback(
-    (field: keyof ScheduleData, value: boolean | Date | TimeSlotKey | null) => {
+    (field: keyof ScheduleData, value: Date | TimeSlotKey | null) => {
       setFormData((prev) => ({
         ...prev,
         schedule: { ...prev.schedule, [field]: value },
@@ -113,7 +113,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   );
 
   const handleBudgetChange = useCallback(
-    (field: keyof BudgetData, value: BudgetPreset | boolean | string | null) => {
+    (field: keyof BudgetData, value: BudgetPreset | null) => {
       setFormData((prev) => ({
         ...prev,
         budget: { ...prev.budget, [field]: value },
@@ -144,13 +144,11 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         break;
       }
       case 2: {
-        if (!formData.schedule.isAsap) {
-          if (!formData.schedule.date) {
-            errs.date = 'Please select a date';
-          }
-          if (!formData.schedule.timeSlotKey) {
-            errs.timeSlot = 'Please select a time slot';
-          }
+        if (!formData.schedule.date) {
+          errs.date = 'Please select a date';
+        }
+        if (!formData.schedule.timeSlotKey) {
+          errs.timeSlot = 'Please select a time slot';
         }
         break;
       }
@@ -215,30 +213,16 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     try {
       // Build TimeSlot
       const { schedule } = formData;
-      const timeSlot: TimeSlot = schedule.isAsap
-        ? {
-            date: new Date().toISOString().split('T')[0],
-            startTime: '07:00',
-            endTime: '21:00',
-          }
-        : {
-            date: schedule.date!.toISOString().split('T')[0],
-            ...TIME_SLOT_RANGES[schedule.timeSlotKey!],
-          };
+      const timeSlot: TimeSlot = {
+        date: schedule.date!.toISOString().split('T')[0],
+        ...TIME_SLOT_RANGES[schedule.timeSlotKey!],
+      };
 
       // Build BudgetRange
       let budget: BudgetRange | undefined;
       const { budget: bd } = formData;
-      if (!bd.isFlexible) {
-        if (bd.preset) {
-          budget = { ...BUDGET_PRESET_RANGES[bd.preset], currency: 'TND' };
-        } else if (bd.customMin && bd.customMax) {
-          budget = {
-            min: parseFloat(bd.customMin),
-            max: parseFloat(bd.customMax),
-            currency: 'TND',
-          };
-        }
+      if (bd.preset) {
+        budget = { ...BUDGET_PRESET_RANGES[bd.preset], currency: 'TND' };
       }
 
       // Build Location (mock coordinates for demo)

@@ -1,30 +1,41 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  Animated,
-  Dimensions,
   StatusBar,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors, spacing, animations } from '../theme';
+import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { AuthStackParamList } from '../navigation/AuthStack';
-import StepperHeader from '../components/StepperHeader';
 import PrimaryButton from '../components/PrimaryButton';
-import BasicInfoStep from '../components/ProviderSignup/BasicInfoStep';
-import SecurityStep from '../components/ProviderSignup/SecurityStep';
-import { ChevronLeftIcon } from '../components/Icons';
+import Input from '../components/Input';
+import { UserIcon, MailIcon, LockIcon, CheckCircleIcon, XCircleIcon, ChevronLeftIcon } from '../components/Icons';
 
 type ClientSignupNav = NativeStackNavigationProp<AuthStackParamList, 'ClientSignup'>;
 
-const STEP_LABELS = ['Basic Info', 'Security'];
-const SCREEN_WIDTH = Dimensions.get('window').width;
+// Password strength criteria (kept for good UX)
+const CRITERIA = [
+  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
+  { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
+  { label: 'One number', test: (p: string) => /\d/.test(p) },
+  { label: 'One special character', test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
+];
+
+function getStrength(password: string): { level: number; label: string; color: string } {
+  const passed = CRITERIA.filter((c) => c.test(password)).length;
+  if (passed === 0) return { level: 0, label: '', color: colors.neutral[200] };
+  if (passed === 1) return { level: 1, label: 'Weak', color: colors.error };
+  if (passed === 2) return { level: 2, label: 'Fair', color: colors.warning };
+  if (passed === 3) return { level: 3, label: 'Good', color: colors.accent.gold };
+  return { level: 4, label: 'Strong', color: colors.success };
+}
 
 interface FormData {
   fullName: string;
@@ -38,7 +49,6 @@ export default function ClientSignupScreen() {
   const { signup } = useAuth();
   const insets = useSafeAreaInsets();
 
-  const [currentStep, setCurrentStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
@@ -48,12 +58,8 @@ export default function ClientSignupScreen() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const slideAnim = useRef(new Animated.Value(0)).current;
-  const opacityAnim = useRef(new Animated.Value(1)).current;
-  const scrollViewRef = useRef<ScrollView>(null);
-
   const handleFieldChange = useCallback(
-    (field: string, value: any) => {
+    (field: string, value: string) => {
       setFormData((prev) => ({ ...prev, [field]: value }));
       if (errors[field]) {
         setErrors((prev) => {
@@ -66,84 +72,27 @@ export default function ClientSignupScreen() {
     [errors],
   );
 
-  const validateStep = (step: number): boolean => {
+  const validate = (): boolean => {
     const errs: Record<string, string> = {};
 
-    switch (step) {
-      case 0: {
-        if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
-        else if (formData.fullName.trim().length < 2)
-          errs.fullName = 'Name must be at least 2 characters';
-        if (!formData.email.trim()) errs.email = 'Email is required';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Please enter a valid email';
-        break;
-      }
-      case 1: {
-        if (!formData.password) errs.password = 'Password is required';
-        else if (formData.password.length < 8) errs.password = 'Must be at least 8 characters';
-        if (!formData.confirmPassword) errs.confirmPassword = 'Please confirm your password';
-        else if (formData.password !== formData.confirmPassword)
-          errs.confirmPassword = 'Passwords do not match';
-        break;
-      }
-    }
+    if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
+    else if (formData.fullName.trim().length < 2) errs.fullName = 'Name must be at least 2 characters';
+
+    if (!formData.email.trim()) errs.email = 'Email is required';
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Please enter a valid email';
+
+    if (!formData.password) errs.password = 'Password is required';
+    else if (formData.password.length < 8) errs.password = 'Must be at least 8 characters';
+
+    if (!formData.confirmPassword) errs.confirmPassword = 'Please confirm your password';
+    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const animateTransition = (direction: 'forward' | 'backward', callback: () => void) => {
-    const exitX = direction === 'forward' ? -SCREEN_WIDTH * 0.2 : SCREEN_WIDTH * 0.2;
-    const enterX = direction === 'forward' ? SCREEN_WIDTH * 0.2 : -SCREEN_WIDTH * 0.2;
-
-    Animated.parallel([
-      Animated.timing(slideAnim, {
-        toValue: exitX,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-      Animated.timing(opacityAnim, {
-        toValue: 0,
-        duration: 150,
-        useNativeDriver: true,
-      }),
-    ]).start(() => {
-      callback();
-      slideAnim.setValue(enterX);
-      Animated.parallel([
-        Animated.spring(slideAnim, {
-          toValue: 0,
-          useNativeDriver: true,
-          ...animations.spring.snappy,
-        }),
-        Animated.timing(opacityAnim, {
-          toValue: 1,
-          duration: 200,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    });
-  };
-
-  const handleNext = () => {
-    if (!validateStep(currentStep)) return;
-    if (currentStep < 1) {
-      animateTransition('forward', () => setCurrentStep((s) => s + 1));
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    }
-  };
-
-  const handleBack = () => {
-    if (currentStep > 0) {
-      animateTransition('backward', () => setCurrentStep((s) => s - 1));
-      scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    } else {
-      navigation.goBack();
-    }
-  };
-
   const handleSubmit = async () => {
-    if (!validateStep(1)) return;
+    if (!validate()) return;
     setIsSubmitting(true);
     try {
       await signup({
@@ -153,33 +102,12 @@ export default function ClientSignupScreen() {
         role: 'client',
       });
       // signup() sets isAuthenticated=true → RootNavigator switches to MainTabs automatically
-    } catch (error) {
+    } catch {
       setIsSubmitting(false);
     }
   };
 
-  const renderStepContent = () => {
-    switch (currentStep) {
-      case 0:
-        return (
-          <BasicInfoStep
-            data={{ fullName: formData.fullName, email: formData.email }}
-            errors={errors}
-            onChange={handleFieldChange}
-          />
-        );
-      case 1:
-        return (
-          <SecurityStep
-            data={{ password: formData.password, confirmPassword: formData.confirmPassword }}
-            errors={errors}
-            onChange={handleFieldChange}
-          />
-        );
-      default:
-        return null;
-    }
-  };
+  const strength = getStrength(formData.password);
 
   return (
     <KeyboardAvoidingView
@@ -189,57 +117,166 @@ export default function ClientSignupScreen() {
       <StatusBar barStyle="dark-content" />
       <View style={styles.screen}>
         <ScrollView
-          ref={scrollViewRef}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: insets.top + spacing.xl },
-          ]}
+          contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.xl }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <StepperHeader currentStep={currentStep} totalSteps={2} stepLabels={STEP_LABELS} />
+          {/* Page title */}
+          <View style={styles.pageHeader}>
+            <Text style={styles.pageTitle}>Create Account</Text>
+            <Text style={styles.pageSubtitle}>Sign up to get started with TawTaw</Text>
+          </View>
 
-          <Animated.View
-            style={{
-              transform: [{ translateX: slideAnim }],
-              opacity: opacityAnim,
-            }}
-          >
-            {renderStepContent()}
-          </Animated.View>
+          {/* Single form card */}
+          <View style={styles.card}>
+            {/* Personal Info section */}
+            <View style={styles.sectionHeader}>
+              <View style={styles.iconContainer}>
+                <UserIcon size={20} color={colors.primary[500]} />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Personal Information</Text>
+                <Text style={styles.sectionSubtitle}>Tell us about yourself</Text>
+              </View>
+            </View>
 
+            <Input
+              label="Full Name"
+              placeholder="John Doe"
+              value={formData.fullName}
+              onChangeText={(text) => handleFieldChange('fullName', text)}
+              autoCapitalize="words"
+              icon={<UserIcon size={20} color={colors.neutral[400]} />}
+              error={errors.fullName}
+              returnKeyType="next"
+            />
+
+            <Input
+              label="Email Address"
+              placeholder="your.email@example.com"
+              value={formData.email}
+              onChangeText={(text) => handleFieldChange('email', text)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              icon={<MailIcon size={20} color={colors.neutral[400]} />}
+              error={errors.email}
+              returnKeyType="next"
+            />
+
+            {/* Password section divider */}
+            <View style={styles.divider} />
+            <View style={styles.sectionHeader}>
+              <View style={styles.iconContainer}>
+                <LockIcon size={20} color={colors.primary[500]} />
+              </View>
+              <View>
+                <Text style={styles.sectionTitle}>Create Password</Text>
+                <Text style={styles.sectionSubtitle}>Secure your account</Text>
+              </View>
+            </View>
+
+            <Input
+              label="Password"
+              placeholder="Create a strong password"
+              value={formData.password}
+              onChangeText={(text) => handleFieldChange('password', text)}
+              secureTextEntry
+              icon={<LockIcon size={20} color={colors.neutral[400]} />}
+              error={errors.password}
+              returnKeyType="next"
+            />
+
+            {/* Password strength bar */}
+            {formData.password.length > 0 && (
+              <View style={styles.strengthSection}>
+                <View style={styles.strengthBar}>
+                  {[1, 2, 3, 4].map((level) => (
+                    <View
+                      key={level}
+                      style={[
+                        styles.strengthSegment,
+                        { backgroundColor: level <= strength.level ? strength.color : colors.neutral[100] },
+                      ]}
+                    />
+                  ))}
+                </View>
+                {strength.label !== '' && (
+                  <Text style={[styles.strengthLabel, { color: strength.color }]}>
+                    {strength.label}
+                  </Text>
+                )}
+              </View>
+            )}
+
+            {/* Criteria checklist */}
+            {formData.password.length > 0 && (
+              <View style={styles.criteriaList}>
+                {CRITERIA.map((criterion, index) => {
+                  const met = criterion.test(formData.password);
+                  return (
+                    <View key={index} style={styles.criteriaItem}>
+                      {met ? (
+                        <CheckCircleIcon size={14} color={colors.success} />
+                      ) : (
+                        <XCircleIcon size={14} color={colors.neutral[300]} />
+                      )}
+                      <Text style={[styles.criteriaText, met && styles.criteriaTextMet]}>
+                        {criterion.label}
+                      </Text>
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+
+            <Input
+              label="Confirm Password"
+              placeholder="Re-enter your password"
+              value={formData.confirmPassword}
+              onChangeText={(text) => handleFieldChange('confirmPassword', text)}
+              secureTextEntry
+              icon={<LockIcon size={20} color={colors.neutral[400]} />}
+              error={errors.confirmPassword}
+              returnKeyType="done"
+            />
+
+            {/* Password match indicator */}
+            {formData.confirmPassword.length > 0 && (
+              <View style={styles.matchContainer}>
+                {formData.password === formData.confirmPassword ? (
+                  <>
+                    <CheckCircleIcon size={16} color={colors.success} />
+                    <Text style={styles.matchText}>Passwords match</Text>
+                  </>
+                ) : (
+                  <>
+                    <XCircleIcon size={16} color={colors.error} />
+                    <Text style={styles.mismatchText}>Passwords don't match</Text>
+                  </>
+                )}
+              </View>
+            )}
+          </View>
+
+          {/* Action buttons */}
           <View style={styles.navButtons}>
             <PrimaryButton
-              title={currentStep === 0 ? 'Cancel' : 'Back'}
-              onPress={handleBack}
+              title="Cancel"
+              onPress={() => navigation.goBack()}
               variant="outline"
               fullWidth={false}
               style={styles.backButton}
-              icon={
-                currentStep > 0 ? (
-                  <ChevronLeftIcon size={18} color={colors.primary[600]} />
-                ) : undefined
-              }
+              icon={<ChevronLeftIcon size={18} color={colors.primary[600]} />}
             />
-
-            {currentStep < 1 ? (
-              <PrimaryButton
-                title="Next"
-                onPress={handleNext}
-                variant="primary"
-                fullWidth={false}
-                style={styles.nextButton}
-              />
-            ) : (
-              <PrimaryButton
-                title="Create Account"
-                onPress={handleSubmit}
-                variant="primary"
-                loading={isSubmitting}
-                fullWidth={false}
-                style={styles.nextButton}
-              />
-            )}
+            <PrimaryButton
+              title="Create Account"
+              onPress={handleSubmit}
+              variant="primary"
+              loading={isSubmitting}
+              fullWidth={false}
+              style={styles.nextButton}
+            />
           </View>
         </ScrollView>
       </View>
@@ -259,6 +296,107 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: spacing.xl,
     paddingBottom: spacing['3xl'],
+  },
+  pageHeader: {
+    marginBottom: spacing.xl,
+  },
+  pageTitle: {
+    fontSize: typography.size.xxl,
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
+    marginBottom: spacing.xs,
+  },
+  pageSubtitle: {
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
+  },
+  card: {
+    backgroundColor: colors.neutral[0],
+    borderRadius: borderRadius.xl,
+    padding: spacing.xl,
+    ...shadows.sm,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+  },
+  iconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
+  },
+  sectionSubtitle: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[500],
+    marginTop: 2,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: colors.neutral[100],
+    marginVertical: spacing.lg,
+  },
+  strengthSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: spacing.base,
+    marginTop: -spacing.sm,
+  },
+  strengthBar: {
+    flexDirection: 'row',
+    flex: 1,
+    gap: spacing.xs,
+  },
+  strengthSegment: {
+    flex: 1,
+    height: 4,
+    borderRadius: 2,
+  },
+  strengthLabel: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.semibold,
+    marginLeft: spacing.sm,
+  },
+  criteriaList: {
+    marginBottom: spacing.lg,
+    gap: spacing.sm,
+  },
+  criteriaItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  criteriaText: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
+  },
+  criteriaTextMet: {
+    color: colors.success,
+  },
+  matchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    marginTop: -spacing.sm,
+  },
+  matchText: {
+    fontSize: typography.size.xs,
+    color: colors.success,
+    fontWeight: typography.weight.medium,
+  },
+  mismatchText: {
+    fontSize: typography.size.xs,
+    color: colors.error,
+    fontWeight: typography.weight.medium,
   },
   navButtons: {
     flexDirection: 'row',
