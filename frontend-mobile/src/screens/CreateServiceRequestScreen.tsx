@@ -8,17 +8,20 @@ import {
   Animated,
   Dimensions,
 } from 'react-native';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { MOCK_NETWORK_DELAYS } from '../constants/appConfig';
 import { colors, spacing, animations } from '../theme';
+import { useLocationSelection } from '../context/LocationSelectionContext';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import {
   ServiceCategory,
-  Location,
   TimeSlot,
   BudgetRange,
   ProviderRanking,
 } from '../types/serviceRequest';
+import { NormalizedLocation } from '../types/location';
 import StepperHeader from '../components/StepperHeader';
 import PrimaryButton from '../components/PrimaryButton';
 import { ChevronLeftIcon } from '../components/Icons';
@@ -54,7 +57,9 @@ interface FormData {
 }
 
 export default function CreateServiceRequestScreen({ navigation }: Props) {
-  const { createServiceRequest } = useServiceRequests();
+  const { createServiceRequest, selectProvider } = useServiceRequests();
+  const { consumePendingSelection } = useLocationSelection();
+  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Step state ─────────────────────────────────────────────────────────────
   const [currentStep, setCurrentStep] = useState(0);
@@ -66,11 +71,12 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   const [rankedProviders, setRankedProviders] = useState<ProviderRanking[]>([]);
   const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
 
   // ── Form data ──────────────────────────────────────────────────────────────
   const [formData, setFormData] = useState<FormData>({
     serviceCategory: null,
-    describe: { description: '', location: '' },
+    describe: { description: '', requestLocation: null },
     schedule: { date: null, timeSlotKey: null },
     budget: { preset: null },
   });
@@ -79,7 +85,6 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-
   // ── Field change handlers ──────────────────────────────────────────────────
 
   const handleCategoryChange = useCallback((category: ServiceCategory) => {
@@ -89,7 +94,10 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     }
   }, [errors]);
 
-  const handleDescribeChange = useCallback((field: keyof DescribeJobData, value: string) => {
+  const handleDescribeChange = useCallback((
+    field: keyof DescribeJobData,
+    value: string | NormalizedLocation | null
+  ) => {
     setFormData((prev) => ({
       ...prev,
       describe: { ...prev.describe, [field]: value },
@@ -98,6 +106,34 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
       setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
     }
   }, [errors]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const selection = consumePendingSelection('create-request-location');
+      if (!selection) {
+        return undefined;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        describe: {
+          ...prev.describe,
+          requestLocation: selection.location,
+        },
+      }));
+      setErrors((prev) => {
+        if (!prev.requestLocation) {
+          return prev;
+        }
+
+        const next = { ...prev };
+        delete next.requestLocation;
+        return next;
+      });
+
+      return undefined;
+    }, [consumePendingSelection])
+  );
 
   const handleScheduleChange = useCallback(
     (field: keyof ScheduleData, value: Date | TimeSlotKey | null) => {
@@ -138,8 +174,8 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         if (!formData.describe.description.trim() || formData.describe.description.trim().length < 10) {
           errs.description = 'Please describe the job (at least 10 characters)';
         }
-        if (!formData.describe.location) {
-          errs.location = 'Please select your location';
+        if (!formData.describe.requestLocation) {
+          errs.requestLocation = 'Please select your location';
         }
         break;
       }
@@ -225,23 +261,17 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         budget = { ...BUDGET_PRESET_RANGES[bd.preset], currency: 'TND' };
       }
 
-      // Build Location (mock coordinates for demo)
-      const locationObj: Location = {
-        latitude: 36.8065,
-        longitude: 10.1815,
-        address: formData.describe.location,
-      };
-
       const request = await createServiceRequest({
         serviceCategory: formData.serviceCategory!,
         description: formData.describe.description,
-        location: locationObj,
+        requestLocation: formData.describe.requestLocation!,
         timeSlot,
         budget,
       });
+      setCreatedRequestId(request.id);
 
       // Cosmetic delay so the loading animation has time to breathe
-      await new Promise((resolve) => setTimeout(resolve, 700));
+      await new Promise((resolve) => setTimeout(resolve, MOCK_NETWORK_DELAYS.matchingRevealMs));
 
       if (request.rankedProviders && request.rankedProviders.length > 0) {
         setRankedProviders(request.rankedProviders);
@@ -258,19 +288,32 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     setSelectedProviderId(providerId);
   };
 
-  const handleConfirm = () => {
-    if (!selectedProviderId) return;
-    setShowSuccess(true);
-    setTimeout(() => {
+  const exitToRequestsTab = useCallback(() => {
+    completionTimeoutRef.current = setTimeout(() => {
+      navigation.popToTop();
       navigation.getParent()?.navigate('RequestsTab');
     }, 1200);
+  }, [navigation]);
+
+  React.useEffect(() => {
+    return () => {
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleConfirm = async () => {
+    if (!selectedProviderId || !createdRequestId) return;
+
+    await selectProvider(createdRequestId, selectedProviderId);
+    setShowSuccess(true);
+    exitToRequestsTab();
   };
 
   const handleSkip = () => {
     setShowSuccess(true);
-    setTimeout(() => {
-      navigation.getParent()?.navigate('RequestsTab');
-    }, 1200);
+    exitToRequestsTab();
   };
 
   // ── Matching screen ────────────────────────────────────────────────────────
@@ -305,8 +348,20 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         return (
           <DescribeJobStep
             data={formData.describe}
-            errors={{ description: errors.description, location: errors.location }}
+            errors={{
+              description: errors.description,
+              requestLocation: errors.requestLocation,
+            }}
             onChange={handleDescribeChange}
+            onOpenLocationPicker={() =>
+              navigation.navigate('LocationPicker', {
+                mode: 'request',
+                returnScreen: 'CreateRequest',
+                selectionKey: 'create-request-location',
+                title: 'Select the request location',
+                initialLocation: formData.describe.requestLocation,
+              })
+            }
           />
         );
       case 2:

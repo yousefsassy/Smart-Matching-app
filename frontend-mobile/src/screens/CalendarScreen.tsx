@@ -12,6 +12,7 @@ import { Calendar, DateData } from 'react-native-calendars';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getServiceCategoryLabel, getServiceCategoryMeta } from '../constants/serviceCategories';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { ServiceRequest } from '../types/serviceRequest';
@@ -30,17 +31,6 @@ import StatusBadge from '../components/StatusBadge';
 
 // Day-of-week availability defaults (0=Sun … 6=Sat)
 const DEFAULT_AVAILABLE_DAYS = new Set([1, 2, 3, 4, 5]); // Mon–Fri
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  plumbing: '🔧',
-  electrical: '⚡',
-  cleaning: '🧹',
-  gardening: '🌿',
-  painting: '🎨',
-  carpentry: '🪚',
-  moving: '📦',
-  other: '⚙️',
-};
 
 // ── Underline color constants ──────────────────────────────────────────────────
 const UNDERLINE_JOB       = colors.primary[500];   // blue  — has scheduled jobs
@@ -314,13 +304,13 @@ export default function CalendarScreen() {
                   <View key={job.id} style={styles.jobCard}>
                     <View style={styles.jobCardLeft}>
                       <Text style={styles.jobEmoji}>
-                        {CATEGORY_EMOJI[job.serviceCategory] || '⚙️'}
+                        {getServiceCategoryMeta(job.serviceCategory).emoji}
                       </Text>
                     </View>
                     <View style={styles.jobCardBody}>
                       <View style={styles.jobCardTop}>
                         <Text style={styles.jobCategory}>
-                          {job.serviceCategory.charAt(0).toUpperCase() + job.serviceCategory.slice(1)}
+                          {getServiceCategoryLabel(job.serviceCategory)}
                         </Text>
                         <StatusBadge status={job.status} size="sm" />
                       </View>
@@ -334,7 +324,7 @@ export default function CalendarScreen() {
                         </Text>
                         <MapPinIcon size={12} color={colors.neutral[400]} />
                         <Text style={styles.jobMetaText} numberOfLines={1}>
-                          {job.location.address}
+                          {job.requestLocation.addressLabel}
                         </Text>
                       </View>
                     </View>

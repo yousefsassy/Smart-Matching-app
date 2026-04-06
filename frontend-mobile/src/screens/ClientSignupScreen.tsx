@@ -17,25 +17,16 @@ import { AuthStackParamList } from '../navigation/AuthStack';
 import PrimaryButton from '../components/PrimaryButton';
 import Input from '../components/Input';
 import { UserIcon, MailIcon, LockIcon, CheckCircleIcon, XCircleIcon, ChevronLeftIcon } from '../components/Icons';
+import {
+  PASSWORD_CRITERIA,
+  getConfirmPasswordError,
+  getEmailError,
+  getFullNameError,
+  getPasswordStrength,
+  getSignupPasswordError,
+} from '../utils/validation';
 
 type ClientSignupNav = NativeStackNavigationProp<AuthStackParamList, 'ClientSignup'>;
-
-// Password strength criteria (kept for good UX)
-const CRITERIA = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'One number', test: (p: string) => /\d/.test(p) },
-  { label: 'One special character', test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
-];
-
-function getStrength(password: string): { level: number; label: string; color: string } {
-  const passed = CRITERIA.filter((c) => c.test(password)).length;
-  if (passed === 0) return { level: 0, label: '', color: colors.neutral[200] };
-  if (passed === 1) return { level: 1, label: 'Weak', color: colors.error };
-  if (passed === 2) return { level: 2, label: 'Fair', color: colors.warning };
-  if (passed === 3) return { level: 3, label: 'Good', color: colors.accent.gold };
-  return { level: 4, label: 'Strong', color: colors.success };
-}
 
 interface FormData {
   fullName: string;
@@ -75,17 +66,18 @@ export default function ClientSignupScreen() {
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
 
-    if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
-    else if (formData.fullName.trim().length < 2) errs.fullName = 'Name must be at least 2 characters';
+    const fullNameError = getFullNameError(formData.fullName);
+    const emailError = getEmailError(formData.email);
+    const passwordError = getSignupPasswordError(formData.password);
+    const confirmPasswordError = getConfirmPasswordError(
+      formData.password,
+      formData.confirmPassword
+    );
 
-    if (!formData.email.trim()) errs.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Please enter a valid email';
-
-    if (!formData.password) errs.password = 'Password is required';
-    else if (formData.password.length < 8) errs.password = 'Must be at least 8 characters';
-
-    if (!formData.confirmPassword) errs.confirmPassword = 'Please confirm your password';
-    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+    if (fullNameError) errs.fullName = fullNameError;
+    if (emailError) errs.email = emailError;
+    if (passwordError) errs.password = passwordError;
+    if (confirmPasswordError) errs.confirmPassword = confirmPasswordError;
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -107,7 +99,13 @@ export default function ClientSignupScreen() {
     }
   };
 
-  const strength = getStrength(formData.password);
+  const strength = getPasswordStrength(formData.password, {
+    neutral: colors.neutral[200],
+    error: colors.error,
+    warning: colors.warning,
+    caution: colors.accent.gold,
+    success: colors.success,
+  });
 
   return (
     <KeyboardAvoidingView
@@ -212,7 +210,7 @@ export default function ClientSignupScreen() {
             {/* Criteria checklist */}
             {formData.password.length > 0 && (
               <View style={styles.criteriaList}>
-                {CRITERIA.map((criterion, index) => {
+                {PASSWORD_CRITERIA.map((criterion, index) => {
                   const met = criterion.test(formData.password);
                   return (
                     <View key={index} style={styles.criteriaItem}>
@@ -301,7 +299,7 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xl,
   },
   pageTitle: {
-    fontSize: typography.size.xxl,
+    fontSize: typography.size['2xl'],
     fontWeight: typography.weight.bold,
     color: colors.neutral[900],
     marginBottom: spacing.xs,

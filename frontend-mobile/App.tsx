@@ -6,6 +6,7 @@ import { useFonts } from 'expo-font';
 import { Asset } from 'expo-asset';
 import * as SplashScreen from 'expo-splash-screen';
 import { AuthProvider } from './src/context/AuthContext';
+import { LocationSelectionProvider } from './src/context/LocationSelectionContext';
 import { ServiceRequestProvider } from './src/context/ServiceRequestContext';
 import RootNavigator from './src/navigation/RootNavigator';
 
@@ -36,10 +37,12 @@ export default function App() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <AuthProvider>
-          <ServiceRequestProvider>
-            <StatusBar style="light" />
-            <RootNavigator />
-          </ServiceRequestProvider>
+          <LocationSelectionProvider>
+            <ServiceRequestProvider>
+              <StatusBar style="light" />
+              <RootNavigator />
+            </ServiceRequestProvider>
+          </LocationSelectionProvider>
         </AuthProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -12,10 +12,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getServiceCategoryLabel, getServiceCategoryMeta } from '../constants/serviceCategories';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
+import { formatBudgetRange } from '../utils/formatters';
 import Avatar from '../components/Avatar';
 import {
   BriefcaseIcon,
@@ -25,11 +27,6 @@ import {
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  plumbing: '🔧', electrical: '⚡', cleaning: '🧹',
-  gardening: '🌿', painting: '🎨', carpentry: '🪚', moving: '📦', other: '⚙️',
-};
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -145,12 +142,12 @@ export default function ProviderDashboardScreen() {
                 <View style={styles.requestCardContent}>
                   <Text style={styles.requestClientName}>{req.clientName}</Text>
                   <Text style={styles.requestService}>
-                    {CATEGORY_EMOJI[req.serviceCategory] || '⚙️'}{' '}
-                    {req.serviceCategory.charAt(0).toUpperCase() + req.serviceCategory.slice(1)}
+                    {getServiceCategoryMeta(req.serviceCategory).emoji}{' '}
+                    {getServiceCategoryLabel(req.serviceCategory)}
                   </Text>
                   {req.budget && (
                     <Text style={styles.requestBudget}>
-                      Budget: ${req.budget.min}–${req.budget.max}
+                      Budget: {formatBudgetRange(req.budget)}
                     </Text>
                   )}
                 </View>

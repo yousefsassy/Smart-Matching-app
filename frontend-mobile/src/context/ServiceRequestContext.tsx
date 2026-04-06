@@ -1,409 +1,201 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  ReactNode,
+} from 'react';
 import { useAuth } from './AuthContext';
 import {
+  mockRequestsService,
+  getClientRequests as selectClientRequests,
+  getProviderRequests as selectProviderRequests,
+} from '../services/requests';
+import {
+  CreateServiceRequestInput,
+  RequestRatingInput,
   ServiceRequest,
-  ServiceCategory,
-  Location,
-  TimeSlot,
-  BudgetRange,
-  ProviderRanking,
-  Review,
 } from '../types/serviceRequest';
 
 interface ServiceRequestContextType {
-  // State
   requests: ServiceRequest[];
   isLoading: boolean;
-
-  // Client actions
-  createServiceRequest: (data: CreateServiceRequestData) => Promise<ServiceRequest>;
+  error: string | null;
+  createServiceRequest: (data: CreateServiceRequestInput) => Promise<ServiceRequest>;
   getClientRequests: () => ServiceRequest[];
   trackRequestStatus: (requestId: string) => ServiceRequest | null;
   selectProvider: (requestId: string, providerId: string) => Promise<void>;
   rateProvider: (requestId: string, rating: number, review?: string) => Promise<void>;
   cancelRequest: (requestId: string) => Promise<void>;
-
-  // Provider actions
   getProviderRequests: () => ServiceRequest[];
   acceptRequest: (requestId: string) => Promise<void>;
   rejectRequest: (requestId: string, reason?: string) => Promise<void>;
   updateRequestStatus: (requestId: string, status: 'completed') => Promise<void>;
-
-  // Common
   getRequestById: (requestId: string) => ServiceRequest | null;
   refresh: () => Promise<void>;
 }
 
-interface CreateServiceRequestData {
-  serviceCategory: ServiceCategory;
-  description: string;
-  location: Location;
-  timeSlot: TimeSlot;
-  budget?: BudgetRange;
-}
-
 const ServiceRequestContext = createContext<ServiceRequestContextType | undefined>(undefined);
-
-const STORAGE_KEY = '@smartmatch_requests';
-
-// Mock providers for ranking
-const mockProviders: ProviderRanking[] = [
-  {
-    providerId: '2',
-    providerName: 'Firas Saidi',
-    businessName: 'Consulting',
-    matchScore: 98,
-    trustScore: 4.9,
-    distance: 2.3,
-    averageRating: 4.9,
-    totalReviews: 127,
-    serviceCategories: ['plumbing', 'electrical'],
-    isVerified: true,
-    isAvailable: true,
-  },
-  {
-    providerId: '3',
-    providerName: 'Michael Roberts',
-    businessName: 'Roberts Services',
-    matchScore: 95,
-    trustScore: 4.8,
-    distance: 3.1,
-    averageRating: 4.8,
-    totalReviews: 89,
-    serviceCategories: ['plumbing', 'cleaning'],
-    isVerified: true,
-    isAvailable: true,
-  },
-  {
-    providerId: '4',
-    providerName: 'Emma Williams',
-    businessName: 'Williams Home Services',
-    matchScore: 92,
-    trustScore: 5.0,
-    distance: 4.5,
-    averageRating: 5.0,
-    totalReviews: 56,
-    serviceCategories: ['electrical', 'carpentry'],
-    isVerified: false,
-    isAvailable: true,
-  },
-];
 
 export function ServiceRequestProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadRequests();
-  }, [user]);
-
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setRequests(JSON.parse(stored));
-      }
-    } catch (error) {
-      console.error('Failed to load requests:', error);
+      setError(null);
+      const nextRequests = await mockRequestsService.loadRequests();
+      setRequests(nextRequests);
+    } catch (loadError) {
+      console.error('Failed to load requests:', loadError);
+      setError(loadError instanceof Error ? loadError.message : 'Failed to load requests');
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const saveRequests = async (updatedRequests: ServiceRequest[]) => {
-    try {
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(updatedRequests));
-      setRequests(updatedRequests);
-    } catch (error) {
-      console.error('Failed to save requests:', error);
-      throw new Error('Failed to save request');
-    }
-  };
+  useEffect(() => {
+    loadRequests();
+  }, [loadRequests, user]);
 
-  // Simulate AI matching and ranking
-  const getRankedProviders = (
-    category: ServiceCategory,
-    location: Location,
-    timeSlot: TimeSlot
-  ): ProviderRanking[] => {
-    // Filter by service category
-    const filtered = mockProviders.filter((p) =>
-      p.serviceCategories.includes(category)
-    );
+  const handleMutation = useCallback(async (mutation: () => Promise<ServiceRequest[]>) => {
+    setError(null);
+    const updatedRequests = await mutation();
+    setRequests(updatedRequests);
+    return updatedRequests;
+  }, []);
 
-    // Sort by match score (in real app, this would be computed)
-    return filtered.sort((a, b) => b.matchScore - a.matchScore);
-  };
+  const createServiceRequest = useCallback(
+    async (data: CreateServiceRequestInput) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-  const createServiceRequest = async (
-    data: CreateServiceRequestData
-  ): Promise<ServiceRequest> => {
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
+      const updatedRequests = await handleMutation(() =>
+        mockRequestsService.createServiceRequest(user, data)
+      );
 
-    // Simulate network delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
+      return updatedRequests[0];
+    },
+    [handleMutation, user]
+  );
 
-    const rankedProviders = getRankedProviders(
-      data.serviceCategory,
-      data.location,
-      data.timeSlot
-    );
+  const getRequestById = useCallback(
+    (requestId: string) => requests.find((request) => request.id === requestId) || null,
+    [requests]
+  );
 
-    const newRequest: ServiceRequest = {
-      id: `req_${Date.now()}`,
-      clientId: user.id,
-      clientName: user.fullName,
-      clientAvatar: user.avatar,
-      serviceCategory: data.serviceCategory,
-      description: data.description,
-      location: data.location,
-      timeSlot: data.timeSlot,
-      budget: data.budget,
-      rankedProviders,
-      status: 'pending',
-      statusHistory: [
-        {
-          status: 'pending',
-          timestamp: new Date().toISOString(),
-          note: 'Service request created',
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+  const getClientRequests = useCallback(
+    () => selectClientRequests(requests, user?.id),
+    [requests, user?.id]
+  );
 
-    const updatedRequests = [newRequest, ...requests];
-    await saveRequests(updatedRequests);
-    return newRequest;
-  };
+  const getProviderRequests = useCallback(
+    () => selectProviderRequests(requests, user?.id),
+    [requests, user?.id]
+  );
 
-  const getClientRequests = (): ServiceRequest[] => {
-    if (!user) return [];
-    return requests.filter((req) => req.clientId === user.id);
-  };
+  const trackRequestStatus = useCallback(
+    (requestId: string) => getRequestById(requestId),
+    [getRequestById]
+  );
 
-  const getProviderRequests = (): ServiceRequest[] => {
-    if (!user) return [];
-    // Return requests where provider is in ranked list or assigned
-    return requests.filter(
-      (req) =>
-        req.assignedProviderId === user.id ||
-        req.rankedProviders?.some((p) => p.providerId === user.id) ||
-        req.selectedProviderId === user.id
-    );
-  };
+  const selectProvider = useCallback(
+    async (requestId: string, providerId: string) => {
+      await handleMutation(() => mockRequestsService.selectProvider(requestId, providerId));
+    },
+    [handleMutation]
+  );
 
-  const getRequestById = (requestId: string): ServiceRequest | null => {
-    return requests.find((req) => req.id === requestId) || null;
-  };
+  const acceptRequest = useCallback(
+    async (requestId: string) => {
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
 
-  const trackRequestStatus = (requestId: string): ServiceRequest | null => {
-    return getRequestById(requestId);
-  };
+      await handleMutation(() => mockRequestsService.acceptRequest(requestId, user));
+    },
+    [handleMutation, user]
+  );
 
-  const selectProvider = async (requestId: string, providerId: string): Promise<void> => {
-    const request = getRequestById(requestId);
-    if (!request) {
-      throw new Error('Request not found');
-    }
+  const rejectRequest = useCallback(
+    async (requestId: string, reason?: string) => {
+      await handleMutation(() =>
+        mockRequestsService.rejectRequest(requestId, user?.fullName || 'Provider', reason)
+      );
+    },
+    [handleMutation, user?.fullName]
+  );
 
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  const updateRequestStatus = useCallback(
+    async (requestId: string, status: 'completed') => {
+      await handleMutation(() => mockRequestsService.updateRequestStatus(requestId, status));
+    },
+    [handleMutation]
+  );
 
-    const provider = request.rankedProviders?.find((p) => p.providerId === providerId);
-    const updatedRequest: ServiceRequest = {
-      ...request,
-      selectedProviderId: providerId,
-      assignedProviderId: providerId,
-      assignedProviderName: provider?.providerName,
-      updatedAt: new Date().toISOString(),
-    };
+  const rateProvider = useCallback(
+    async (requestId: string, rating: number, review?: string) => {
+      const payload: RequestRatingInput = { requestId, rating, review };
+      await handleMutation(() => mockRequestsService.rateProvider(payload));
+    },
+    [handleMutation]
+  );
 
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId ? updatedRequest : req
-    );
-    await saveRequests(updatedRequests);
-  };
+  const cancelRequest = useCallback(
+    async (requestId: string) => {
+      await handleMutation(() => mockRequestsService.cancelRequest(requestId));
+    },
+    [handleMutation]
+  );
 
-  const acceptRequest = async (requestId: string): Promise<void> => {
-    const request = getRequestById(requestId);
-    if (!request) {
-      throw new Error('Request not found');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const updatedRequest: ServiceRequest = {
-      ...request,
-      status: 'accepted',
-      assignedProviderId: user?.id,
-      assignedProviderName: user?.fullName,
-      acceptedAt: new Date().toISOString(),
-      statusHistory: [
-        ...request.statusHistory,
-        {
-          status: 'accepted',
-          timestamp: new Date().toISOString(),
-          note: `Accepted by ${user?.fullName}`,
-        },
-      ],
-      updatedAt: new Date().toISOString(),
-    };
-
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId ? updatedRequest : req
-    );
-    await saveRequests(updatedRequests);
-  };
-
-  const rejectRequest = async (requestId: string, reason?: string): Promise<void> => {
-    const request = getRequestById(requestId);
-    if (!request) {
-      throw new Error('Request not found');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const updatedRequest: ServiceRequest = {
-      ...request,
-      status: 'rejected',
-      statusHistory: [
-        ...request.statusHistory,
-        {
-          status: 'rejected',
-          timestamp: new Date().toISOString(),
-          note: reason || `Rejected by ${user?.fullName}`,
-        },
-      ],
-      updatedAt: new Date().toISOString(),
-    };
-
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId ? updatedRequest : req
-    );
-    await saveRequests(updatedRequests);
-  };
-
-  const updateRequestStatus = async (
-    requestId: string,
-    status: 'completed'
-  ): Promise<void> => {
-    const request = getRequestById(requestId);
-    if (!request) {
-      throw new Error('Request not found');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const updatedRequest: ServiceRequest = {
-      ...request,
-      status,
-      ...(status === 'completed' && { completedAt: new Date().toISOString() }),
-      statusHistory: [
-        ...request.statusHistory,
-        {
-          status,
-          timestamp: new Date().toISOString(),
-          note: `Status updated to ${status}`,
-        },
-      ],
-      updatedAt: new Date().toISOString(),
-    };
-
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId ? updatedRequest : req
-    );
-    await saveRequests(updatedRequests);
-  };
-
-  const rateProvider = async (
-    requestId: string,
-    rating: number,
-    review?: string
-  ): Promise<void> => {
-    const request = getRequestById(requestId);
-    if (!request) {
-      throw new Error('Request not found');
-    }
-
-    if (request.status !== 'completed') {
-      throw new Error('Can only rate completed requests');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const updatedRequest: ServiceRequest = {
-      ...request,
-      rating,
-      review,
-      reviewedAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId ? updatedRequest : req
-    );
-    await saveRequests(updatedRequests);
-  };
-
-  const cancelRequest = async (requestId: string): Promise<void> => {
-    const request = getRequestById(requestId);
-    if (!request) {
-      throw new Error('Request not found');
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const updatedRequest: ServiceRequest = {
-      ...request,
-      status: 'cancelled',
-      statusHistory: [
-        ...request.statusHistory,
-        {
-          status: 'cancelled',
-          timestamp: new Date().toISOString(),
-          note: 'Cancelled by client',
-        },
-      ],
-      updatedAt: new Date().toISOString(),
-    };
-
-    const updatedRequests = requests.map((req) =>
-      req.id === requestId ? updatedRequest : req
-    );
-    await saveRequests(updatedRequests);
-  };
-
-  const refresh = async (): Promise<void> => {
+  const refresh = useCallback(async () => {
     setIsLoading(true);
     await loadRequests();
-  };
+  }, [loadRequests]);
 
-  return (
-    <ServiceRequestContext.Provider
-      value={{
-        requests,
-        isLoading,
-        createServiceRequest,
-        getClientRequests,
-        getProviderRequests,
-        trackRequestStatus,
-        selectProvider,
-        acceptRequest,
-        rejectRequest,
-        updateRequestStatus,
-        rateProvider,
-        cancelRequest,
-        getRequestById,
-        refresh,
-      }}
-    >
-      {children}
-    </ServiceRequestContext.Provider>
+  const value = useMemo<ServiceRequestContextType>(
+    () => ({
+      requests,
+      isLoading,
+      error,
+      createServiceRequest,
+      getClientRequests,
+      getProviderRequests,
+      trackRequestStatus,
+      selectProvider,
+      acceptRequest,
+      rejectRequest,
+      updateRequestStatus,
+      rateProvider,
+      cancelRequest,
+      getRequestById,
+      refresh,
+    }),
+    [
+      acceptRequest,
+      cancelRequest,
+      createServiceRequest,
+      error,
+      getClientRequests,
+      getProviderRequests,
+      getRequestById,
+      isLoading,
+      rateProvider,
+      refresh,
+      rejectRequest,
+      requests,
+      selectProvider,
+      trackRequestStatus,
+      updateRequestStatus,
+    ]
   );
+
+  return <ServiceRequestContext.Provider value={value}>{children}</ServiceRequestContext.Provider>;
 }
 
 export function useServiceRequests() {

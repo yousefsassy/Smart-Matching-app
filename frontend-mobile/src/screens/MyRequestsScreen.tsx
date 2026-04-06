@@ -11,6 +11,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  getServiceCategoryLabel,
+  getServiceCategoryMeta,
+} from '../constants/serviceCategories';
+import { getStatusBorderColor } from '../constants/statusConfig';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
@@ -27,34 +32,6 @@ import {
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  plumbing: '🔧',
-  electrical: '⚡',
-  cleaning: '🧹',
-  gardening: '🌿',
-  painting: '🎨',
-  carpentry: '🪚',
-  moving: '📦',
-  other: '⚙️',
-};
-
-const CATEGORY_COLORS: Record<string, [string, string]> = {
-  plumbing: [colors.primary[500], colors.primary[700]],
-  electrical: [colors.accent.mustard, '#F59500'],
-  cleaning: [colors.accent.cyan, colors.primary[600]],
-  gardening: ['#22C55E', '#16A34A'],
-  painting: [colors.accent.coral, '#C0331F'],
-  carpentry: ['#A16207', '#78420A'],
-  moving: [colors.primary[400], colors.primary[600]],
-  other: [colors.neutral[500], colors.neutral[700]],
-};
-
-const STATUS_BORDER: Record<string, string> = {
-  pending: colors.accent.gold,
-  accepted: colors.accent.cyan,
-  completed: colors.success,
-};
 
 type FilterKey = 'all' | 'pending' | 'accepted' | 'completed';
 
@@ -234,7 +211,7 @@ export default function MyRequestsScreen() {
                 <View
                   style={[
                     styles.requestAccent,
-                    { backgroundColor: STATUS_BORDER[request.status] || colors.neutral[300] },
+                    { backgroundColor: getStatusBorderColor(request.status) },
                   ]}
                 />
 
@@ -243,17 +220,17 @@ export default function MyRequestsScreen() {
                   <View style={styles.requestTop}>
                     {/* Category icon */}
                     <LinearGradient
-                      colors={CATEGORY_COLORS[request.serviceCategory] || [colors.neutral[400], colors.neutral[600]]}
+                      colors={getServiceCategoryMeta(request.serviceCategory).gradientColors}
                       style={styles.categoryIconWrap}
                     >
                       <Text style={styles.categoryEmoji}>
-                        {CATEGORY_EMOJI[request.serviceCategory] || '⚙️'}
+                        {getServiceCategoryMeta(request.serviceCategory).emoji}
                       </Text>
                     </LinearGradient>
 
                     <View style={styles.requestTitleBlock}>
                       <Text style={styles.requestCategory}>
-                        {request.serviceCategory.charAt(0).toUpperCase() + request.serviceCategory.slice(1)}
+                        {getServiceCategoryLabel(request.serviceCategory)}
                       </Text>
                       <Text style={styles.requestDate}>{formatDate(request.createdAt)}</Text>
                     </View>
@@ -270,7 +247,7 @@ export default function MyRequestsScreen() {
                   <View style={styles.metaRow}>
                     <View style={styles.metaItem}>
                       <MapPinIcon size={11} color={colors.neutral[400]} />
-                      <Text style={styles.metaText} numberOfLines={1}>{request.location.address}</Text>
+                      <Text style={styles.metaText} numberOfLines={1}>{request.requestLocation.addressLabel}</Text>
                     </View>
                     <View style={styles.metaDot} />
                     <View style={styles.metaItem}>

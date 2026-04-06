@@ -29,7 +29,13 @@
     "plugins": [
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-asset"
+      "expo-asset",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Allow SmartMatch to access your location to place service requests and provider service areas on the map."
+        }
+      ]
     ]
   }
 }

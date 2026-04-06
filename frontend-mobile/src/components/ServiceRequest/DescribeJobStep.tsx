@@ -8,19 +8,29 @@ import { colors, typography, spacing, borderRadius, shadows } from '../../theme'
 import { MapPinIcon } from '../Icons';
 import Textarea from '../Textarea';
 import LocationPicker from '../LocationPicker';
+import { NormalizedLocation } from '../../types/location';
 
 export interface DescribeJobData {
   description: string;
-  location: string;
+  requestLocation: NormalizedLocation | null;
 }
 
 interface DescribeJobStepProps {
   data: DescribeJobData;
   errors: Partial<Record<keyof DescribeJobData, string>>;
-  onChange: (field: keyof DescribeJobData, value: string) => void;
+  onChange: (
+    field: keyof DescribeJobData,
+    value: string | NormalizedLocation | null
+  ) => void;
+  onOpenLocationPicker: () => void;
 }
 
-export default function DescribeJobStep({ data, errors, onChange }: DescribeJobStepProps) {
+export default function DescribeJobStep({
+  data,
+  errors,
+  onChange,
+  onOpenLocationPicker,
+}: DescribeJobStepProps) {
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -51,9 +61,9 @@ export default function DescribeJobStep({ data, errors, onChange }: DescribeJobS
           <Text style={styles.sectionLabel}>Location *</Text>
         </View>
         <LocationPicker
-          value={data.location}
-          onSelect={(val) => onChange('location', val)}
-          error={errors.location}
+          value={data.requestLocation}
+          onPress={onOpenLocationPicker}
+          error={errors.requestLocation}
         />
       </View>
 

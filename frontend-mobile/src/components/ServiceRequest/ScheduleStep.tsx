@@ -199,6 +199,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary[600],
     borderWidth: 2,
   },
+  tileDisabled: {
+    opacity: 0.55,
+  },
   tileEmoji: {
     fontSize: 22,
     marginBottom: spacing.xs,
@@ -212,6 +215,9 @@ const styles = StyleSheet.create({
   tileLabelSelected: {
     color: colors.primary[700],
   },
+  tileLabelDisabled: {
+    color: colors.neutral[400],
+  },
   tileRange: {
     fontSize: 10,
     color: colors.neutral[400],
@@ -219,6 +225,9 @@ const styles = StyleSheet.create({
   },
   tileRangeSelected: {
     color: colors.primary[500],
+  },
+  tileRangeDisabled: {
+    color: colors.neutral[300],
   },
   error: {
     fontSize: typography.size.xs,

@@ -8,33 +8,11 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
+import {
+  SERVICE_CATEGORY_ROWS,
+  ServiceCategoryMeta,
+} from '../../constants/serviceCategories';
 import { ServiceCategory } from '../../types/serviceRequest';
-
-interface CategoryConfig {
-  value: ServiceCategory;
-  label: string;
-  emoji: string;
-  description: string;
-}
-
-const CATEGORIES: CategoryConfig[] = [
-  { value: 'plumbing',   label: 'Plumbing',    emoji: '🔧', description: 'Pipes & water' },
-  { value: 'electrical', label: 'Electrical',  emoji: '⚡', description: 'Wiring & power' },
-  { value: 'cleaning',   label: 'Cleaning',    emoji: '🧹', description: 'Home cleaning' },
-  { value: 'gardening',  label: 'Gardening',   emoji: '🌱', description: 'Garden & lawn' },
-  { value: 'painting',   label: 'Painting',    emoji: '🎨', description: 'Walls & surfaces' },
-  { value: 'carpentry',  label: 'Carpentry',   emoji: '🪚', description: 'Wood & furniture' },
-  { value: 'moving',     label: 'Moving',      emoji: '📦', description: 'Relocation help' },
-  { value: 'other',      label: 'Other',       emoji: '⚙️', description: 'Other services' },
-];
-
-// Split into 4 rows of 2 — no manual width math needed
-const ROWS = [
-  CATEGORIES.slice(0, 2),
-  CATEGORIES.slice(2, 4),
-  CATEGORIES.slice(4, 6),
-  CATEGORIES.slice(6, 8),
-];
 
 interface ServiceTypeStepProps {
   selectedCategory: ServiceCategory | null;
@@ -47,7 +25,7 @@ function CategoryCard({
   isSelected,
   onPress,
 }: {
-  config: CategoryConfig;
+  config: ServiceCategoryMeta;
   isSelected: boolean;
   onPress: () => void;
 }) {
@@ -150,7 +128,7 @@ export default function ServiceTypeStep({
 
       {/* Category grid — 4 rows × 2 flex:1 cards */}
       <View style={styles.grid}>
-        {ROWS.map((row, rowIndex) => (
+        {SERVICE_CATEGORY_ROWS.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
             {row.map((cat) => (
               <CategoryCard

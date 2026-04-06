@@ -197,6 +197,9 @@ const styles = StyleSheet.create({
     ...shadows.sm,
     gap: spacing.md,
   },
+  presetCardDisabled: {
+    opacity: 0.55,
+  },
   presetEmoji: {
     fontSize: 28,
     width: 36,

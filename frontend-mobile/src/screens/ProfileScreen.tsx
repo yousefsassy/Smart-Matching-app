@@ -11,7 +11,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { mockProfileService } from '../services/profile';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/Input';
@@ -125,14 +125,26 @@ export default function ProfileScreen() {
 
   const isClient = user?.role === 'client';
 
-  // Load persisted avatar on mount
-  const AVATAR_KEY = `@tawtaw_avatar_${user?.id || 'user'}`;
+  useEffect(() => {
+    setProfile((current) => ({
+      ...current,
+      fullName: user?.fullName || '',
+      email: user?.email || '',
+    }));
+  }, [user?.email, user?.fullName]);
 
   useEffect(() => {
-    AsyncStorage.getItem(AVATAR_KEY).then((uri) => {
-      if (uri) setAvatarUri(uri);
+    if (!user?.id) {
+      setAvatarUri(null);
+      return;
+    }
+
+    mockProfileService.getAvatar(user.id).then((uri) => {
+      if (uri) {
+        setAvatarUri(uri);
+      }
     });
-  }, [AVATAR_KEY]);
+  }, [user?.id]);
 
   const handlePickAvatar = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -149,7 +161,9 @@ export default function ProfileScreen() {
     if (!result.canceled && result.assets[0]?.uri) {
       const uri = result.assets[0].uri;
       setAvatarUri(uri);
-      await AsyncStorage.setItem(AVATAR_KEY, uri);
+      if (user?.id) {
+        await mockProfileService.saveAvatar(user.id, uri);
+      }
     }
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,13 +9,13 @@ import {
   Animated,
   Dimensions,
   StatusBar,
-  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useFocusEffect } from '@react-navigation/native';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { colors, spacing, typography, borderRadius, animations } from '../theme';
 import { useAuth } from '../context/AuthContext';
+import { useLocationSelection } from '../context/LocationSelectionContext';
 import { AuthStackParamList } from '../navigation/AuthStack';
 import { ServiceCategory } from '../types/serviceRequest';
 import PrimaryButton from '../components/PrimaryButton';
@@ -25,8 +25,15 @@ import LocationStep from '../components/ProviderSignup/LocationStep';
 import AvailabilityStep, { AvailabilityData } from '../components/ProviderSignup/AvailabilityStep';
 import SuccessScreen from '../components/ProviderSignup/SuccessScreen';
 import { ChevronLeftIcon } from '../components/Icons';
+import { ProviderServiceCoverage } from '../types/provider';
+import {
+  getConfirmPasswordError,
+  getEmailError,
+  getFullNameError,
+  getSignupPasswordError,
+} from '../utils/validation';
 
-type ProviderSignupNav = NativeStackNavigationProp<AuthStackParamList, 'ProviderSignup'>;
+type Props = NativeStackScreenProps<AuthStackParamList, 'ProviderSignup'>;
 
 // Step 0 = Account Info + Professional Details (scrollable single page)
 // Step 1 = Availability
@@ -38,16 +45,16 @@ interface FormData {
   email: string;
   password: string;
   confirmPassword: string;
-  city: string;
+  serviceCoverage: ProviderServiceCoverage;
   serviceCategories: ServiceCategory[];
   availability: AvailabilityData;
 }
 
 const STEP_INDICATORS = ['Details', 'Availability'];
 
-export default function ProviderSignupScreen() {
-  const navigation = useNavigation<ProviderSignupNav>();
+export default function ProviderSignupScreen({ navigation, route }: Props) {
   const { signup } = useAuth();
+  const { consumePendingSelection } = useLocationSelection();
   const insets = useSafeAreaInsets();
 
   const [currentStep, setCurrentStep] = useState(0);
@@ -58,7 +65,9 @@ export default function ProviderSignupScreen() {
     email: '',
     password: '',
     confirmPassword: '',
-    city: '',
+    serviceCoverage: {
+      baseLocation: null,
+    },
     serviceCategories: [],
     availability: {
       monday:    { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
@@ -75,6 +84,33 @@ export default function ProviderSignupScreen() {
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
+  useFocusEffect(
+    useCallback(() => {
+      const selection = consumePendingSelection('provider-signup-location');
+      if (!selection) {
+        return undefined;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        serviceCoverage: {
+          ...prev.serviceCoverage,
+          baseLocation: selection.location,
+        },
+      }));
+      setErrors((prev) => {
+        if (!prev.serviceCoverage) {
+          return prev;
+        }
+
+        const next = { ...prev };
+        delete next.serviceCoverage;
+        return next;
+      });
+
+      return undefined;
+    }, [consumePendingSelection])
+  );
 
   const handleFieldChange = useCallback((field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -92,15 +128,21 @@ export default function ProviderSignupScreen() {
 
     switch (step) {
       case 0: {
-        if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
-        else if (formData.fullName.trim().length < 2) errs.fullName = 'Name must be at least 2 characters';
-        if (!formData.email.trim()) errs.email = 'Email is required';
-        else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Please enter a valid email';
-        if (!formData.password) errs.password = 'Password is required';
-        else if (formData.password.length < 8) errs.password = 'Must be at least 8 characters';
-        if (!formData.confirmPassword) errs.confirmPassword = 'Please confirm your password';
-        else if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
-        if (!formData.city) errs.city = 'Please select a city';
+        const fullNameError = getFullNameError(formData.fullName);
+        const emailError = getEmailError(formData.email);
+        const passwordError = getSignupPasswordError(formData.password);
+        const confirmPasswordError = getConfirmPasswordError(
+          formData.password,
+          formData.confirmPassword
+        );
+
+        if (fullNameError) errs.fullName = fullNameError;
+        if (emailError) errs.email = emailError;
+        if (passwordError) errs.password = passwordError;
+        if (confirmPasswordError) errs.confirmPassword = confirmPasswordError;
+        if (!formData.serviceCoverage.baseLocation) {
+          errs.serviceCoverage = 'Please choose your base service location';
+        }
         break;
       }
       case 1: {
@@ -174,6 +216,9 @@ export default function ProviderSignupScreen() {
         email: formData.email.trim(),
         password: formData.password,
         role: 'provider',
+        serviceCoverage: formData.serviceCoverage,
+        serviceCategories: formData.serviceCategories,
+        availability: formData.availability,
       });
     } catch {
       setShowSuccess(false);
@@ -199,9 +244,21 @@ export default function ProviderSignupScreen() {
             />
             <View style={styles.stepGap} />
             <LocationStep
-              data={{ city: formData.city, serviceCategories: formData.serviceCategories }}
+              data={{
+                serviceCoverage: formData.serviceCoverage,
+                serviceCategories: formData.serviceCategories,
+              }}
               errors={errors}
               onChange={handleFieldChange}
+              onOpenLocationPicker={() =>
+                navigation.navigate('LocationPicker', {
+                  mode: 'provider',
+                  returnScreen: 'ProviderSignup',
+                  selectionKey: 'provider-signup-location',
+                  title: 'Select your base service location',
+                  initialLocation: formData.serviceCoverage.baseLocation,
+                })
+              }
             />
           </>
         );

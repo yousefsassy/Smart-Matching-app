@@ -12,6 +12,11 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  SERVICE_CATEGORY_OPTIONS,
+  getServiceCategoryLabel,
+} from '../constants/serviceCategories';
+import { getStatusBorderColor } from '../constants/statusConfig';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useServiceRequests } from '../context/ServiceRequestContext';
@@ -46,64 +51,16 @@ function formatDate(isoDate: string): string {
 
 const MOCK_LOCATION = 'Tunis, Tunisia';
 
-const SERVICE_CATEGORIES = [
-  {
-    label: 'Plumbing',
-    emoji: '🔧',
-    gradientColors: [colors.primary[500], colors.primary[700]] as [string, string],
-  },
-  {
-    label: 'Electrical',
-    emoji: '⚡',
-    gradientColors: [colors.accent.mustard, '#F59500'] as [string, string],
-  },
-  {
-    label: 'Cleaning',
-    emoji: '🧹',
-    gradientColors: [colors.accent.cyan, colors.primary[600]] as [string, string],
-  },
-  {
-    label: 'Gardening',
-    emoji: '🌿',
-    gradientColors: ['#22C55E', '#16A34A'] as [string, string],
-  },
-  {
-    label: 'Painting',
-    emoji: '🎨',
-    gradientColors: [colors.accent.coral, '#C0331F'] as [string, string],
-  },
-  {
-    label: 'Carpentry',
-    emoji: '🪚',
-    gradientColors: ['#A16207', '#78420A'] as [string, string],
-  },
-  {
-    label: 'Moving',
-    emoji: '📦',
-    gradientColors: [colors.primary[400], colors.primary[700]] as [string, string],
-  },
-  {
-    label: 'More',
-    emoji: '⚙️',
-    gradientColors: [colors.neutral[500], colors.neutral[700]] as [string, string],
-  },
-];
-
-// Status → left border color map
-const STATUS_BORDER: Record<string, string> = {
-  pending:     colors.accent.gold,
-  accepted:    colors.accent.cyan,
-  in_progress: colors.primary[500],
-  completed:   colors.success,
-  rejected:    colors.error,
-  cancelled:   colors.neutral[400],
-};
+const SERVICE_CATEGORIES = SERVICE_CATEGORY_OPTIONS.map((category) => ({
+  ...category,
+  label: category.value === 'other' ? 'More' : category.label,
+}));
 
 // ── Screen ─────────────────────────────────────────────────────────────────────
 
 export default function ClientDashboardScreen() {
   const { user } = useAuth();
-  const { getClientRequests } = useServiceRequests();
+  const { getClientRequests, refresh } = useServiceRequests();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
@@ -117,7 +74,7 @@ export default function ClientDashboardScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await refresh();
     setRefreshing(false);
   };
 
@@ -300,14 +257,13 @@ export default function ClientDashboardScreen() {
                 <View
                   style={[
                     styles.requestCardAccent,
-                    { backgroundColor: STATUS_BORDER[request.status] || colors.neutral[300] },
+                    { backgroundColor: getStatusBorderColor(request.status) },
                   ]}
                 />
                 <View style={styles.requestCardBody}>
                   <View style={styles.requestCardTop}>
                     <Text style={styles.requestCardCategory}>
-                      {request.serviceCategory.charAt(0).toUpperCase() +
-                        request.serviceCategory.slice(1)}
+                      {getServiceCategoryLabel(request.serviceCategory)}
                     </Text>
                     <StatusBadge status={request.status} />
                   </View>
@@ -317,7 +273,7 @@ export default function ClientDashboardScreen() {
                   <View style={styles.requestCardMeta}>
                     <MapPinIcon size={11} color={colors.neutral[400]} />
                     <Text style={styles.requestCardMetaText} numberOfLines={1}>
-                      {request.location.address}
+                      {request.requestLocation.addressLabel}
                     </Text>
                     <View style={styles.requestCardDot} />
                     <CalendarIcon size={11} color={colors.neutral[400]} />

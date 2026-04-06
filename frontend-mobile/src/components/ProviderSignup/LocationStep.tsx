@@ -6,39 +6,33 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
+import { SERVICE_CATEGORY_OPTIONS } from '../../constants/serviceCategories';
 import LocationPicker from '../LocationPicker';
 import { MapPinIcon, BriefcaseIcon } from '../Icons';
 import { ServiceCategory } from '../../types/serviceRequest';
-
-interface CategoryConfig {
-  value: ServiceCategory;
-  label: string;
-  emoji: string;
-}
-
-const CATEGORIES: CategoryConfig[] = [
-  { value: 'plumbing',   label: 'Plumbing',    emoji: '🔧' },
-  { value: 'electrical', label: 'Electrical',  emoji: '⚡' },
-  { value: 'cleaning',   label: 'Cleaning',    emoji: '🧹' },
-  { value: 'gardening',  label: 'Gardening',   emoji: '🌱' },
-  { value: 'painting',   label: 'Painting',    emoji: '🎨' },
-  { value: 'carpentry',  label: 'Carpentry',   emoji: '🪚' },
-  { value: 'moving',     label: 'Moving',      emoji: '📦' },
-  { value: 'other',      label: 'Other',       emoji: '⚙️' },
-];
+import { ProviderServiceCoverage } from '../../types/provider';
 
 export interface LocationData {
-  city: string;
+  serviceCoverage: ProviderServiceCoverage;
   serviceCategories: ServiceCategory[];
 }
 
 interface LocationStepProps {
   data: LocationData;
   errors: Record<string, string>;
-  onChange: (field: string, value: string | ServiceCategory[]) => void;
+  onChange: (
+    field: string,
+    value: ProviderServiceCoverage | ServiceCategory[]
+  ) => void;
+  onOpenLocationPicker: () => void;
 }
 
-export default function LocationStep({ data, errors, onChange }: LocationStepProps) {
+export default function LocationStep({
+  data,
+  errors,
+  onChange,
+  onOpenLocationPicker,
+}: LocationStepProps) {
   const toggleCategory = (category: ServiceCategory) => {
     const current = data.serviceCategories;
     const updated = current.includes(category)
@@ -64,13 +58,19 @@ export default function LocationStep({ data, errors, onChange }: LocationStepPro
       <View style={styles.section}>
         <View style={styles.fieldLabelRow}>
           <MapPinIcon size={16} color={colors.neutral[500]} />
-          <Text style={styles.fieldLabel}>City / Governorate</Text>
+          <Text style={styles.fieldLabel}>Base Service Location</Text>
         </View>
         <LocationPicker
-          value={data.city}
-          onSelect={(city) => onChange('city', city)}
-          error={errors.city}
+          value={data.serviceCoverage.baseLocation}
+          onPress={onOpenLocationPicker}
+          error={errors.serviceCoverage}
         />
+        <Text style={styles.fieldHint}>
+          This exact location is kept for future distance-based smart matching.
+        </Text>
+        <Text style={styles.radiusHint}>
+          Service radius support is reserved in the data model and can be added later without changing this picker.
+        </Text>
       </View>
 
       {/* Service Categories */}
@@ -78,7 +78,7 @@ export default function LocationStep({ data, errors, onChange }: LocationStepPro
         <Text style={styles.fieldLabel}>Service Categories</Text>
         <Text style={styles.fieldHint}>Select all that apply (optional)</Text>
         <View style={styles.chipsGrid}>
-          {CATEGORIES.map((cat) => {
+          {SERVICE_CATEGORY_OPTIONS.map((cat) => {
             const selected = data.serviceCategories.includes(cat.value);
             return (
               <TouchableOpacity
@@ -150,7 +150,12 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     color: colors.neutral[400],
     marginBottom: spacing.md,
-    marginTop: -spacing.xs,
+    marginTop: spacing.sm,
+  },
+  radiusHint: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[500],
+    lineHeight: 18,
   },
   chipsGrid: {
     flexDirection: 'row',

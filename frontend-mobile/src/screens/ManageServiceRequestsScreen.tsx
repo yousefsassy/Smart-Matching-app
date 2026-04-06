@@ -13,10 +13,16 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  getServiceCategoryLabel,
+  getServiceCategoryMeta,
+} from '../constants/serviceCategories';
+import { getStatusBorderColor } from '../constants/statusConfig';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import { ServiceRequest, ServiceRequestStatus } from '../types/serviceRequest';
+import { formatBudgetRange } from '../utils/formatters';
 import Avatar from '../components/Avatar';
 import {
   ClockIcon,
@@ -38,17 +44,6 @@ const FILTER_TABS: { key: FilterTab; label: string; statuses: ServiceRequestStat
   { key: 'accepted', label: 'Accepted', statuses: ['accepted'], color: colors.accent.cyan },
   { key: 'completed', label: 'Completed', statuses: ['completed'], color: colors.success },
 ];
-
-const STATUS_BORDER: Record<string, string> = {
-  pending: colors.accent.gold,
-  accepted: colors.accent.cyan,
-  completed: colors.success,
-};
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  plumbing: '🔧', electrical: '⚡', cleaning: '🧹',
-  gardening: '🌿', painting: '🎨', carpentry: '🪚', moving: '📦', other: '⚙️',
-};
 
 export default function ManageServiceRequestsScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -249,7 +244,7 @@ export default function ManageServiceRequestsScreen() {
                   {/* Status left border */}
                   <View style={[
                     styles.requestAccent,
-                    { backgroundColor: STATUS_BORDER[request.status] || colors.neutral[300] },
+                    { backgroundColor: getStatusBorderColor(request.status) },
                   ]} />
 
                   <View style={styles.requestBody}>
@@ -262,14 +257,14 @@ export default function ManageServiceRequestsScreen() {
                       </View>
                       <View style={styles.categoryEmojiWrap}>
                         <Text style={styles.categoryEmoji}>
-                          {CATEGORY_EMOJI[request.serviceCategory] || '⚙️'}
+                          {getServiceCategoryMeta(request.serviceCategory).emoji}
                         </Text>
                       </View>
                     </View>
 
                     {/* Service name + description */}
                     <Text style={styles.serviceCategory}>
-                      {request.serviceCategory.charAt(0).toUpperCase() + request.serviceCategory.slice(1)}
+                      {getServiceCategoryLabel(request.serviceCategory)}
                     </Text>
                     <Text style={styles.description} numberOfLines={2}>
                       {request.description}
@@ -280,7 +275,7 @@ export default function ManageServiceRequestsScreen() {
                       <View style={styles.detailItem}>
                         <MapPinIcon size={11} color={colors.neutral[400]} />
                         <Text style={styles.detailText} numberOfLines={1}>
-                          {request.location.address}
+                          {request.requestLocation.addressLabel}
                         </Text>
                       </View>
                       {request.budget && (
@@ -289,7 +284,7 @@ export default function ManageServiceRequestsScreen() {
                           <View style={styles.detailItem}>
                             <TagIcon size={11} color={colors.neutral[400]} />
                             <Text style={styles.detailText}>
-                              ${request.budget.min}–${request.budget.max}
+                              {formatBudgetRange(request.budget)}
                             </Text>
                           </View>
                         </>

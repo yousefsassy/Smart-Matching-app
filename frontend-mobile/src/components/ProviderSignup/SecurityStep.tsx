@@ -3,6 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
 import Input from '../Input';
 import { LockIcon, CheckCircleIcon, XCircleIcon } from '../Icons';
+import { PASSWORD_CRITERIA, getPasswordStrength } from '../../utils/validation';
 
 interface SecurityData {
   password: string;
@@ -15,25 +16,14 @@ interface SecurityStepProps {
   onChange: (field: string, value: string) => void;
 }
 
-// Password strength criteria
-const CRITERIA = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'One number', test: (p: string) => /\d/.test(p) },
-  { label: 'One special character', test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
-];
-
-function getStrength(password: string): { level: number; label: string; color: string } {
-  const passed = CRITERIA.filter((c) => c.test(password)).length;
-  if (passed === 0) return { level: 0, label: '', color: colors.neutral[200] };
-  if (passed === 1) return { level: 1, label: 'Weak', color: colors.error };
-  if (passed === 2) return { level: 2, label: 'Fair', color: colors.warning };
-  if (passed === 3) return { level: 3, label: 'Good', color: colors.accent.gold };
-  return { level: 4, label: 'Strong', color: colors.success };
-}
-
 export default function SecurityStep({ data, errors, onChange }: SecurityStepProps) {
-  const strength = getStrength(data.password);
+  const strength = getPasswordStrength(data.password, {
+    neutral: colors.neutral[200],
+    error: colors.error,
+    warning: colors.warning,
+    caution: colors.accent.gold,
+    success: colors.success,
+  });
 
   return (
     <View style={styles.card}>
@@ -86,7 +76,7 @@ export default function SecurityStep({ data, errors, onChange }: SecurityStepPro
       {/* Criteria checklist */}
       {data.password.length > 0 && (
         <View style={styles.criteriaList}>
-          {CRITERIA.map((criterion, index) => {
+          {PASSWORD_CRITERIA.map((criterion, index) => {
             const met = criterion.test(data.password);
             return (
               <View key={index} style={styles.criteriaItem}>

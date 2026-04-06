@@ -1,6 +1,7 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../context/AuthContext';
@@ -13,6 +14,7 @@ import RequestDetailScreen from '../screens/RequestDetailScreen';
 import RateProviderScreen from '../screens/RateProviderScreen';
 import ManageServiceRequestsScreen from '../screens/ManageServiceRequestsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
+import LocationPickerScreen from '../screens/LocationPickerScreen';
 import {
   HomeIcon,
   ProfileIcon,
@@ -20,24 +22,16 @@ import {
   CalendarIcon,
 } from '../components/Icons';
 import { colors, borderRadius, typography } from '../theme';
-
-// ── Param lists ────────────────────────────────────────────────────────────────
-
-export type MainTabParamList = {
-  HomeTab: undefined;
-  RequestsTab: undefined;
-  CalendarTab: undefined;
-  ProfileTab: undefined;
-};
-
-export type HomeStackParamList = {
-  Dashboard: undefined;
-  MyRequests: undefined;
-  IncomingRequests: undefined;
-  CreateRequest: undefined;
-  RequestDetail: { requestId: string };
-  RateProvider: { requestId: string };
-};
+import {
+  LocationPickerRouteParams,
+  LocationPickerSelectionParams,
+} from './locationPicker';
+import {
+  HomeStackParamList,
+  MainTabParamList,
+  TAB_HIDDEN_ROUTES,
+} from './types';
+export type { HomeStackParamList, MainTabParamList } from './types';
 
 // ── Navigators ─────────────────────────────────────────────────────────────────
 
@@ -64,6 +58,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="MyRequests" component={MyRequestsScreen} />
       <HomeStack.Screen name="IncomingRequests" component={ManageServiceRequestsScreen} />
       <HomeStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
+      <HomeStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ animation: 'slide_from_bottom' }} />
       <HomeStack.Screen name="RequestDetail" component={RequestDetailScreen} />
       <HomeStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
     </HomeStack.Navigator>
@@ -81,6 +76,7 @@ function ClientRequestsStackNavigator() {
     >
       <ClientRequestsStack.Screen name="MyRequests" component={MyRequestsScreen} />
       <ClientRequestsStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
+      <ClientRequestsStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ animation: 'slide_from_bottom' }} />
       <ClientRequestsStack.Screen name="RequestDetail" component={RequestDetailScreen} />
       <ClientRequestsStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
     </ClientRequestsStack.Navigator>
@@ -121,6 +117,37 @@ interface TabBarIconProps {
   focused: boolean;
   color: string;
   size: number;
+}
+
+function getTabBarStyle(
+  route: Partial<RouteProp<Record<string, object | undefined>, string>>,
+  insetsBottom: number
+) {
+  const focusedRouteName = getFocusedRouteNameFromRoute(route as any) ?? 'Dashboard';
+
+  if (TAB_HIDDEN_ROUTES.has(focusedRouteName)) {
+    return { display: 'none' as const };
+  }
+
+  return {
+    backgroundColor: colors.neutral[0],
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[100],
+    height: 72 + insetsBottom,
+    paddingTop: 10,
+    paddingBottom: insetsBottom + 10,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.10,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 12,
+      },
+    }),
+  };
 }
 
 // ── Main tabs ──────────────────────────────────────────────────────────────────
@@ -170,28 +197,30 @@ export default function MainTabs() {
       <Tab.Screen
         name="HomeTab"
         component={HomeStackNavigator}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Home',
+          tabBarStyle: getTabBarStyle(route, insets.bottom),
           tabBarIcon: ({ focused, color }: TabBarIconProps) => (
             <TabIcon focused={focused}>
               <HomeIcon color={color} size={22} />
             </TabIcon>
           ),
-        }}
+        })}
       />
 
       {/* Requests — both roles, different content */}
       <Tab.Screen
         name="RequestsTab"
         component={isProvider ? ProviderRequestsStackNavigator : ClientRequestsStackNavigator}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Requests',
+          tabBarStyle: getTabBarStyle(route, insets.bottom),
           tabBarIcon: ({ focused, color }: TabBarIconProps) => (
             <TabIcon focused={focused}>
               <ClockIcon color={color} size={22} />
             </TabIcon>
           ),
-        }}
+        })}
       />
 
       {/* Calendar — provider only */}

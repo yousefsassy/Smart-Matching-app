@@ -22,6 +22,7 @@ import Input from '../components/Input';
 import PrimaryButton from '../components/PrimaryButton';
 import { MailIcon, LockIcon, GoogleIcon, ChevronLeftIcon } from '../components/Icons';
 import { AuthStackParamList } from '../navigation/AuthStack';
+import { getEmailError, getLoginPasswordError } from '../utils/validation';
 
 type LoginScreenNavigationProp = NativeStackNavigationProp<AuthStackParamList, 'Login'>;
 
@@ -40,16 +41,15 @@ export default function LoginScreen() {
   const validateForm = (): boolean => {
     const newErrors: { email?: string; password?: string } = {};
 
-    if (!email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
+    const emailError = getEmailError(email);
+    const passwordError = getLoginPasswordError(password);
+
+    if (emailError) {
+      newErrors.email = emailError;
     }
 
-    if (!password) {
-      newErrors.password = 'Password is required';
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
+    if (passwordError) {
+      newErrors.password = passwordError;
     }
 
     setErrors(newErrors);

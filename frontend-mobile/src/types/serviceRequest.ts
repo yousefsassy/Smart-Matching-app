@@ -1,3 +1,5 @@
+import { NormalizedLocation } from './location';
+
 export type ServiceRequestStatus =
   | 'pending'
   | 'accepted'
@@ -15,15 +17,6 @@ export type ServiceCategory =
   | 'carpentry'
   | 'moving'
   | 'other';
-
-export interface Location {
-  latitude: number;
-  longitude: number;
-  address: string;
-  city?: string;
-  state?: string;
-  zipCode?: string;
-}
 
 export interface TimeSlot {
   date: string; // ISO date string
@@ -61,7 +54,7 @@ export interface ServiceRequest {
   // Request details
   serviceCategory: ServiceCategory;
   description: string;
-  location: Location;
+  requestLocation: NormalizedLocation;
   timeSlot: TimeSlot;
   budget?: BudgetRange;
 
@@ -87,6 +80,20 @@ export interface ServiceRequest {
   rating?: number;
   review?: string;
   reviewedAt?: string;
+}
+
+export interface CreateServiceRequestInput {
+  serviceCategory: ServiceCategory;
+  description: string;
+  requestLocation: NormalizedLocation;
+  timeSlot: TimeSlot;
+  budget?: BudgetRange;
+}
+
+export interface RequestRatingInput {
+  requestId: string;
+  rating: number;
+  review?: string;
 }
 
 export interface StatusHistoryEntry {
