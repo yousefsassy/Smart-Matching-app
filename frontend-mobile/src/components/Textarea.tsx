@@ -66,7 +66,7 @@ export default function Textarea({
 
   const backgroundColor = borderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.neutral[0], colors.neutral[0]],
+    outputRange: [colors.surface.raised, colors.surface.base],
   });
 
   return (
@@ -114,13 +114,13 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
+    fontWeight: typography.weight.semibold,
     color: colors.neutral[700],
-    marginBottom: spacing.sm,
+    marginBottom: 6,
   },
   inputContainer: {
     borderWidth: bw.default,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
   },
   inputError: {
@@ -137,12 +137,12 @@ const styles = StyleSheet.create({
     color: colors.neutral[400],
     textAlign: 'right',
     paddingHorizontal: spacing.base,
-    paddingBottom: spacing.sm,
+    paddingBottom: spacing.md,
   },
   error: {
     fontSize: typography.size.xs,
     color: colors.error,
-    marginTop: spacing.xs,
+    marginTop: 6,
     marginLeft: spacing.xs,
   },
 });

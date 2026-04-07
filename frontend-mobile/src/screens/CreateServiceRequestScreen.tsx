@@ -1,18 +1,22 @@
 import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
+  Text,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   Animated,
   Dimensions,
+  TouchableOpacity,
+  StatusBar,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { MOCK_NETWORK_DELAYS } from '../constants/appConfig';
-import { colors, spacing, animations } from '../theme';
+import { colors, spacing, borderRadius, animations, typography, shadows } from '../theme';
 import { useLocationSelection } from '../context/LocationSelectionContext';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import {
@@ -31,8 +35,8 @@ import ServiceTypeStep from '../components/ServiceRequest/ServiceTypeStep';
 import DescribeJobStep, { DescribeJobData } from '../components/ServiceRequest/DescribeJobStep';
 import ScheduleStep, {
   ScheduleData,
-  TimeSlotKey,
-  TIME_SLOT_RANGES,
+  TimeValue,
+  normalizeTimeValue,
 } from '../components/ServiceRequest/ScheduleStep';
 import BudgetStep, { BudgetData, BudgetPreset } from '../components/ServiceRequest/BudgetStep';
 import MatchingScreen from '../components/ServiceRequest/MatchingScreen';
@@ -59,6 +63,7 @@ interface FormData {
 export default function CreateServiceRequestScreen({ navigation }: Props) {
   const { createServiceRequest, selectProvider } = useServiceRequests();
   const { consumePendingSelection } = useLocationSelection();
+  const insets = useSafeAreaInsets();
   const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Step state ─────────────────────────────────────────────────────────────
@@ -77,7 +82,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   const [formData, setFormData] = useState<FormData>({
     serviceCategory: null,
     describe: { description: '', requestLocation: null },
-    schedule: { date: null, timeSlotKey: null },
+    schedule: { date: null, startTime: null, endTime: null },
     budget: { preset: null },
   });
 
@@ -136,7 +141,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
   );
 
   const handleScheduleChange = useCallback(
-    (field: keyof ScheduleData, value: Date | TimeSlotKey | null) => {
+    (field: keyof ScheduleData, value: Date | TimeValue | null) => {
       setFormData((prev) => ({
         ...prev,
         schedule: { ...prev.schedule, [field]: value },
@@ -180,11 +185,16 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         break;
       }
       case 2: {
+        const normalizedStart = normalizeTimeValue(formData.schedule.startTime);
+        const normalizedEnd = normalizeTimeValue(formData.schedule.endTime);
+
         if (!formData.schedule.date) {
           errs.date = 'Please select a date';
         }
-        if (!formData.schedule.timeSlotKey) {
-          errs.timeSlot = 'Please select a time slot';
+        if (!normalizedStart || !normalizedEnd) {
+          errs.timeSlot = 'Please choose both a start time and an end time';
+        } else if (normalizedEnd <= normalizedStart) {
+          errs.timeSlot = 'End time must be later than start time';
         }
         break;
       }
@@ -249,9 +259,12 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     try {
       // Build TimeSlot
       const { schedule } = formData;
+      const normalizedStart = normalizeTimeValue(schedule.startTime);
+      const normalizedEnd = normalizeTimeValue(schedule.endTime);
       const timeSlot: TimeSlot = {
         date: schedule.date!.toISOString().split('T')[0],
-        ...TIME_SLOT_RANGES[schedule.timeSlotKey!],
+        startTime: normalizedStart!,
+        endTime: normalizedEnd!,
       };
 
       // Build BudgetRange
@@ -391,53 +404,67 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <LinearGradient
-        colors={[colors.primary[900], colors.primary[700], colors.primary[500]]}
-        style={styles.gradient}
-      >
+      <StatusBar barStyle="light-content" />
+      <View style={styles.screen}>
+        <LinearGradient
+          colors={colors.gradients.dark as [string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.topFrame, { paddingTop: insets.top + spacing.base }]}
+        >
+          <View style={styles.topRow}>
+            <TouchableOpacity style={styles.backIconButton} onPress={handleBack} activeOpacity={0.82}>
+              <ChevronLeftIcon size={18} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <Text style={styles.topMeta}>New request</Text>
+          </View>
+          <Text style={styles.topTitle}>Create a request</Text>
+          <Text style={styles.topSubtitle}>Search, describe, and book a slot in a few quick steps.</Text>
+        </LinearGradient>
+
         <ScrollView
           ref={scrollViewRef}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + spacing['3xl'] }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <StepperHeader
-            currentStep={currentStep}
-            totalSteps={TOTAL_STEPS}
-            stepLabels={STEP_LABELS}
-          />
-
-          {/* Animated step content */}
-          <Animated.View
-            style={{
-              transform: [{ translateX: slideAnim }],
-              opacity: opacityAnim,
-            }}
-          >
-            {renderStep()}
-          </Animated.View>
-
-          {/* Navigation buttons */}
-          <View style={styles.navButtons}>
-            <PrimaryButton
-              title={currentStep === 0 ? 'Cancel' : 'Back'}
-              onPress={handleBack}
-              variant="outline"
-              fullWidth={false}
-              style={styles.backButton}
-              textStyle={{ color: colors.neutral[0] }}
-              icon={currentStep > 0 ? <ChevronLeftIcon size={18} color={colors.neutral[0]} /> : undefined}
+          <View style={styles.sheet}>
+            <StepperHeader
+              currentStep={currentStep}
+              totalSteps={TOTAL_STEPS}
+              stepLabels={STEP_LABELS}
+              caption="Client request"
             />
-            <PrimaryButton
-              title={currentStep === TOTAL_STEPS - 1 ? 'Find Providers' : 'Next'}
-              onPress={handleNext}
-              variant="primary"
-              fullWidth={false}
-              style={styles.nextButton}
-            />
+
+            <Animated.View
+              style={{
+                transform: [{ translateX: slideAnim }],
+                opacity: opacityAnim,
+              }}
+            >
+              {renderStep()}
+            </Animated.View>
+
+            <View style={styles.navButtons}>
+              <PrimaryButton
+                title={currentStep === 0 ? 'Cancel' : 'Back'}
+                onPress={handleBack}
+                variant="outline"
+                fullWidth={false}
+                style={styles.backButton}
+                icon={currentStep > 0 ? <ChevronLeftIcon size={18} color={colors.primary[700]} /> : undefined}
+              />
+              <PrimaryButton
+                title={currentStep === TOTAL_STEPS - 1 ? 'Find Providers' : 'Next'}
+                onPress={handleNext}
+                variant="primary"
+                fullWidth={false}
+                style={styles.nextButton}
+              />
+            </View>
           </View>
         </ScrollView>
-      </LinearGradient>
+      </View>
     </KeyboardAvoidingView>
   );
 }
@@ -446,20 +473,63 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  gradient: {
+  screen: {
     flex: 1,
+    backgroundColor: colors.surface.base,
+  },
+  topFrame: {
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing['2xl'],
+  },
+  topRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+  },
+  backIconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: borderRadius.full,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  topMeta: {
+    ...typography.role.eyebrow,
+    color: 'rgba(255,255,255,0.54)',
+  },
+  topTitle: {
+    ...typography.role.heroTitle,
+    color: colors.neutral[0],
+    marginBottom: spacing.xs,
+  },
+  topSubtitle: {
+    fontSize: typography.size.sm,
+    color: 'rgba(255,255,255,0.7)',
   },
   scrollContent: {
     flexGrow: 1,
     padding: spacing.xl,
-    paddingTop: spacing['3xl'],
-    paddingBottom: spacing['3xl'],
+    paddingTop: spacing.lg,
+  },
+  sheet: {
+    marginTop: -spacing.xl,
+    backgroundColor: colors.surface.base,
+    borderRadius: 30,
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    ...shadows.card,
   },
   navButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.xl,
     gap: spacing.md,
+    paddingTop: spacing.sm,
   },
   backButton: {
     flex: 1,

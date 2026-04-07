@@ -1,55 +1,74 @@
-// SmartMatch Theme - "Mediterranean Artisan" Design System
-// Dark cerulean trust blues, warm old lace backgrounds, mustard & CG red accents
+// TawTaw Theme - luxury editorial mobile system
+// Midnight structure, parchment surfaces, metallic amber accents
 
 import { StyleSheet, Platform } from 'react-native';
 
 export const colors = {
-  // Primary palette - Dark Cerulean (#134686 anchor)
+  // Primary palette - Deep ink blue
   primary: {
-    50: '#EBF1FA',   // Tinted backgrounds, icon wells
-    100: '#C8D9F2',  // Borders, dividers
-    200: '#9FBDE8',  // Disabled states
-    300: '#6E9BD8',  // Placeholder text
-    400: '#4479C7',  // Hover/pressed states
-    500: '#2660AF',  // Interactive elements (focus rings, links)
-    600: '#134686',  // ← THE brand cerulean (active tint, headers)
-    700: '#0E3366',  // Pressed/active button states
-    800: '#092247',  // Dark headings
-    900: '#050F1E',  // Deep navy — gradient backgrounds, auth screens
+    50: '#EEF3F9',
+    100: '#D4DDEA',
+    200: '#AFBFD7',
+    300: '#839EC0',
+    400: '#557AA3',
+    500: '#335C82',
+    600: '#22435F',
+    700: '#182F45',
+    800: '#0D1B2C',
+    900: '#050B13',
   },
 
-  // Accent — Mustard, CG Red, Mediterranean Teal
+  // Accent palette
   accent: {
-    // Mustard — primary CTA, highlights, energy
-    mustard:      '#FEB21A',
-    mustardLight: '#FFF4D6',
-    // CG Red — promotions, hot badges, alerts
-    coral:        '#ED3F27',
-    coralLight:   '#FDECEA',
-    // Semantic aliases used by statusConfig (keys must be preserved)
-    gold:         '#FEB21A',   // mustard alias — pending status badge
-    goldLight:    '#FFF4D6',
-    // Mediterranean teal — accepted status badge, AI highlights
-    cyan:         '#0EA5A0',
-    cyanLight:    '#E0F7F6',
-    // Purple — kept for ProviderDashboard stats
+    mustard:      '#CF9831',
+    mustardLight: '#F8EFDF',
+    amber:        '#E8B24E',
+    amberLight:   '#FFF4DE',
+    coral:        '#C7664D',
+    coralLight:   '#F6E5DF',
+    gold:         '#CF9831',
+    goldLight:    '#F8EFDF',
+    cyan:         '#157A73',
+    cyanLight:    '#E1F1EE',
     purple:       '#8B5CF6',
     purpleLight:  '#EDE9FE',
   },
 
-  // Neutrals — Warm sand tones (neutral[50] = Old Lace app background)
+  // Neutrals — Warm sand / ivory system
   neutral: {
-    0:   '#FFFFFF',  // Pure white — cards, modals, surfaces
-    50:  '#FDF4E3',  // ← OLD LACE — main app background (auto-cascades everywhere)
-    100: '#F5E8CC',  // Input backgrounds, subtle borders
-    200: '#E8D4AA',  // Dividers
-    300: '#D4B887',  // Disabled text
-    400: '#B09060',  // Placeholder text
-    500: '#8A6E45',  // Secondary text
-    600: '#6B5234',  // Body text
-    700: '#4F3B24',  // Dark body text
-    800: '#342518',  // Headings
-    900: '#1A110A',  // Near black
+    0:   '#FFFDF9',
+    50:  '#F6F0E7',
+    100: '#E9DED0',
+    200: '#D7C6B0',
+    300: '#BFA88B',
+    400: '#9D8367',
+    500: '#7C644E',
+    600: '#5E4937',
+    700: '#423226',
+    800: '#2B211A',
+    900: '#17110D',
+  },
+
+  surface: {
+    base: '#F6F0E7',
+    raised: '#FFFDF9',
+    muted: '#EFE5D8',
+    sunken: '#E6D8C5',
+    tint: '#E8EDF4',
+    accent: '#F8EFDF',
+  },
+
+  overlay: {
+    heroSoft: 'rgba(5, 11, 19, 0.24)',
+    heroMid: 'rgba(5, 11, 19, 0.58)',
+    heroStrong: 'rgba(5, 11, 19, 0.9)',
+    glassSoft: 'rgba(255,255,255,0.12)',
+    glass: 'rgba(255,255,255,0.16)',
+    glassStrong: 'rgba(255,255,255,0.22)',
+    borderSoft: 'rgba(255,255,255,0.16)',
+    border: 'rgba(255,255,255,0.24)',
+    borderStrong: 'rgba(255,255,255,0.34)',
+    darkScrim: 'rgba(5, 11, 19, 0.68)',
   },
 
   // Semantic
@@ -64,38 +83,41 @@ export const colors = {
 
   // Gradients (as array for LinearGradient)
   gradients: {
-    primary:  ['#2660AF', '#134686'],              // Cerulean button gradient
-    hero:     ['#050F1E', '#0E3366', '#134686'],   // Auth screen headers
-    accent:   ['#FEB21A', '#ED3F27'],              // Mustard → CG red (energy)
-    success:  ['#10B981', '#059669'],              // Unchanged
-    warmGlow: ['#FEB21A', '#ED3F27'],              // Mustard → red (replaces gold/coral)
-    card:     ['#FFFFFF', '#FDF4E3'],              // White → old lace (warm cards)
-    dark:     ['#050F1E', '#0E3366'],              // Deep navy
-    mustard:  ['#FEB21A', '#F59500'],              // Pure mustard CTA gradient
-    // New tokens for redesign
-    header:   ['#0E3366', '#134686', '#1D5299'],   // Dashboard screen hero header
-    cardHero: ['#134686', '#2660AF'],              // Card gradient header band
-    surface:  ['#FFFFFF', '#F5E8CC'],              // Subtle warm card surface
-    coral:    ['#ED3F27', '#C0331F'],              // Promo/alert banner
-    teal:     ['#0EA5A0', '#0D7E7A'],              // Teal CTA gradient
-    sidebar:  ['#EBF1FA', '#FFFFFF'],              // Section accent left panel
+    primary:  ['#22435F', '#182F45'],
+    hero:     ['#050B13', '#0D1B2C', '#22435F'],
+    accent:   ['#E8B24E', '#CF9831'],
+    success:  ['#157A73', '#0F5D59'],
+    warmGlow: ['#F0C36C', '#CF9831'],
+    card:     ['#FFFDF9', '#F1E7D9'],
+    dark:     ['#050B13', '#182F45'],
+    mustard:  ['#E8B24E', '#CA8A18'],
+    header:   ['#050B13', '#0D1B2C', '#22435F'],
+    cardHero: ['#13243A', '#244C70'],
+    surface:  ['#FFFDF9', '#EDE2D3'],
+    coral:    ['#C7664D', '#A54B36'],
+    teal:     ['#157A73', '#0F5D59'],
+    sidebar:  ['#ECE2D4', '#FFFDF9'],
   },
 };
 
 export const typography = {
-  // Font families - Platform-aware system fonts
+  // Font families - custom fonts only for selective brand moments
   fontFamily: Platform.select({
     ios: {
       regular: 'System',
       medium: 'System',
       semibold: 'System',
       bold: 'System',
+      brand: 'Beckan',
+      accent: 'SilverGarden',
     },
     default: {
       regular: 'System',
       medium: 'System',
       semibold: 'System',
       bold: 'System',
+      brand: 'Beckan',
+      accent: 'SilverGarden',
     },
   })!,
 
@@ -144,6 +166,55 @@ export const typography = {
     medium: '500' as const,
     semibold: '600' as const,
     bold: '700' as const,
+  },
+
+  role: {
+    heroTitle: {
+      fontSize: 34,
+      lineHeight: 40,
+      letterSpacing: -1.1,
+      fontWeight: '700' as const,
+    },
+    sectionTitle: {
+      fontSize: 22,
+      lineHeight: 28,
+      letterSpacing: -0.55,
+      fontWeight: '700' as const,
+    },
+    cardTitle: {
+      fontSize: 16,
+      lineHeight: 22,
+      letterSpacing: -0.2,
+      fontWeight: '700' as const,
+    },
+    body: {
+      fontSize: 15,
+      lineHeight: 22,
+      fontWeight: '400' as const,
+    },
+    meta: {
+      fontSize: 12,
+      lineHeight: 16,
+      fontWeight: '500' as const,
+    },
+    eyebrow: {
+      fontSize: 11,
+      lineHeight: 16,
+      letterSpacing: 1.2,
+      fontWeight: '600' as const,
+    },
+    display: {
+      fontSize: 48,
+      lineHeight: 52,
+      letterSpacing: -1.8,
+      fontWeight: '700' as const,
+    },
+    deck: {
+      fontSize: 17,
+      lineHeight: 26,
+      fontWeight: '500' as const,
+      letterSpacing: -0.15,
+    },
   },
 };
 
@@ -204,16 +275,16 @@ export const shadows = {
   lg: {
     shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
-    shadowRadius: 28,
-    elevation: 10,
+    shadowOpacity: 0.12,
+    shadowRadius: 22,
+    elevation: 8,
   },
   xl: {
     shadowColor: colors.primary[900],
     shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 36,
-    elevation: 14,
+    shadowOpacity: 0.2,
+    shadowRadius: 32,
+    elevation: 11,
   },
   glow: {
     shadowColor: colors.accent.cyan,
@@ -223,17 +294,17 @@ export const shadows = {
     elevation: 10,
   },
   mustard: {
-    shadowColor: '#FEB21A',
+    shadowColor: colors.accent.mustard,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    elevation: 6,
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+    elevation: 5,
   },
   card: {
     shadowColor: colors.primary[800],
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    shadowOpacity: 0.09,
+    shadowRadius: 14,
     elevation: 3,
   },
   input: {

@@ -59,15 +59,15 @@ export default function PrimaryButton({
   };
 
   const sizeStyles = {
-    sm: { paddingVertical: spacing.sm, paddingHorizontal: spacing.base },
-    md: { paddingVertical: spacing.md + 2, paddingHorizontal: spacing.xl },
-    lg: { paddingVertical: spacing.base + 2, paddingHorizontal: spacing['2xl'] },
+    sm: { paddingVertical: spacing.sm + 1, paddingHorizontal: spacing.base },
+    md: { paddingVertical: spacing.md + 3, paddingHorizontal: spacing.xl },
+    lg: { paddingVertical: spacing.base + 4, paddingHorizontal: spacing['2xl'] },
   };
 
   const textSizeStyles = {
-    sm: { fontSize: typography.size.sm },
-    md: { fontSize: typography.size.base },
-    lg: { fontSize: typography.size.md },
+    sm: { fontSize: typography.size.sm, letterSpacing: 0.1 },
+    md: { fontSize: typography.size.base, letterSpacing: 0.15 },
+    lg: { fontSize: typography.size.md, letterSpacing: 0.2 },
   };
 
   const isDisabled = disabled || loading;
@@ -124,10 +124,10 @@ export default function PrimaryButton({
             colors={
               isDisabled
                 ? [colors.neutral[300], colors.neutral[400]]
-                : [colors.accent.mustard, '#F59500']
+                : (colors.gradients.mustard as [string, string])
             }
             start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
+            end={{ x: 1, y: 0 }}
             style={[
               styles.button,
               sizeStyles[size],
@@ -182,44 +182,47 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: borderRadius.xl,
+    borderRadius: borderRadius['2xl'],
+    minHeight: 56,
   },
   primaryButton: {
-    borderRadius: borderRadius.full,
+    borderRadius: borderRadius['2xl'],
     ...shadows.mustard,
   },
   secondaryButton: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary[900],
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+    borderRadius: borderRadius['2xl'],
   },
   outlineButton: {
-    backgroundColor: 'transparent',
+    backgroundColor: colors.surface.raised,
     borderWidth: 1.5,
-    borderColor: colors.primary[200],
-    borderRadius: borderRadius.xl,
+    borderColor: colors.neutral[200],
+    borderRadius: borderRadius['2xl'],
   },
   ghostButton: {
-    backgroundColor: 'transparent',
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.muted,
+    borderRadius: borderRadius['2xl'],
   },
   disabled: {
-    opacity: 0.6,
+    opacity: 0.58,
   },
   text: {
     fontWeight: typography.weight.bold,
     textAlign: 'center',
-    letterSpacing: typography.letterSpacing.tight,
+    letterSpacing: 0.3,
   },
   textPrimary: {
     color: colors.neutral[900],
   },
   textSecondary: {
-    color: colors.primary[700],
+    color: colors.neutral[0],
   },
   textOutline: {
-    color: colors.primary[600],
+    color: colors.primary[700],
   },
   textGhost: {
-    color: colors.primary[600],
+    color: colors.primary[700],
   },
 });

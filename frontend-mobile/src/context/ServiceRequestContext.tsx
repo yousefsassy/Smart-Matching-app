@@ -32,7 +32,7 @@ interface ServiceRequestContextType {
   getProviderRequests: () => ServiceRequest[];
   acceptRequest: (requestId: string) => Promise<void>;
   rejectRequest: (requestId: string, reason?: string) => Promise<void>;
-  updateRequestStatus: (requestId: string, status: 'completed') => Promise<void>;
+  updateRequestStatus: (requestId: string, status: 'in_progress' | 'completed') => Promise<void>;
   getRequestById: (requestId: string) => ServiceRequest | null;
   refresh: () => Promise<void>;
 }
@@ -132,7 +132,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
   );
 
   const updateRequestStatus = useCallback(
-    async (requestId: string, status: 'completed') => {
+    async (requestId: string, status: 'in_progress' | 'completed') => {
       await handleMutation(() => mockRequestsService.updateRequestStatus(requestId, status));
     },
     [handleMutation]

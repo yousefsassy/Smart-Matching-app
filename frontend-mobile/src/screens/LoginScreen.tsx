@@ -20,7 +20,13 @@ import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import Input from '../components/Input';
 import PrimaryButton from '../components/PrimaryButton';
-import { MailIcon, LockIcon, GoogleIcon, ChevronLeftIcon } from '../components/Icons';
+import {
+  MailIcon,
+  LockIcon,
+  GoogleIcon,
+  ChevronLeftIcon,
+  TawTawMarkIcon,
+} from '../components/Icons';
 import { AuthStackParamList } from '../navigation/AuthStack';
 import { getEmailError, getLoginPasswordError } from '../utils/validation';
 
@@ -39,21 +45,21 @@ export default function LoginScreen() {
   const passwordRef = useRef<TextInput>(null);
 
   const validateForm = (): boolean => {
-    const newErrors: { email?: string; password?: string } = {};
+    const nextErrors: { email?: string; password?: string } = {};
 
     const emailError = getEmailError(email);
     const passwordError = getLoginPasswordError(password);
 
     if (emailError) {
-      newErrors.email = emailError;
+      nextErrors.email = emailError;
     }
 
     if (passwordError) {
-      newErrors.password = passwordError;
+      nextErrors.password = passwordError;
     }
 
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleLogin = async () => {
@@ -74,11 +80,9 @@ export default function LoginScreen() {
   };
 
   const handleGoogleLogin = () => {
-    Alert.alert(
-      'Coming Soon',
-      'Google Sign-In will be available in a future update.',
-      [{ text: 'OK' }]
-    );
+    Alert.alert('Coming Soon', 'Google Sign-In will be available in a future update.', [
+      { text: 'OK' },
+    ]);
   };
 
   return (
@@ -93,43 +97,44 @@ export default function LoginScreen() {
         contentContainerStyle={{ flexGrow: 1 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
-        bounces={false}
       >
-        {/* ── Gradient Hero Section ────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#0A2744', '#134686', '#1a5699']}
+          colors={colors.gradients.hero as [string, string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.hero, { paddingTop: insets.top + spacing.sm }]}
+          style={[styles.hero, { paddingTop: insets.top + spacing.base }]}
         >
-          {/* Decorative circles */}
-          <View style={styles.heroCircle1} />
-          <View style={styles.heroCircle2} />
+          <View style={styles.heroGlowLarge} />
+          <View style={styles.heroGlowSmall} />
 
-          {/* Back button */}
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <View style={styles.backButtonInner}>
+          <View style={styles.heroTopBar}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            >
               <ChevronLeftIcon size={20} color={colors.neutral[0]} />
-            </View>
-          </TouchableOpacity>
+            </TouchableOpacity>
 
-          {/* Logo mark */}
-          <View style={styles.logoMark}>
-            <Text style={styles.logoText}>T</Text>
+            <View style={styles.brandLockup}>
+              <TawTawMarkIcon size={22} />
+              <Text style={styles.brandLockupText}>TAWTAW</Text>
+            </View>
           </View>
 
-          {/* Hero text */}
-          <Text style={styles.heroTitle}>Welcome back</Text>
-          <Text style={styles.heroSubtitle}>Sign in to your TawTaw account</Text>
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroEyebrow}>Sign in</Text>
+            <Text style={styles.heroTitle}>Welcome back.</Text>
+            <Text style={styles.heroDeck}>Continue to your account.</Text>
+          </View>
         </LinearGradient>
 
-        {/* ── Form Card (overlaps gradient) ───────────────────────────────────── */}
-        <View style={styles.formCard}>
-          <View style={styles.formCardHandle} />
+        <View style={styles.sheet}>
+          <View style={styles.sheetHeader}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetEyebrow}>Account</Text>
+            <Text style={styles.sheetTitle}>Sign in</Text>
+          </View>
 
           <View style={styles.form}>
             <Input
@@ -173,20 +178,18 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             <PrimaryButton
-              title="Sign In"
+              title="Enter TawTaw"
               onPress={handleLogin}
               loading={loading}
               style={styles.loginButton}
             />
 
-            {/* Divider */}
-            <View style={styles.dividerContainer}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>or continue with</Text>
-              <View style={styles.dividerLine} />
+            <View style={styles.altDivider}>
+              <View style={styles.altDividerLine} />
+              <Text style={styles.altDividerText}>or access with</Text>
+              <View style={styles.altDividerLine} />
             </View>
 
-            {/* Social Login */}
             <PrimaryButton
               variant="outline"
               title="Continue with Google"
@@ -194,45 +197,30 @@ export default function LoginScreen() {
               onPress={handleGoogleLogin}
             />
 
-            {/* Demo Credentials */}
             <TouchableOpacity
-              style={styles.demoToggle}
+              style={styles.demoTrigger}
               onPress={() => {
                 LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                setShowDemo(!showDemo);
+                setShowDemo((prev) => !prev);
               }}
-              activeOpacity={0.7}
+              activeOpacity={0.8}
             >
-              <Text style={styles.demoToggleText}>
-                {showDemo ? 'Hide' : 'Show'} demo credentials
-              </Text>
+              <Text style={styles.demoTriggerText}>{showDemo ? 'Hide' : 'Show'} demo access</Text>
             </TouchableOpacity>
-            {showDemo && (
-              <View style={styles.demoSection}>
-                <Text style={styles.demoTitle}>Demo Accounts</Text>
-                <View style={styles.demoRow}>
-                  <View style={styles.demoBadge}>
-                    <Text style={styles.demoBadgeText}>CLIENT</Text>
-                  </View>
-                  <Text style={styles.demoText}>client@demo.com · demo123</Text>
-                </View>
-                <View style={styles.demoRow}>
-                  <View style={[styles.demoBadge, { backgroundColor: colors.accent.cyanLight }]}>
-                    <Text style={[styles.demoBadgeText, { color: colors.accent.cyan }]}>
-                      PROVIDER
-                    </Text>
-                  </View>
-                  <Text style={styles.demoText}>provider@demo.com · demo123</Text>
-                </View>
+
+            {showDemo ? (
+              <View style={styles.demoPanel}>
+                <Text style={styles.demoPanelTitle}>Demo accounts</Text>
+                <Text style={styles.demoRow}>Client: `client@demo.com` / `demo123`</Text>
+                <Text style={styles.demoRow}>Provider: `provider@demo.com` / `demo123`</Text>
               </View>
-            )}
+            ) : null}
           </View>
 
-          {/* Footer */}
           <View style={[styles.footer, { paddingBottom: insets.bottom + spacing.xl }]}>
-            <Text style={styles.footerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
-              <Text style={styles.footerLink}>Sign Up</Text>
+            <Text style={styles.footerText}>New to TawTaw?</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Signup')} activeOpacity={0.8}>
+              <Text style={styles.footerLink}>Create an account</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -244,105 +232,121 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0A2744',
+    backgroundColor: colors.primary[900],
   },
   scrollView: {
     flex: 1,
   },
-
-  // ── Hero gradient section
   hero: {
+    minHeight: 320,
     paddingHorizontal: spacing.xl,
     paddingBottom: spacing['3xl'],
-    overflow: 'hidden',
     position: 'relative',
-    minHeight: 240,
+    overflow: 'hidden',
   },
-  heroCircle1: {
+  heroGlowLarge: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(38, 96, 175, 0.3)',
-    top: -60,
-    right: -40,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(207,152,49,0.12)',
+    top: -70,
+    right: -120,
   },
-  heroCircle2: {
+  heroGlowSmall: {
     position: 'absolute',
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: 'rgba(254, 178, 26, 0.12)',
-    bottom: 20,
+    width: 180,
+    height: 180,
+    borderRadius: 90,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    bottom: 30,
     left: -30,
   },
+  heroTopBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing['2xl'],
+  },
   backButton: {
-    alignSelf: 'flex-start',
-    marginBottom: spacing.xl,
-  },
-  backButtonInner: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: 42,
+    height: 42,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.08)',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  logoMark: {
-    width: 52,
-    height: 52,
-    borderRadius: 16,
-    backgroundColor: colors.accent.mustard,
+    borderColor: 'rgba(255,255,255,0.12)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: spacing.base,
-    ...shadows.mustard,
   },
-  logoText: {
-    fontSize: typography.size.xl,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    letterSpacing: -1,
+  brandLockup: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+  },
+  brandLockupText: {
+    ...typography.role.eyebrow,
+    color: colors.neutral[0],
+  },
+  heroCopy: {
+    maxWidth: 320,
+    gap: spacing.sm,
+  },
+  heroEyebrow: {
+    ...typography.role.eyebrow,
+    color: colors.accent.amber,
   },
   heroTitle: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
+    fontSize: 38,
+    lineHeight: 40,
+    letterSpacing: -1.1,
     color: colors.neutral[0],
-    marginBottom: spacing.xs,
-    letterSpacing: typography.letterSpacing.tight,
+    fontWeight: typography.weight.bold,
   },
-  heroSubtitle: {
-    fontSize: typography.size.base,
-    color: 'rgba(255,255,255,0.65)',
-    fontWeight: typography.weight.regular,
+  heroDeck: {
+    fontSize: typography.size.sm,
+    color: 'rgba(255,255,255,0.72)',
   },
-
-  // ── Form card
-  formCard: {
-    flex: 1,
-    backgroundColor: colors.neutral[50],
-    borderTopLeftRadius: borderRadius['2xl'],
-    borderTopRightRadius: borderRadius['2xl'],
-    marginTop: -spacing.xl,
+  sheet: {
+    marginTop: -spacing['2xl'],
+    backgroundColor: colors.surface.base,
+    borderTopLeftRadius: 36,
+    borderTopRightRadius: 36,
     ...shadows.xl,
   },
-  formCardHandle: {
-    width: 36,
+  sheetHeader: {
+    paddingTop: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: spacing.lg,
+  },
+  sheetHandle: {
+    width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: colors.neutral[200],
+    backgroundColor: colors.neutral[300],
     alignSelf: 'center',
-    marginTop: spacing.md,
     marginBottom: spacing.lg,
+  },
+  sheetEyebrow: {
+    ...typography.role.eyebrow,
+    color: colors.primary[500],
+    marginBottom: spacing.xs,
+  },
+  sheetTitle: {
+    ...typography.role.sectionTitle,
+    color: colors.primary[900],
   },
   form: {
     paddingHorizontal: spacing.xl,
+    gap: spacing.base,
   },
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: spacing.lg,
     marginTop: -spacing.sm,
   },
   forgotPasswordText: {
@@ -351,89 +355,61 @@ const styles = StyleSheet.create({
     fontWeight: typography.weight.semibold,
   },
   loginButton: {
-    marginBottom: spacing.lg,
+    marginTop: spacing.xs,
   },
-  dividerContainer: {
+  altDivider: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    gap: spacing.md,
+    marginTop: spacing.sm,
   },
-  dividerLine: {
+  altDividerLine: {
     flex: 1,
     height: 1,
     backgroundColor: colors.neutral[200],
   },
-  dividerText: {
+  altDividerText: {
     fontSize: typography.size.sm,
-    color: colors.neutral[400],
-    marginHorizontal: spacing.md,
+    color: colors.neutral[500],
   },
-
-  // Demo credentials
-  demoToggle: {
-    alignItems: 'center',
-    paddingVertical: spacing.md,
+  demoTrigger: {
     marginTop: spacing.sm,
+    alignSelf: 'center',
   },
-  demoToggleText: {
+  demoTriggerText: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-    color: colors.primary[500],
-    textDecorationLine: 'underline',
+    color: colors.primary[600],
+    fontWeight: typography.weight.semibold,
   },
-  demoSection: {
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.lg,
-    padding: spacing.base,
-    marginBottom: spacing.md,
-    borderWidth: 1,
-    borderColor: colors.primary[100],
+  demoPanel: {
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
+    backgroundColor: colors.primary[900],
     gap: spacing.sm,
   },
-  demoTitle: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.bold,
-    color: colors.primary[700],
-    marginBottom: spacing.xs,
+  demoPanelTitle: {
+    ...typography.role.eyebrow,
+    color: colors.accent.amber,
   },
   demoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.base,
+    color: 'rgba(255,255,255,0.78)',
+    fontWeight: typography.weight.medium,
   },
-  demoBadge: {
-    backgroundColor: colors.primary[100],
-    borderRadius: borderRadius.sm,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: 2,
-  },
-  demoBadgeText: {
-    fontSize: typography.size.xs - 1,
-    fontWeight: typography.weight.bold,
-    color: colors.primary[700],
-    letterSpacing: typography.letterSpacing.wider,
-  },
-  demoText: {
-    fontSize: typography.size.xs,
-    color: colors.primary[600],
-    flex: 1,
-  },
-
-  // Footer
   footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingTop: spacing.xl,
+    gap: spacing.xs,
+    paddingTop: spacing['2xl'],
     paddingHorizontal: spacing.xl,
   },
   footerText: {
-    fontSize: typography.size.base,
+    fontSize: typography.size.sm,
     color: colors.neutral[500],
   },
   footerLink: {
     fontSize: typography.size.base,
-    color: colors.primary[600],
+    color: colors.primary[700],
     fontWeight: typography.weight.bold,
   },
 });

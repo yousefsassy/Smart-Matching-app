@@ -14,7 +14,7 @@ export interface RequestsService {
   rejectRequest: (requestId: string, actorName: string, reason?: string) => Promise<ServiceRequest[]>;
   updateRequestStatus: (
     requestId: string,
-    status: Extract<ServiceRequestStatus, 'completed'>
+    status: Extract<ServiceRequestStatus, 'in_progress' | 'completed'>
   ) => Promise<ServiceRequest[]>;
   rateProvider: (input: RequestRatingInput) => Promise<ServiceRequest[]>;
   cancelRequest: (requestId: string) => Promise<ServiceRequest[]>;

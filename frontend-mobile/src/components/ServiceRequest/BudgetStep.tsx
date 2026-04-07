@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   Animated,
 } from 'react-native';
-import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
+import { colors, typography, spacing, borderRadius } from '../../theme';
 import { CheckCircleIcon } from '../Icons';
 
 export type BudgetPreset = 'economy' | 'standard' | 'premium';
@@ -16,7 +16,6 @@ interface BudgetPresetConfig {
   label: string;
   description: string;
   range: string;
-  emoji: string;
   accentColor: string;
 }
 
@@ -24,25 +23,22 @@ const BUDGET_PRESETS: BudgetPresetConfig[] = [
   {
     key: 'economy',
     label: 'Economy',
-    description: 'Budget-friendly service',
+    description: 'Lower range',
     range: '50 – 150 TND',
-    emoji: '💰',
     accentColor: colors.accent.cyan,
   },
   {
     key: 'standard',
     label: 'Standard',
-    description: 'Quality at a fair price',
+    description: 'Balanced range',
     range: '150 – 400 TND',
-    emoji: '⭐',
     accentColor: colors.primary[500],
   },
   {
     key: 'premium',
     label: 'Premium',
-    description: 'Top-tier providers only',
+    description: 'Higher range',
     range: '400 – 800 TND',
-    emoji: '💎',
     accentColor: colors.accent.gold,
   },
 ];
@@ -59,32 +55,20 @@ interface BudgetStepProps {
 function PresetCard({
   config,
   isSelected,
-  disabled,
   onPress,
 }: {
   config: BudgetPresetConfig;
   isSelected: boolean;
-  disabled: boolean;
   onPress: () => void;
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  const handlePressIn = () => {
-    if (disabled) return;
+  const animateTo = (value: number) => {
     Animated.spring(scaleAnim, {
-      toValue: 0.98,
+      toValue: value,
       useNativeDriver: true,
-      damping: 15,
-      stiffness: 300,
-    }).start();
-  };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-      damping: 15,
-      stiffness: 300,
+      damping: 16,
+      stiffness: 260,
     }).start();
   };
 
@@ -92,30 +76,28 @@ function PresetCard({
     <Animated.View style={{ transform: [{ scale: scaleAnim }] }}>
       <TouchableOpacity
         style={[
-          styles.presetCard,
-          isSelected && { borderColor: config.accentColor, borderWidth: 2, backgroundColor: `${config.accentColor}10` },
-          disabled && styles.presetCardDisabled,
+          styles.card,
+          isSelected && {
+            borderColor: config.accentColor,
+            backgroundColor: `${config.accentColor}10`,
+          },
         ]}
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={disabled ? 1 : 0.9}
-        disabled={disabled}
+        activeOpacity={0.92}
+        onPressIn={() => animateTo(0.985)}
+        onPressOut={() => animateTo(1)}
       >
-        <Text style={styles.presetEmoji}>{config.emoji}</Text>
-        <View style={styles.presetInfo}>
-          <Text style={[styles.presetLabel, isSelected && { color: config.accentColor }]}>
+        <View style={styles.cardCopy}>
+          <Text style={[styles.cardLabel, isSelected && { color: config.accentColor }]}>
             {config.label}
           </Text>
-          <Text style={styles.presetDescription}>{config.description}</Text>
+          <Text style={styles.cardDescription}>{config.description}</Text>
         </View>
-        <View style={styles.presetRight}>
-          <Text style={[styles.presetRange, isSelected && { color: config.accentColor }]}>
+        <View style={styles.cardRight}>
+          <Text style={[styles.cardRange, isSelected && { color: config.accentColor }]}>
             {config.range}
           </Text>
-          {isSelected && (
-            <CheckCircleIcon size={18} color={config.accentColor} />
-          )}
+          {isSelected ? <CheckCircleIcon size={18} color={config.accentColor} /> : null}
         </View>
       </TouchableOpacity>
     </Animated.View>
@@ -125,31 +107,20 @@ function PresetCard({
 export default function BudgetStep({ data, onChange }: BudgetStepProps) {
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerEmoji}>💸</Text>
-        <Text style={styles.title}>What's your budget?</Text>
-        <Text style={styles.subtitle}>This is optional — you can skip and decide later</Text>
+        <Text style={styles.title}>Budget</Text>
+        <Text style={styles.subtitle}>Optional. You can skip this.</Text>
       </View>
 
-      {/* Preset tier cards */}
       <View style={styles.presetsContainer}>
         {BUDGET_PRESETS.map((preset) => (
           <PresetCard
             key={preset.key}
             config={preset}
             isSelected={data.preset === preset.key}
-            disabled={false}
             onPress={() => onChange('preset', data.preset === preset.key ? null : preset.key)}
           />
         ))}
-      </View>
-
-      {/* Skip note */}
-      <View style={styles.skipNote}>
-        <Text style={styles.skipNoteText}>
-          💡 You can skip budget entirely — it won't affect your matches.
-        </Text>
       </View>
     </View>
   );
@@ -157,86 +128,57 @@ export default function BudgetStep({ data, onChange }: BudgetStepProps) {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.raised,
+    borderRadius: 26,
     padding: spacing.xl,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
   },
   header: {
-    alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  headerEmoji: {
-    fontSize: 40,
-    marginBottom: spacing.md,
-  },
   title: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    textAlign: 'center',
+    ...typography.role.sectionTitle,
+    color: colors.primary[900],
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: typography.size.sm,
     color: colors.neutral[500],
-    textAlign: 'center',
   },
   presetsContainer: {
     gap: spacing.sm,
-    marginBottom: spacing.md,
   },
-  presetCard: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.lg,
-    borderWidth: 1.5,
-    borderColor: colors.neutral[200],
-    padding: spacing.base,
-    ...shadows.sm,
     gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.surface.base,
   },
-  presetCardDisabled: {
-    opacity: 0.55,
-  },
-  presetEmoji: {
-    fontSize: 28,
-    width: 36,
-    textAlign: 'center',
-  },
-  presetInfo: {
+  cardCopy: {
     flex: 1,
   },
-  presetLabel: {
+  cardLabel: {
     fontSize: typography.size.base,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[800],
+    color: colors.primary[900],
+    fontWeight: typography.weight.bold,
     marginBottom: 2,
   },
-  presetDescription: {
+  cardDescription: {
     fontSize: typography.size.xs,
     color: colors.neutral[500],
   },
-  presetRight: {
+  cardRight: {
     alignItems: 'flex-end',
     gap: spacing.xs,
   },
-  presetRange: {
+  cardRange: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
     color: colors.neutral[600],
-  },
-  skipNote: {
-    backgroundColor: colors.neutral[50],
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    marginTop: spacing.sm,
-  },
-  skipNoteText: {
-    fontSize: typography.size.xs,
-    color: colors.neutral[500],
-    textAlign: 'center',
-    lineHeight: 18,
+    fontWeight: typography.weight.semibold,
   },
 });

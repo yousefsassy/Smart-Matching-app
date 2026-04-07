@@ -37,11 +37,11 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
-type FilterTab = 'new' | 'accepted' | 'completed';
+type FilterTab = 'new' | 'active' | 'completed';
 
 const FILTER_TABS: { key: FilterTab; label: string; statuses: ServiceRequestStatus[]; color: string }[] = [
   { key: 'new', label: 'New', statuses: ['pending'], color: colors.accent.gold },
-  { key: 'accepted', label: 'Accepted', statuses: ['accepted'], color: colors.accent.cyan },
+  { key: 'active', label: 'Active', statuses: ['accepted', 'in_progress'], color: colors.accent.cyan },
   { key: 'completed', label: 'Completed', statuses: ['completed'], color: colors.success },
 ];
 
@@ -134,6 +134,27 @@ export default function ManageServiceRequestsScreen() {
     ]);
   };
 
+  const handleStartJob = async (requestId: string) => {
+    Alert.alert('Start Job', 'Mark this accepted request as in progress?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Start',
+        onPress: async () => {
+          try {
+            setProcessingId(requestId);
+            await updateRequestStatus(requestId, 'in_progress');
+            Alert.alert('Success', 'Request marked as in progress!');
+            loadRequests();
+          } catch (error: any) {
+            Alert.alert('Error', error.message || 'Failed to update status');
+          } finally {
+            setProcessingId(null);
+          }
+        },
+      },
+    ]);
+  };
+
   const formatDate = (isoDate: string): string => {
     const date = new Date(isoDate);
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
@@ -146,7 +167,7 @@ export default function ManageServiceRequestsScreen() {
 
       {/* ── Gradient Header ──────────────────────────────────────────────────── */}
       <LinearGradient
-        colors={['#0A2744', '#134686', '#1a5699']}
+        colors={colors.gradients.header as [string, string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + spacing.base }]}
@@ -231,7 +252,7 @@ export default function ManageServiceRequestsScreen() {
             <Text style={styles.emptyTitle}>No {activeTab.replace('_', ' ')} requests</Text>
             <Text style={styles.emptySubtitle}>
               {activeTab === 'new' && 'New service requests will appear here'}
-              {activeTab === 'accepted' && 'Accepted requests will appear here'}
+              {activeTab === 'active' && 'Accepted and in-progress requests will appear here'}
               {activeTab === 'completed' && 'Completed requests will appear here'}
             </Text>
           </View>
@@ -329,6 +350,24 @@ export default function ManageServiceRequestsScreen() {
 
                         {request.status === 'accepted' && (
                           <TouchableOpacity
+                            onPress={() => handleStartJob(request.id)}
+                            activeOpacity={0.8}
+                            style={{ flex: 1, borderRadius: borderRadius.full, overflow: 'hidden' }}
+                          >
+                            <LinearGradient
+                              colors={[colors.accent.cyan, colors.primary[600]]}
+                              start={{ x: 0, y: 0 }}
+                              end={{ x: 1, y: 0 }}
+                              style={styles.acceptBtn}
+                            >
+                              <ClockIcon size={15} color={colors.neutral[0]} />
+                              <Text style={styles.acceptBtnText}>Start Job</Text>
+                            </LinearGradient>
+                          </TouchableOpacity>
+                        )}
+
+                        {request.status === 'in_progress' && (
+                          <TouchableOpacity
                             onPress={() => handleMarkCompleted(request.id)}
                             activeOpacity={0.8}
                             style={{ flex: 1, borderRadius: borderRadius.full, overflow: 'hidden' }}
@@ -382,7 +421,7 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(38, 96, 175, 0.22)',
+    backgroundColor: 'rgba(34, 92, 146, 0.18)',
     top: -40,
     right: -20,
   },
@@ -390,18 +429,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: 5,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.overlay.border,
     alignSelf: 'flex-start',
   },
   headerProviderBadgeText: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.88)',
     letterSpacing: typography.letterSpacing.wider,
   },
   headerTitle: {
@@ -412,17 +451,17 @@ const styles = StyleSheet.create({
   },
   headerCountPill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.overlay.border,
   },
   headerCountText: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.semibold,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.88)',
   },
 
   // ── Filter chips

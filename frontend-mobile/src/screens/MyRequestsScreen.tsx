@@ -33,12 +33,12 @@ import {
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
 
-type FilterKey = 'all' | 'pending' | 'accepted' | 'completed';
+type FilterKey = 'all' | 'pending' | 'active' | 'completed';
 
 const FILTERS: { key: FilterKey; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'pending', label: 'Pending' },
-  { key: 'accepted', label: 'Accepted' },
+  { key: 'active', label: 'Active' },
   { key: 'completed', label: 'Completed' },
 ];
 
@@ -49,7 +49,7 @@ export default function MyRequestsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [activeFilter, setActiveFilter] = useState<FilterKey>('all');
-  const VISIBLE_STATUSES = ['pending', 'accepted', 'completed'];
+  const VISIBLE_STATUSES: ServiceRequestStatus[] = ['pending', 'accepted', 'in_progress', 'completed'];
 
   useEffect(() => {
     loadRequests();
@@ -79,7 +79,11 @@ export default function MyRequestsScreen() {
 
   const filteredRequests = activeFilter === 'all'
     ? requests
-    : requests.filter((r) => r.status === activeFilter);
+    : requests.filter((r) =>
+        activeFilter === 'active'
+          ? r.status === 'accepted' || r.status === 'in_progress'
+          : r.status === activeFilter
+      );
 
   const formatDate = (isoDate: string): string => {
     const date = new Date(isoDate);
@@ -91,7 +95,7 @@ export default function MyRequestsScreen() {
 
       {/* ── Gradient Header ──────────────────────────────────────────────────── */}
       <LinearGradient
-        colors={['#0A2744', '#134686', '#1a5699']}
+        colors={colors.gradients.header as [string, string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.header, { paddingTop: insets.top + spacing.base }]}
@@ -115,7 +119,11 @@ export default function MyRequestsScreen() {
             const isActive = activeFilter === f.key;
             const count = f.key === 'all'
               ? requests.length
-              : requests.filter((r) => r.status === f.key).length;
+              : requests.filter((r) =>
+                  f.key === 'active'
+                    ? r.status === 'accepted' || r.status === 'in_progress'
+                    : r.status === f.key
+                ).length;
 
             return (
               <TouchableOpacity
@@ -311,14 +319,14 @@ const styles = StyleSheet.create({
     width: 160,
     height: 160,
     borderRadius: 80,
-    backgroundColor: 'rgba(38, 96, 175, 0.22)',
+    backgroundColor: 'rgba(34, 92, 146, 0.18)',
     top: -40,
     right: -20,
   },
   headerEyebrow: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.bold,
-    color: 'rgba(255,255,255,0.6)',
+    color: 'rgba(255,255,255,0.68)',
     letterSpacing: typography.letterSpacing.widest,
     textTransform: 'uppercase',
     marginBottom: spacing.xs,
@@ -332,17 +340,17 @@ const styles = StyleSheet.create({
   },
   headerCountPill: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: 4,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.overlay.border,
   },
   headerCountText: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.semibold,
-    color: 'rgba(255,255,255,0.85)',
+    color: 'rgba(255,255,255,0.88)',
   },
 
   // ── Filter chips

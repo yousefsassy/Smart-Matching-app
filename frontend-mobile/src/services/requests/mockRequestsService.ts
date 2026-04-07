@@ -213,7 +213,7 @@ export const mockRequestsService: RequestsService = {
     return saveRequests(updatedRequests);
   },
 
-  async updateRequestStatus(requestId, status: Extract<ServiceRequestStatus, 'completed'>) {
+  async updateRequestStatus(requestId, status: Extract<ServiceRequestStatus, 'in_progress' | 'completed'>) {
     const requests = await loadPersistedRequests();
     getRequestOrThrow(requests, requestId);
     await wait(MOCK_NETWORK_DELAYS.requestMutationMs);

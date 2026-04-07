@@ -13,9 +13,18 @@ interface ToggleProps {
   onValueChange: (value: boolean) => void;
   label?: string;
   disabled?: boolean;
+  activeColor?: string;
+  inactiveColor?: string;
 }
 
-export default function ToggleSwitch({ value, onValueChange, label, disabled }: ToggleProps) {
+export default function ToggleSwitch({
+  value,
+  onValueChange,
+  label,
+  disabled,
+  activeColor = colors.primary[600],
+  inactiveColor = colors.neutral[300],
+}: ToggleProps) {
   const translateAnim = useRef(new Animated.Value(value ? 1 : 0)).current;
   const backgroundAnim = useRef(new Animated.Value(value ? 1 : 0)).current;
 
@@ -48,7 +57,7 @@ export default function ToggleSwitch({ value, onValueChange, label, disabled }: 
 
   const backgroundColor = backgroundAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.neutral[300], colors.primary[500]],
+    outputRange: [inactiveColor, activeColor],
   });
 
   return (
@@ -82,6 +91,8 @@ const styles = StyleSheet.create({
     height: 28,
     borderRadius: 14,
     justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
   },
   trackDisabled: {
     opacity: 0.5,
@@ -103,7 +114,8 @@ const styles = StyleSheet.create({
   label: {
     marginLeft: spacing.md,
     fontSize: typography.size.sm,
-    color: colors.neutral[600],
+    color: colors.neutral[700],
+    fontWeight: typography.weight.medium,
   },
   labelDisabled: {
     color: colors.neutral[400],

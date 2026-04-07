@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import {
   View,
   Text,
@@ -9,10 +9,12 @@ import {
   Animated,
   Dimensions,
   StatusBar,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, spacing, typography, borderRadius, animations } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useLocationSelection } from '../context/LocationSelectionContext';
@@ -22,9 +24,9 @@ import PrimaryButton from '../components/PrimaryButton';
 import BasicInfoStep from '../components/ProviderSignup/BasicInfoStep';
 import SecurityStep from '../components/ProviderSignup/SecurityStep';
 import LocationStep from '../components/ProviderSignup/LocationStep';
-import AvailabilityStep, { AvailabilityData } from '../components/ProviderSignup/AvailabilityStep';
 import SuccessScreen from '../components/ProviderSignup/SuccessScreen';
-import { ChevronLeftIcon } from '../components/Icons';
+import StepperHeader from '../components/StepperHeader';
+import { ChevronLeftIcon, TawTawMarkIcon } from '../components/Icons';
 import { ProviderServiceCoverage } from '../types/provider';
 import {
   getConfirmPasswordError,
@@ -35,8 +37,6 @@ import {
 
 type Props = NativeStackScreenProps<AuthStackParamList, 'ProviderSignup'>;
 
-// Step 0 = Account Info + Professional Details (scrollable single page)
-// Step 1 = Availability
 const TOTAL_STEPS = 2;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
@@ -47,12 +47,11 @@ interface FormData {
   confirmPassword: string;
   serviceCoverage: ProviderServiceCoverage;
   serviceCategories: ServiceCategory[];
-  availability: AvailabilityData;
 }
 
-const STEP_INDICATORS = ['Details', 'Availability'];
+const STEP_INDICATORS = ['Personal Info', 'Professional Details'];
 
-export default function ProviderSignupScreen({ navigation, route }: Props) {
+export default function ProviderSignupScreen({ navigation }: Props) {
   const { signup } = useAuth();
   const { consumePendingSelection } = useLocationSelection();
   const insets = useSafeAreaInsets();
@@ -69,15 +68,6 @@ export default function ProviderSignupScreen({ navigation, route }: Props) {
       baseLocation: null,
     },
     serviceCategories: [],
-    availability: {
-      monday:    { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
-      tuesday:   { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
-      wednesday: { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
-      thursday:  { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
-      friday:    { enabled: true,  ranges: [{ start: '09:00', end: '17:00' }] },
-      saturday:  { enabled: false, ranges: [{ start: '10:00', end: '14:00' }] },
-      sunday:    { enabled: false, ranges: [{ start: '10:00', end: '14:00' }] },
-    },
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -140,29 +130,11 @@ export default function ProviderSignupScreen({ navigation, route }: Props) {
         if (emailError) errs.email = emailError;
         if (passwordError) errs.password = passwordError;
         if (confirmPasswordError) errs.confirmPassword = confirmPasswordError;
-        if (!formData.serviceCoverage.baseLocation) {
-          errs.serviceCoverage = 'Please choose your base service location';
-        }
         break;
       }
       case 1: {
-        const enabledDays = Object.entries(formData.availability).filter(([_, c]) => c.enabled);
-        if (enabledDays.length === 0) {
-          errs.availability = 'Enable at least one day';
-          break;
-        }
-        for (const [day, config] of enabledDays) {
-          if (config.ranges.length === 0) {
-            errs.availability = `${day.charAt(0).toUpperCase() + day.slice(1)} needs at least one time slot`;
-            break;
-          }
-          for (const range of config.ranges) {
-            if (range.start >= range.end) {
-              errs.availability = `Invalid time range in ${day.charAt(0).toUpperCase() + day.slice(1)}: start must be before end`;
-              break;
-            }
-          }
-          if (errs.availability) break;
+        if (!formData.serviceCoverage.baseLocation) {
+          errs.serviceCoverage = 'Please choose your base service location';
         }
         break;
       }
@@ -218,7 +190,6 @@ export default function ProviderSignupScreen({ navigation, route }: Props) {
         role: 'provider',
         serviceCoverage: formData.serviceCoverage,
         serviceCategories: formData.serviceCategories,
-        availability: formData.availability,
       });
     } catch {
       setShowSuccess(false);
@@ -242,32 +213,26 @@ export default function ProviderSignupScreen({ navigation, route }: Props) {
               errors={errors}
               onChange={handleFieldChange}
             />
-            <View style={styles.stepGap} />
-            <LocationStep
-              data={{
-                serviceCoverage: formData.serviceCoverage,
-                serviceCategories: formData.serviceCategories,
-              }}
-              errors={errors}
-              onChange={handleFieldChange}
-              onOpenLocationPicker={() =>
-                navigation.navigate('LocationPicker', {
-                  mode: 'provider',
-                  returnScreen: 'ProviderSignup',
-                  selectionKey: 'provider-signup-location',
-                  title: 'Select your base service location',
-                  initialLocation: formData.serviceCoverage.baseLocation,
-                })
-              }
-            />
           </>
         );
       case 1:
         return (
-          <AvailabilityStep
-            data={{ availability: formData.availability }}
+          <LocationStep
+            data={{
+              serviceCoverage: formData.serviceCoverage,
+              serviceCategories: formData.serviceCategories,
+            }}
             errors={errors}
             onChange={handleFieldChange}
+            onOpenLocationPicker={() =>
+              navigation.navigate('LocationPicker', {
+                mode: 'provider',
+                returnScreen: 'ProviderSignup',
+                selectionKey: 'provider-signup-location',
+                title: 'Select your base service location',
+                initialLocation: formData.serviceCoverage.baseLocation,
+              })
+            }
           />
         );
       default:
@@ -290,7 +255,7 @@ export default function ProviderSignupScreen({ navigation, route }: Props) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       <View style={styles.screen}>
         <ScrollView
           ref={scrollViewRef}
@@ -298,34 +263,28 @@ export default function ProviderSignupScreen({ navigation, route }: Props) {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Step indicator — simple pills */}
-          <View style={styles.stepIndicatorRow}>
-            {STEP_INDICATORS.map((label, idx) => (
-              <View key={label} style={styles.stepIndicatorItem}>
-                <View style={[
-                  styles.stepDot,
-                  idx === currentStep && styles.stepDotActive,
-                  idx < currentStep && styles.stepDotDone,
-                ]}>
-                  <Text style={[
-                    styles.stepDotText,
-                    (idx === currentStep || idx < currentStep) && styles.stepDotTextActive,
-                  ]}>
-                    {idx + 1}
-                  </Text>
-                </View>
-                <Text style={[
-                  styles.stepLabel,
-                  idx === currentStep && styles.stepLabelActive,
-                ]}>
-                  {label}
-                </Text>
-                {idx < STEP_INDICATORS.length - 1 && (
-                  <View style={[styles.stepLine, idx < currentStep && styles.stepLineDone]} />
-                )}
-              </View>
-            ))}
-          </View>
+          <LinearGradient
+            colors={colors.gradients.header as [string, string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <TouchableOpacity style={styles.heroBack} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+              <ChevronLeftIcon size={18} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <View style={styles.heroMark}>
+              <TawTawMarkIcon size={34} />
+            </View>
+            <Text style={styles.heroTitle}>Create your provider account</Text>
+            <Text style={styles.heroSubtitle}>A simpler two-step flow for your details and professional details.</Text>
+          </LinearGradient>
+
+          <StepperHeader
+            currentStep={currentStep}
+            totalSteps={TOTAL_STEPS}
+            stepLabels={STEP_INDICATORS}
+            caption=""
+          />
 
           <Animated.View
             style={{
@@ -384,65 +343,44 @@ const styles = StyleSheet.create({
     padding: spacing.xl,
     paddingBottom: spacing['3xl'],
   },
-  stepGap: {
-    height: spacing.lg,
-  },
-
-  // ── Step indicator
-  stepIndicatorRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  hero: {
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.xl,
     marginBottom: spacing.xl,
+    overflow: 'hidden',
   },
-  stepIndicatorItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  stepDot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: colors.neutral[100],
-    borderWidth: 1.5,
-    borderColor: colors.neutral[300],
+  heroBack: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.overlay.glassSoft,
+    borderWidth: 1,
+    borderColor: colors.overlay.border,
+    marginBottom: spacing.lg,
   },
-  stepDotActive: {
-    backgroundColor: colors.primary[600],
-    borderColor: colors.primary[600],
+  heroMark: {
+    width: 58,
+    height: 58,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
   },
-  stepDotDone: {
-    backgroundColor: colors.primary[100],
-    borderColor: colors.primary[400],
-  },
-  stepDotText: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[400],
-  },
-  stepDotTextActive: {
+  heroTitle: {
+    ...typography.role.heroTitle,
     color: colors.neutral[0],
+    marginBottom: spacing.sm,
   },
-  stepLabel: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.medium,
-    color: colors.neutral[400],
-    marginLeft: spacing.xs,
+  heroSubtitle: {
+    ...typography.role.body,
+    color: 'rgba(255,255,255,0.76)',
+    maxWidth: 300,
   },
-  stepLabelActive: {
-    color: colors.primary[600],
-    fontWeight: typography.weight.bold,
-  },
-  stepLine: {
-    flex: 1,
-    height: 1.5,
-    backgroundColor: colors.neutral[200],
-    marginHorizontal: spacing.sm,
-  },
-  stepLineDone: {
-    backgroundColor: colors.primary[400],
+  stepGap: {
+    height: spacing.lg,
   },
 
   // ── Nav buttons

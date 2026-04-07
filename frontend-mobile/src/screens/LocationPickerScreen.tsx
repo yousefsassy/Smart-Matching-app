@@ -169,7 +169,7 @@ export default function LocationPickerScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <LinearGradient
-        colors={[colors.primary[900], colors.primary[700], colors.primary[600]]}
+        colors={colors.gradients.header as [string, string, string]}
         style={[styles.hero, { paddingTop: insets.top + spacing.base }]}
       >
         <TouchableOpacity

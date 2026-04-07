@@ -9,6 +9,13 @@ export interface ServiceCategoryMeta {
   gradientColors: [string, string];
 }
 
+export interface ServiceSearchAlias {
+  id: string;
+  label: string;
+  serviceCategory: ServiceCategory;
+  keywords: string[];
+}
+
 export const SERVICE_CATEGORY_OPTIONS: ServiceCategoryMeta[] = [
   {
     value: 'plumbing',
@@ -68,11 +75,60 @@ export const SERVICE_CATEGORY_OPTIONS: ServiceCategoryMeta[] = [
   },
 ];
 
+export const VISIBLE_SERVICE_CATEGORY_OPTIONS = SERVICE_CATEGORY_OPTIONS.filter(
+  (category) => category.value !== 'other'
+);
+
 export const SERVICE_CATEGORY_ROWS = [
-  SERVICE_CATEGORY_OPTIONS.slice(0, 2),
-  SERVICE_CATEGORY_OPTIONS.slice(2, 4),
-  SERVICE_CATEGORY_OPTIONS.slice(4, 6),
-  SERVICE_CATEGORY_OPTIONS.slice(6, 8),
+  VISIBLE_SERVICE_CATEGORY_OPTIONS.slice(0, 2),
+  VISIBLE_SERVICE_CATEGORY_OPTIONS.slice(2, 4),
+  VISIBLE_SERVICE_CATEGORY_OPTIONS.slice(4, 6),
+  VISIBLE_SERVICE_CATEGORY_OPTIONS.slice(6, 8),
+];
+
+export const SERVICE_SEARCH_ALIASES: ServiceSearchAlias[] = [
+  {
+    id: 'alias-electrician',
+    label: 'Electrician',
+    serviceCategory: 'electrical',
+    keywords: ['electric', 'electrician', 'wiring', 'power', 'lights'],
+  },
+  {
+    id: 'alias-plumber',
+    label: 'Plumber',
+    serviceCategory: 'plumbing',
+    keywords: ['plumb', 'plumber', 'pipes', 'water', 'leak'],
+  },
+  {
+    id: 'alias-house-cleaner',
+    label: 'House Cleaner',
+    serviceCategory: 'cleaning',
+    keywords: ['clean', 'cleaner', 'house cleaner', 'maid', 'home cleaning'],
+  },
+  {
+    id: 'alias-gardener',
+    label: 'Gardener',
+    serviceCategory: 'gardening',
+    keywords: ['garden', 'gardener', 'lawn', 'plants', 'yard'],
+  },
+  {
+    id: 'alias-painter',
+    label: 'Painter',
+    serviceCategory: 'painting',
+    keywords: ['paint', 'painter', 'walls', 'surfaces'],
+  },
+  {
+    id: 'alias-carpenter',
+    label: 'Carpenter',
+    serviceCategory: 'carpentry',
+    keywords: ['carpenter', 'wood', 'furniture', 'cabinet'],
+  },
+  {
+    id: 'alias-mover',
+    label: 'Mover',
+    serviceCategory: 'moving',
+    keywords: ['move', 'mover', 'relocation', 'boxes', 'transport'],
+  },
 ];
 
 export const SERVICE_CATEGORY_MAP = Object.fromEntries(
@@ -85,4 +141,15 @@ export function getServiceCategoryMeta(category: ServiceCategory): ServiceCatego
 
 export function getServiceCategoryLabel(category: ServiceCategory): string {
   return getServiceCategoryMeta(category).label;
+}
+
+export function getServiceSearchSuggestions(query: string): ServiceSearchAlias[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  if (!normalizedQuery) {
+    return [];
+  }
+
+  return SERVICE_SEARCH_ALIASES.filter((alias) =>
+    [alias.label, ...alias.keywords].some((term) => term.toLowerCase().startsWith(normalizedQuery))
+  );
 }

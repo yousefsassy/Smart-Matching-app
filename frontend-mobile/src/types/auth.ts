@@ -9,6 +9,9 @@ export interface User {
   role: UserRole;
   businessName?: string;
   avatar?: string;
+  phone?: string;
+  governorate?: string;
+  isAvailable?: boolean;
   serviceCoverage?: ProviderProfileData['serviceCoverage'];
   serviceCategories?: ProviderProfileData['serviceCategories'];
   availability?: ProviderProfileData['availability'];

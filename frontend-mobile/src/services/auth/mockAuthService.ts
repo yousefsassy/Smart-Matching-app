@@ -13,6 +13,7 @@ const mockUsers: Record<string, MockUserRecord> = {
     password: 'demo123',
     role: 'client',
     avatar: undefined,
+    governorate: 'Tunis',
   },
   'provider@demo.com': {
     id: '2',
@@ -22,6 +23,8 @@ const mockUsers: Record<string, MockUserRecord> = {
     role: 'provider',
     businessName: 'Consulting',
     avatar: undefined,
+    governorate: 'Tunis',
+    isAvailable: true,
   },
 };
 
@@ -75,6 +78,7 @@ export const mockAuthService: AuthService = {
       email: data.email.toLowerCase().trim(),
       role: data.role,
       businessName: data.businessName,
+      isAvailable: data.role === 'provider' ? true : undefined,
       serviceCoverage: data.serviceCoverage,
       serviceCategories: data.serviceCategories,
       availability: data.availability,

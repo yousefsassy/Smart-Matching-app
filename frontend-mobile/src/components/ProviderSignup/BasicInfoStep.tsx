@@ -61,10 +61,12 @@ export default function BasicInfoStep({ data, errors, onChange }: BasicInfoStepP
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.base,
+    borderRadius: borderRadius['2xl'],
     padding: spacing.xl,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    ...shadows.card,
   },
   header: {
     flexDirection: 'row',
@@ -75,18 +77,17 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.surface.tint,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
   title: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
+    ...typography.role.cardTitle,
+    color: colors.neutral[800],
   },
   subtitle: {
-    fontSize: typography.size.sm,
+    ...typography.role.meta,
     color: colors.neutral[500],
     marginTop: 2,
   },

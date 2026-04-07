@@ -66,7 +66,7 @@ function formatMonthLabel(year: number, month: number): string {
 
 export default function CalendarScreen() {
   const insets = useSafeAreaInsets();
-  const { getProviderRequests } = useServiceRequests();
+  const { getProviderRequests, updateRequestStatus } = useServiceRequests();
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
@@ -86,6 +86,10 @@ export default function CalendarScreen() {
     }, [getProviderRequests])
   );
 
+  const reloadRequests = useCallback(() => {
+    setRequests(getProviderRequests());
+  }, [getProviderRequests]);
+
   // ── Derived day availability ─────────────────────────────────────────────────
 
   const isDayAvailable = useCallback(
@@ -99,7 +103,7 @@ export default function CalendarScreen() {
 
   const hasJobOnDay = useCallback(
     (dateStr: string): boolean => {
-      const jobStatuses = new Set(['accepted', 'completed']);
+      const jobStatuses = new Set(['in_progress', 'completed']);
       return requests.some((r) => r.timeSlot.date === dateStr && jobStatuses.has(r.status));
     },
     [requests]
@@ -127,12 +131,22 @@ export default function CalendarScreen() {
       marks[ds] = {
         customStyles: {
           container: {
-            backgroundColor: isSelected ? colors.primary[600] : undefined,
+            backgroundColor: hasJob
+              ? isSelected
+                ? colors.primary[600]
+                : colors.primary[50]
+              : isSelected
+              ? colors.primary[600]
+              : undefined,
             borderRadius: 6,
+            borderWidth: hasJob ? 1.5 : 0,
+            borderColor: hasJob ? colors.primary[500] : 'transparent',
           },
           text: {
             color: isSelected
               ? colors.neutral[0]
+              : hasJob
+              ? colors.primary[700]
               : colors.neutral[800],
             fontWeight: isSelected ? typography.weight.bold as any : undefined,
             textDecorationLine: 'underline',
@@ -150,7 +164,11 @@ export default function CalendarScreen() {
 
   const jobsForSelectedDay = useMemo(() => {
     if (!selectedDate) return [];
-    return requests.filter((r) => r.timeSlot.date === selectedDate);
+    return requests.filter(
+      (r) =>
+        r.timeSlot.date === selectedDate &&
+        (r.status === 'in_progress' || r.status === 'completed')
+    );
   }, [selectedDate, requests]);
 
   // ── Availability edit handlers ───────────────────────────────────────────────
@@ -164,6 +182,15 @@ export default function CalendarScreen() {
     if (!selectedDate) return;
     setOverrides((prev) => ({ ...prev, [selectedDate]: available }));
     setEditModalVisible(false);
+  };
+
+  const handleMarkCompleted = async (requestId: string) => {
+    try {
+      await updateRequestStatus(requestId, 'completed');
+      reloadRequests();
+    } catch {
+      // Keep the interaction lightweight in the calendar surface.
+    }
   };
 
   // ── Month navigation ─────────────────────────────────────────────────────────
@@ -196,7 +223,7 @@ export default function CalendarScreen() {
       >
         {/* ── Header ──────────────────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#0A2744', '#134686', '#1a5699']}
+          colors={colors.gradients.header as [string, string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}
@@ -327,6 +354,16 @@ export default function CalendarScreen() {
                           {job.requestLocation.addressLabel}
                         </Text>
                       </View>
+                      {job.status === 'in_progress' ? (
+                        <TouchableOpacity
+                          style={styles.completeButton}
+                          onPress={() => handleMarkCompleted(job.id)}
+                          activeOpacity={0.82}
+                        >
+                          <CheckCircleIcon size={14} color={colors.success} />
+                          <Text style={styles.completeButtonText}>Mark completed</Text>
+                        </TouchableOpacity>
+                      ) : null}
                     </View>
                   </View>
                 ))}
@@ -405,7 +442,7 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(38, 96, 175, 0.22)',
+    backgroundColor: 'rgba(34, 92, 146, 0.18)',
     top: -60,
     right: -40,
   },
@@ -413,7 +450,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.sm,
@@ -596,6 +633,22 @@ const styles = StyleSheet.create({
     fontSize: typography.size.xs,
     color: colors.neutral[400],
     flexShrink: 1,
+  },
+  completeButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.successLight,
+  },
+  completeButtonText: {
+    fontSize: typography.size.xs,
+    fontWeight: typography.weight.bold,
+    color: colors.success,
   },
 
   // Notice

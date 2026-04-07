@@ -110,7 +110,6 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
   const hasAction = canCancel || canRate;
 
   const categoryMeta = getServiceCategoryMeta(request.serviceCategory);
-  const categoryColors = categoryMeta.gradientColors;
   const categoryEmoji = categoryMeta.emoji;
   const categoryLabel = getServiceCategoryLabel(request.serviceCategory);
 
@@ -126,7 +125,7 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
 
         {/* ── Category Hero Header ─────────────────────────────────────────────── */}
         <LinearGradient
-          colors={categoryColors}
+          colors={colors.gradients.header as [string, string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: insets.top + spacing.sm }]}
@@ -359,7 +358,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.overlay.glassStrong,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,

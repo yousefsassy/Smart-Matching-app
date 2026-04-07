@@ -59,7 +59,7 @@ export default function SuccessScreen({ providerName, providerEmail, onBackToLog
         ]}
       >
         <LinearGradient
-          colors={[colors.accent.mustard, colors.accent.gold]}
+          colors={colors.gradients.mustard as [string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.circleGradient}
@@ -113,7 +113,7 @@ const styles = StyleSheet.create({
   },
   circleOuter: {
     marginBottom: spacing.xl,
-    shadowColor: colors.accent.gold,
+    shadowColor: colors.accent.mustard,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.35,
     shadowRadius: 24,
@@ -131,29 +131,29 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   title: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
+    ...typography.role.heroTitle,
+    color: colors.neutral[800],
     marginBottom: spacing.sm,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: typography.size.base,
+    ...typography.role.body,
     color: colors.neutral[500],
     textAlign: 'center',
-    lineHeight: typography.lineHeight.base,
     paddingHorizontal: spacing.base,
     marginBottom: spacing.xl,
   },
   emailCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.primary[50],
-    borderRadius: borderRadius.lg,
+    backgroundColor: colors.surface.tint,
+    borderRadius: borderRadius.xl,
     padding: spacing.base,
     gap: spacing.md,
     width: '100%',
     marginBottom: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
   },
   emailTextContainer: {
     flex: 1,

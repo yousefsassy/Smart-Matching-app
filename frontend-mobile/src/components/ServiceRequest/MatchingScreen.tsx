@@ -218,10 +218,8 @@ export default function MatchingScreen({
       >
         <View style={styles.loadingContent}>
           <AIBrainIcon size={64} />
-          <Text style={styles.loadingTitle}>Finding your perfect match...</Text>
-          <Text style={styles.loadingSubtitle}>
-            Our AI is scanning the best providers for your job
-          </Text>
+          <Text style={styles.loadingTitle}>Finding providers...</Text>
+          <Text style={styles.loadingSubtitle}>Matching your request.</Text>
           <LoadingDots />
         </View>
       </LinearGradient>
@@ -251,10 +249,8 @@ export default function MatchingScreen({
           <View style={styles.resultsHeaderIcon}>
             <SparkleIcon size={24} color={colors.accent.gold} />
           </View>
-          <Text style={styles.resultsTitle}>AI-Matched Providers</Text>
-          <Text style={styles.resultsSubtitle}>
-            {providers.length} providers ranked for your job
-          </Text>
+          <Text style={styles.resultsTitle}>Matched providers</Text>
+          <Text style={styles.resultsSubtitle}>{providers.length} ranked for your request</Text>
         </View>
 
         {/* Provider cards */}
@@ -343,7 +339,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.md,

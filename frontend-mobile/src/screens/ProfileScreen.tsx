@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   Alert,
   Image,
+  Modal,
+  Pressable,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -25,14 +27,26 @@ import {
   EditIcon,
   XIcon,
   CameraIcon,
+  ChevronRightIcon,
+  CheckIcon,
 } from '../components/Icons';
 import Avatar from '../components/Avatar';
+import { TUNISIA_GOVERNORATES } from '../constants/tunisiaGovernorates';
 
 interface ProfileData {
   fullName: string;
   email: string;
   phone: string;
-  location: string;
+  governorate: string;
+}
+
+function buildProfileFromUser(user: ReturnType<typeof useAuth>['user']): ProfileData {
+  return {
+    fullName: user?.fullName || '',
+    email: user?.email || '',
+    phone: user?.phone || '',
+    governorate: user?.governorate || '',
+  };
 }
 
 // ── Section card ───────────────────────────────────────────────────────────────
@@ -68,10 +82,12 @@ function SectionCard({
 
 const sectionStyles = StyleSheet.create({
   wrapper: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.base,
+    borderRadius: borderRadius['2xl'],
     overflow: 'hidden',
     marginBottom: spacing.base,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
     ...shadows.card,
   },
   header: {
@@ -91,16 +107,12 @@ const sectionStyles = StyleSheet.create({
     alignItems: 'center',
   },
   eyebrow: {
-    fontSize: typography.size.xs - 1,
-    fontWeight: typography.weight.bold,
+    ...typography.role.eyebrow,
     color: colors.primary[400],
-    letterSpacing: typography.letterSpacing.wider,
-    textTransform: 'uppercase',
     marginBottom: 1,
   },
   title: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.bold,
+    ...typography.role.cardTitle,
     color: colors.neutral[800],
   },
   body: {
@@ -115,23 +127,15 @@ export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const [isEditing, setIsEditing] = useState(false);
   const [avatarUri, setAvatarUri] = useState<string | null>(null);
+  const [governorateModalVisible, setGovernorateModalVisible] = useState(false);
 
-  const [profile, setProfile] = useState<ProfileData>({
-    fullName: user?.fullName || '',
-    email: user?.email || '',
-    phone: '',
-    location: '',
-  });
+  const [profile, setProfile] = useState<ProfileData>(buildProfileFromUser(user));
 
   const isClient = user?.role === 'client';
 
   useEffect(() => {
-    setProfile((current) => ({
-      ...current,
-      fullName: user?.fullName || '',
-      email: user?.email || '',
-    }));
-  }, [user?.email, user?.fullName]);
+    setProfile(buildProfileFromUser(user));
+  }, [user]);
 
   useEffect(() => {
     if (!user?.id) {
@@ -169,12 +173,26 @@ export default function ProfileScreen() {
 
   const handleSaveProfile = async () => {
     try {
-      await updateUser({ fullName: profile.fullName, email: profile.email });
+      await updateUser({
+        fullName: profile.fullName,
+        email: profile.email,
+        phone: profile.phone,
+        governorate: profile.governorate,
+      });
       Alert.alert('Success', 'Your profile has been updated!');
       setIsEditing(false);
     } catch {
       Alert.alert('Error', 'Failed to update profile. Please try again.');
     }
+  };
+
+  const toggleEditMode = () => {
+    if (isEditing) {
+      setProfile(buildProfileFromUser(user));
+      setGovernorateModalVisible(false);
+    }
+
+    setIsEditing((current) => !current);
   };
 
   const handleLogout = () => {
@@ -198,7 +216,7 @@ export default function ProfileScreen() {
       >
         {/* ── Gradient Hero Header ─────────────────────────────────────────────── */}
         <LinearGradient
-          colors={['#0A2744', '#134686', '#1a5699']}
+          colors={colors.gradients.header as [string, string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: insets.top + spacing.lg }]}
@@ -236,7 +254,7 @@ export default function ProfileScreen() {
         <View style={styles.editButtonRow}>
           <TouchableOpacity
             style={[styles.editButton, isEditing && styles.editButtonActive]}
-            onPress={() => setIsEditing(!isEditing)}
+            onPress={toggleEditMode}
           >
             {isEditing ? (
               <>
@@ -287,13 +305,44 @@ export default function ProfileScreen() {
               editable={isEditing}
               containerStyle={styles.inputContainer}
             />
-            <Input
-              label="Location"
-              value={profile.location}
-              onChangeText={(text) => setProfile({ ...profile, location: text })}
-              icon={<MapPinIcon size={18} color={colors.neutral[400]} />}
-              editable={isEditing}
-            />
+            <View style={styles.governorateFieldWrap}>
+              <Text style={styles.governorateLabel}>Location</Text>
+              <TouchableOpacity
+                style={[
+                  styles.governorateField,
+                  !isEditing && styles.governorateFieldDisabled,
+                ]}
+                onPress={() => {
+                  if (isEditing) {
+                    setGovernorateModalVisible(true);
+                  }
+                }}
+                activeOpacity={isEditing ? 0.82 : 1}
+              >
+                <View style={styles.governorateIconWrap}>
+                  <MapPinIcon size={18} color={colors.primary[600]} />
+                </View>
+                <View style={styles.governorateCopy}>
+                  <Text
+                    style={[
+                      styles.governorateValue,
+                      !profile.governorate && styles.governoratePlaceholder,
+                    ]}
+                  >
+                    {profile.governorate || 'Select your location'}
+                  </Text>
+                  <Text style={styles.governorateHint}>
+                    {isEditing
+                      ? 'Choose your location from the Tunisia list'
+                      : 'Saved profile location'}
+                  </Text>
+                </View>
+                <ChevronRightIcon
+                  size={18}
+                  color={isEditing ? colors.neutral[400] : colors.neutral[300]}
+                />
+              </TouchableOpacity>
+            </View>
           </SectionCard>
 
           {/* Save */}
@@ -308,6 +357,55 @@ export default function ProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <Modal
+        visible={governorateModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setGovernorateModalVisible(false)}
+      >
+        <Pressable
+          style={styles.modalBackdrop}
+          onPress={() => setGovernorateModalVisible(false)}
+        >
+          <Pressable style={styles.modalSheet} onPress={() => {}}>
+            <View style={styles.modalHandle} />
+            <Text style={styles.modalTitle}>Select location</Text>
+            <Text style={styles.modalSubtitle}>Tunisia regions</Text>
+
+            <ScrollView
+              style={styles.modalList}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={styles.modalListContent}
+            >
+              {TUNISIA_GOVERNORATES.map((governorate) => {
+                const isSelected = profile.governorate === governorate;
+                return (
+                  <TouchableOpacity
+                    key={governorate}
+                    style={[styles.modalOption, isSelected && styles.modalOptionSelected]}
+                    onPress={() => {
+                      setProfile((current) => ({ ...current, governorate }));
+                      setGovernorateModalVisible(false);
+                    }}
+                    activeOpacity={0.82}
+                  >
+                    <Text
+                      style={[
+                        styles.modalOptionText,
+                        isSelected && styles.modalOptionTextSelected,
+                      ]}
+                    >
+                      {governorate}
+                    </Text>
+                    {isSelected ? <CheckIcon size={16} color={colors.primary[600]} /> : null}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -334,13 +432,13 @@ const styles = StyleSheet.create({
     width: 200,
     height: 200,
     borderRadius: 100,
-    backgroundColor: 'rgba(38, 96, 175, 0.22)',
+    backgroundColor: 'rgba(34, 92, 146, 0.18)',
     top: -50,
     right: -50,
   },
   avatarRing: {
     borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.3)',
+    borderColor: colors.overlay.borderStrong,
     borderRadius: borderRadius.full,
     padding: 3,
     marginBottom: spacing.md,
@@ -365,23 +463,21 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[0],
   },
   heroName: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
+    ...typography.role.heroTitle,
     color: colors.neutral[0],
     textAlign: 'center',
-    letterSpacing: typography.letterSpacing.tight,
     marginBottom: spacing.sm,
   },
   rolePill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     borderRadius: borderRadius.full,
     paddingHorizontal: spacing.md,
     paddingVertical: 6,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.overlay.border,
   },
   roleDot: {
     width: 8,
@@ -391,7 +487,7 @@ const styles = StyleSheet.create({
   rolePillText: {
     fontSize: typography.size.sm,
     fontWeight: typography.weight.semibold,
-    color: 'rgba(255,255,255,0.9)',
+    color: 'rgba(255,255,255,0.88)',
   },
 
   // Edit button row
@@ -405,12 +501,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.neutral[0],
+    backgroundColor: colors.surface.base,
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
     borderWidth: 1.5,
-    borderColor: colors.primary[100],
+    borderColor: colors.neutral[200],
     ...shadows.md,
   },
   editButtonActive: {
@@ -429,6 +525,53 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     marginBottom: spacing.md,
+  },
+  governorateFieldWrap: {
+    gap: 6,
+  },
+  governorateLabel: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[700],
+  },
+  governorateField: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    minHeight: 56,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.surface.raised,
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+  },
+  governorateFieldDisabled: {
+    opacity: 0.9,
+  },
+  governorateIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: borderRadius.lg,
+    backgroundColor: colors.primary[50],
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  governorateCopy: {
+    flex: 1,
+  },
+  governorateValue: {
+    fontSize: typography.size.base,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[800],
+  },
+  governoratePlaceholder: {
+    color: colors.neutral[400],
+  },
+  governorateHint: {
+    marginTop: 2,
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
   },
 
   // Save + Logout
@@ -452,5 +595,70 @@ const styles = StyleSheet.create({
     fontSize: typography.size.base,
     fontWeight: typography.weight.semibold,
     color: colors.error,
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(5,11,19,0.4)',
+    justifyContent: 'flex-end',
+  },
+  modalSheet: {
+    backgroundColor: colors.neutral[0],
+    borderTopLeftRadius: borderRadius['2xl'],
+    borderTopRightRadius: borderRadius['2xl'],
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.md,
+    paddingBottom: spacing['2xl'],
+    maxHeight: '72%',
+  },
+  modalHandle: {
+    width: 42,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: colors.neutral[200],
+    alignSelf: 'center',
+    marginBottom: spacing.md,
+  },
+  modalTitle: {
+    fontSize: typography.size.lg,
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[900],
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: typography.size.sm,
+    color: colors.neutral[500],
+    textAlign: 'center',
+    marginTop: spacing.xs,
+    marginBottom: spacing.lg,
+  },
+  modalList: {
+    flexGrow: 0,
+  },
+  modalListContent: {
+    gap: spacing.sm,
+  },
+  modalOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    backgroundColor: colors.surface.base,
+  },
+  modalOptionSelected: {
+    borderColor: colors.primary[300],
+    backgroundColor: colors.primary[50],
+  },
+  modalOptionText: {
+    fontSize: typography.size.base,
+    color: colors.neutral[800],
+    fontWeight: typography.weight.medium,
+  },
+  modalOptionTextSelected: {
+    color: colors.primary[700],
+    fontWeight: typography.weight.bold,
   },
 });

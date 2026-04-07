@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -6,13 +6,16 @@ import {
   TouchableOpacity,
   Animated,
 } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
+import { colors, typography, spacing, borderRadius } from '../../theme';
 import {
   SERVICE_CATEGORY_ROWS,
   ServiceCategoryMeta,
+  getServiceSearchSuggestions,
+  getServiceCategoryLabel,
 } from '../../constants/serviceCategories';
 import { ServiceCategory } from '../../types/serviceRequest';
+import Input from '../Input';
+import { SearchIcon } from '../Icons';
 
 interface ServiceTypeStepProps {
   selectedCategory: ServiceCategory | null;
@@ -31,82 +34,31 @@ function CategoryCard({
 }) {
   const scaleAnim = useRef(new Animated.Value(1)).current;
 
-  // Bounce the card when selection state changes
-  useEffect(() => {
+  const animateTo = (value: number) => {
     Animated.spring(scaleAnim, {
-      toValue: isSelected ? 1.02 : 1,
+      toValue: value,
       useNativeDriver: true,
-      damping: isSelected ? 12 : 15,
-      stiffness: isSelected ? 180 : 300,
-    }).start();
-  }, [isSelected, scaleAnim]);
-
-  const handlePressIn = () => {
-    Animated.spring(scaleAnim, {
-      toValue: 0.95,
-      useNativeDriver: true,
-      damping: 15,
-      stiffness: 300,
+      damping: 16,
+      stiffness: 260,
     }).start();
   };
-
-  const handlePressOut = () => {
-    Animated.spring(scaleAnim, {
-      toValue: isSelected ? 1.02 : 1,
-      useNativeDriver: true,
-      damping: 15,
-      stiffness: 300,
-    }).start();
-  };
-
-  const cardContent = (selected: boolean) => (
-    <>
-      {/* Icon circle */}
-      <View style={selected ? styles.iconCircleSelected : styles.iconCircle}>
-        <Text style={styles.emoji}>{config.emoji}</Text>
-      </View>
-
-      {/* Label */}
-      <Text style={[styles.cardLabel, selected && styles.cardLabelSelected]}>
-        {config.label}
-      </Text>
-
-      {/* Description */}
-      <Text style={[styles.cardDescription, selected && styles.cardDescriptionSelected]}>
-        {config.description}
-      </Text>
-    </>
-  );
 
   return (
-    <Animated.View
-      style={[
-        styles.cardWrapper,
-        { transform: [{ scale: scaleAnim }] },
-        isSelected && styles.cardWrapperSelected,
-      ]}
-    >
+    <Animated.View style={[styles.cardWrapper, { transform: [{ scale: scaleAnim }] }]}>
       <TouchableOpacity
         onPress={onPress}
-        onPressIn={handlePressIn}
-        onPressOut={handlePressOut}
-        activeOpacity={1}
-        style={styles.touchable}
+        activeOpacity={0.92}
+        onPressIn={() => animateTo(0.985)}
+        onPressOut={() => animateTo(1)}
+        style={[styles.card, isSelected && styles.cardSelected]}
       >
-        {isSelected ? (
-          <LinearGradient
-            colors={[colors.primary[500], colors.primary[800]]}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={[styles.card, styles.cardSelected]}
-          >
-            {cardContent(true)}
-          </LinearGradient>
-        ) : (
-          <View style={styles.card}>
-            {cardContent(false)}
-          </View>
-        )}
+        <Text style={styles.emoji}>{config.emoji}</Text>
+        <Text style={[styles.cardLabel, isSelected && styles.cardLabelSelected]}>
+          {config.label}
+        </Text>
+        <Text style={[styles.cardDescription, isSelected && styles.cardDescriptionSelected]}>
+          {config.description}
+        </Text>
       </TouchableOpacity>
     </Animated.View>
   );
@@ -117,16 +69,60 @@ export default function ServiceTypeStep({
   error,
   onChange,
 }: ServiceTypeStepProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const suggestions = useMemo(
+    () => getServiceSearchSuggestions(searchQuery),
+    [searchQuery]
+  );
+
+  const handleSuggestionPress = (label: string, category: ServiceCategory) => {
+    setSearchQuery(label);
+    onChange(category);
+  };
+
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerEmoji}>🛠️</Text>
-        <Text style={styles.title}>What do you need help with?</Text>
-        <Text style={styles.subtitle}>Choose the type of service you're looking for</Text>
+        <Text style={styles.title}>Choose a service</Text>
       </View>
 
-      {/* Category grid — 4 rows × 2 flex:1 cards */}
+      <Input
+        label="Search service"
+        placeholder="Try electrician, cleaner, mover..."
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        icon={<SearchIcon size={18} color={colors.neutral[400]} />}
+        containerStyle={styles.searchField}
+        autoCapitalize="words"
+        autoCorrect={false}
+        returnKeyType="search"
+      />
+
+      {searchQuery.trim().length > 0 ? (
+        <View style={styles.suggestionsCard}>
+          {suggestions.length > 0 ? (
+            <View style={styles.suggestionsWrap}>
+              {suggestions.map((suggestion) => (
+                <TouchableOpacity
+                  key={suggestion.id}
+                  style={styles.suggestionChip}
+                  onPress={() => handleSuggestionPress(suggestion.label, suggestion.serviceCategory)}
+                  activeOpacity={0.82}
+                >
+                  <Text style={styles.suggestionText}>{suggestion.label}</Text>
+                  <Text style={styles.suggestionMeta}>{getServiceCategoryLabel(suggestion.serviceCategory)}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <Text style={styles.noResultsText}>
+              No local matches yet. Try terms like electrician, plumber, cleaner, or mover.
+            </Text>
+          )}
+        </View>
+      ) : null}
+
       <View style={styles.grid}>
         {SERVICE_CATEGORY_ROWS.map((row, rowIndex) => (
           <View key={rowIndex} style={styles.row}>
@@ -142,7 +138,6 @@ export default function ServiceTypeStep({
         ))}
       </View>
 
-      {/* Validation error */}
       {error ? <Text style={styles.error}>{error}</Text> : null}
     </View>
   );
@@ -150,33 +145,58 @@ export default function ServiceTypeStep({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.raised,
+    borderRadius: 26,
     padding: spacing.xl,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
   },
   header: {
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  headerEmoji: {
-    fontSize: 40,
-    marginBottom: spacing.md,
+    marginBottom: spacing.lg,
   },
   title: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    textAlign: 'center',
-    marginBottom: spacing.xs,
+    ...typography.role.sectionTitle,
+    color: colors.primary[900],
   },
-  subtitle: {
+  searchField: {
+    marginBottom: spacing.md,
+  },
+  suggestionsCard: {
+    padding: spacing.md,
+    borderRadius: borderRadius.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    backgroundColor: colors.surface.base,
+    marginBottom: spacing.lg,
+  },
+  suggestionsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+  },
+  suggestionChip: {
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.tint,
+    borderWidth: 1,
+    borderColor: colors.primary[100],
+  },
+  suggestionText: {
     fontSize: typography.size.sm,
-    color: colors.neutral[500],
-    textAlign: 'center',
+    fontWeight: typography.weight.bold,
+    color: colors.primary[800],
   },
-
-  // Grid layout
+  suggestionMeta: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[500],
+    marginTop: 2,
+  },
+  noResultsText: {
+    fontSize: typography.size.sm,
+    lineHeight: 20,
+    color: colors.neutral[500],
+  },
   grid: {
     gap: spacing.sm,
   },
@@ -184,89 +204,45 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: spacing.sm,
   },
-
-  // Card wrapper (holds scale animation + glow shadow)
   cardWrapper: {
     flex: 1,
-    borderRadius: borderRadius.xl,
   },
-  cardWrapperSelected: {
-    shadowColor: colors.primary[500],
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 14,
-    elevation: 8,
-  },
-  touchable: {
-    flex: 1,
-    borderRadius: borderRadius.xl,
-  },
-
-  // Card surface (shared padding/radius, different bg)
   card: {
-    flex: 1,
-    borderRadius: borderRadius.xl,
-    borderWidth: 1.5,
+    minHeight: 132,
+    borderRadius: 22,
+    borderWidth: 1,
     borderColor: colors.neutral[200],
-    backgroundColor: colors.neutral[0],
-    alignItems: 'center',
-    paddingVertical: spacing.lg,
-    paddingHorizontal: spacing.sm,
-    ...shadows.sm,
+    backgroundColor: colors.surface.base,
+    padding: spacing.lg,
+    justifyContent: 'space-between',
   },
   cardSelected: {
-    borderWidth: 0,
-  },
-
-  // Icon circle
-  iconCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.primary[50],
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
-  },
-  iconCircleSelected: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: 'rgba(255, 255, 255, 0.20)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: spacing.md,
+    borderColor: colors.primary[700],
+    backgroundColor: colors.surface.tint,
   },
   emoji: {
     fontSize: 26,
   },
-
-  // Text
   cardLabel: {
-    fontSize: typography.size.sm,
+    fontSize: typography.size.base,
+    color: colors.primary[900],
     fontWeight: typography.weight.bold,
-    color: colors.neutral[800],
-    textAlign: 'center',
-    marginBottom: 3,
+    letterSpacing: -0.2,
   },
   cardLabelSelected: {
-    color: colors.neutral[0],
+    color: colors.primary[800],
   },
   cardDescription: {
     fontSize: typography.size.xs,
-    color: colors.neutral[400],
-    textAlign: 'center',
+    color: colors.neutral[500],
+    lineHeight: 16,
   },
   cardDescriptionSelected: {
-    color: 'rgba(255, 255, 255, 0.75)',
+    color: colors.primary[600],
   },
-
-  // Error
   error: {
-    fontSize: typography.size.sm,
+    fontSize: typography.size.xs,
     color: colors.error,
-    textAlign: 'center',
     marginTop: spacing.md,
-    fontWeight: typography.weight.medium,
   },
 });

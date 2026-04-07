@@ -8,6 +8,46 @@ interface IconProps {
   color?: string;
 }
 
+export function TawTawMarkIcon({ size = 40 }: { size?: number }) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 64 64" fill="none">
+      <Defs>
+        <LinearGradient id="tawtaw_mark_bg" x1="8" y1="6" x2="56" y2="58" gradientUnits="userSpaceOnUse">
+          <Stop offset="0" stopColor={colors.accent.amber} />
+          <Stop offset="0.55" stopColor={colors.primary[500]} />
+          <Stop offset="1" stopColor={colors.primary[800]} />
+        </LinearGradient>
+        <LinearGradient id="tawtaw_mark_wave" x1="14" y1="20" x2="50" y2="44" gradientUnits="userSpaceOnUse">
+          <Stop offset="0" stopColor="#FFF7EA" />
+          <Stop offset="1" stopColor="#FFFFFF" />
+        </LinearGradient>
+      </Defs>
+
+      <Rect x="6" y="6" width="52" height="52" rx="18" fill="url(#tawtaw_mark_bg)" />
+      <Path
+        d="M20 22H44"
+        stroke="rgba(255,255,255,0.24)"
+        strokeWidth="3"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M24 22V28C24 33.5228 28.4772 38 34 38H42"
+        stroke="url(#tawtaw_mark_wave)"
+        strokeWidth="5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <Path
+        d="M22 22V42"
+        stroke="#FFF7EA"
+        strokeWidth="4.5"
+        strokeLinecap="round"
+      />
+      <Circle cx="42" cy="38" r="4" fill={colors.accent.amber} />
+    </Svg>
+  );
+}
+
 export function HomeIcon({ size = 24, color = colors.neutral[600] }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
