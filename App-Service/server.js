@@ -4,6 +4,7 @@ require('./config/connect');
 const express = require("express");
 const cors = require('cors');
 const userRoute = require('./routes/userRoute');
+const serviceRequestRoute = require('./routes/serviceRequestRoutes'); // ← new
 
 const Port = process.env.PORT || 3000;
 const app = express();
@@ -14,7 +15,7 @@ app.use(express.json());
 
 // Routes
 app.use("/user", userRoute);
-
+app.use("/service-requests", serviceRequestRoute);
 
 
 // 404 handler
