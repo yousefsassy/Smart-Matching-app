@@ -4,6 +4,7 @@ require('./config/connect');
 const express = require("express");
 const cors = require('cors');
 const userRoute = require('./routes/userRoute');
+const adminRoute = require('./routes/adminRoute');
 const serviceRequestRoute = require('./routes/serviceRequestRoutes'); // ← new
 
 const Port = process.env.PORT || 3000;
@@ -15,6 +16,7 @@ app.use(express.json());
 
 // Routes
 app.use("/user", userRoute);
+app.use("/admin",adminRoute);
 app.use("/service-requests", serviceRequestRoute);
 
 

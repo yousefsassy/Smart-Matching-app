@@ -3,11 +3,7 @@ const router = express.Router();
 const {
   registerUser,
   loginUser,
-  logoutUser,
-  getUsers,
-  getOneUser,
-  approveProvider,
-  rejectProvider,
+  logoutUser
 } = require("../controllers/userController");
 
 const isAuth = require("../middlewares/isAuth");
@@ -19,13 +15,5 @@ router.post("/login", loginUser);
 
 // ===== Protected routes =====
 router.post("/logout", isAuth, logoutUser);
-
-// ===== Admin-only routes =====
-router.get("/", isAuth, isAutho(["admin"]), getUsers);
-router.get("/:id", isAuth, getOneUser);
-
-// ===== Admin provider approval/rejection =====
-router.patch("/provider/:id/approve", isAuth, isAutho(["admin"]), approveProvider);
-router.patch("/provider/:id/reject", isAuth, isAutho(["admin"]), rejectProvider);
 
 module.exports = router;
