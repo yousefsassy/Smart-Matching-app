@@ -26,7 +26,7 @@ const approveProvider = async (req, res) => {
 };
 
 // ===== Admin Reject Provider =====
-// userController.js
+
 const rejectProvider = async (req, res) => {
   try {
     console.log("📝 rejectProvider called with ID:", req.params.id);
@@ -47,7 +47,7 @@ const rejectProvider = async (req, res) => {
 
     // Update fields safely
     user.providerDetails.isVerified = false;
-    user.providerDetails.isAvailable = false;
+   
 
     await user.save();
     console.log("✅ Provider rejected successfully:", user);
