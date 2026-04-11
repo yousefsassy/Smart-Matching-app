@@ -1,6 +1,7 @@
 const User = require("../models/user");
 require("dotenv").config();
 const { sendProviderApprovedEmail } = require("../utils/mailer");
+
 // ===== Admin Approve Provider =====
 const approveProvider = async (req, res) => {
   try {
@@ -26,7 +27,6 @@ const approveProvider = async (req, res) => {
 };
 
 // ===== Admin Reject Provider =====
-
 const rejectProvider = async (req, res) => {
   try {
     console.log("📝 rejectProvider called with ID:", req.params.id);
@@ -39,25 +39,22 @@ const rejectProvider = async (req, res) => {
       return res.status(404).json({ message: "Provider not found" });
     }
 
-    // Ensure providerDetails exists
     if (!user.providerDetails) {
       user.providerDetails = {};
       console.log("⚠️ providerDetails was missing, initialized a new object");
     }
 
-    // Update fields safely
     user.providerDetails.isVerified = false;
-   
-
     await user.save();
-    console.log("✅ Provider rejected successfully:", user);
 
-    res.json({ message: "Provider rejected successfully", user });
+    console.log("✅ Provider rejected successfully:", user);
+    return res.json({ message: "Provider rejected successfully", user });
   } catch (error) {
     console.error("❌ Error in rejectProvider:", error);
-    res.status(500).json({ message: "Server error", error: error.message });
+    return res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 // ===== Get one user by ID (Admin or self) =====
 const getOneUser = async (req, res) => {
   const { id } = req.params;
@@ -68,24 +65,50 @@ const getOneUser = async (req, res) => {
     const user = await User.findById(id);
     if (!user) return res.status(404).json({ message: "User not found" });
 
-    res.json({ user });
+    return res.json({ user });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
 // ===== Get all users (Admin only) =====
 const getUsers = async (req, res) => {
   try {
     const users = await User.find();
-    res.json({ users });
+    return res.json({ users });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ message: "Server error" });
+    return res.status(500).json({ message: "Server error" });
   }
 };
+
+// ===== Get all providers (Admin only) =====
+const getProviders = async (req, res) => {
+  try {
+    const providers = await User.find({ role: "provider" });
+    return res.json({ providers });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
+// ===== Get all clients (Admin only) =====
+const getClients = async (req, res) => {
+  try {
+    const clients = await User.find({ role: "client" });
+    return res.json({ clients });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
+
 module.exports = {
   getUsers,
+  getProviders,
+  getClients,
   getOneUser,
   approveProvider,
   rejectProvider,
