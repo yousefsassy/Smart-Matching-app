@@ -1,25 +1,24 @@
 const express = require("express");
-const authenticate = require("../middlewares/auth");
-require("dotenv").config();
+const multer = require("multer");
 
-const profileController = require("../controllers/profile");
+const isAuth = require("../middlewares/isAuth");
+const isAutho = require("../middlewares/isAutho");
+const {
+  updateProfilePhoto,
+  updateProfile,
+} = require("../controllers/profile");
 
 const router = express.Router();
+const upload = multer({ dest: "uploads/" });
 
-router.get("/getallstudentdata", authenticate, profileController.getallstudentdata);
+router.patch(
+  "/photo",
+  isAuth,
+  isAutho(["client", "provider"]),
+  upload.single("photo"),
+  updateProfilePhoto
+);
 
-router.put("/updateemail", authenticate, profileController.updateemail);
-
-router.get("/verify/:id/:token", profileController.verifyemail);
-
-router.put("/updatepwd", authenticate, profileController.updatepwd);
-
-router.put("/updateuser", authenticate, profileController.updateuser);
-
-router.delete("/deleteaccount", profileController.deleteaccount);
-
-
-router.get("/student", authenticate, profileController.getAllStudents);
-
+router.patch("/", isAuth, isAutho(["client", "provider"]), updateProfile);
 
 module.exports = router;

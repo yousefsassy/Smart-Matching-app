@@ -5,7 +5,8 @@ const express = require("express");
 const cors = require('cors');
 const userRoute = require('./routes/userRoute');
 const adminRoute = require('./routes/adminRoute');
-const serviceRequestRoute = require('./routes/serviceRequestRoutes'); // ← new
+const serviceRequestRoute = require('./routes/serviceRequestRoutes');
+const profileRoute = require("./routes/profile");
 
 const Port = process.env.PORT || 3000;
 const app = express();
@@ -18,6 +19,7 @@ app.use(express.json());
 app.use("/user", userRoute);
 app.use("/admin",adminRoute);
 app.use("/service-requests", serviceRequestRoute);
+app.use("/profile", profileRoute);
 
 
 // 404 handler

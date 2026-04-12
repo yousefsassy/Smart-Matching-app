@@ -1,64 +1,29 @@
 const profileService = require("../services/profile");
 
-exports.updateuser = async (req, res) => {
+const handleError = (res, error) => {
+  console.error(error);
+
+  if (error && error.status) {
+    return res.status(error.status).json({ message: error.message });
+  }
+
+  return res.status(500).json({ message: "Server error" });
+};
+
+exports.updateProfilePhoto = async (req, res) => {
   try {
-    await profileService.updateuser(req, res);
+    const result = await profileService.updateProfilePhoto(req);
+    return res.status(result.status).json(result.data);
   } catch (error) {
-    console.error(error);
+    return handleError(res, error);
   }
 };
 
-exports.updatepwd = async (req, res) => {
+exports.updateProfile = async (req, res) => {
   try {
-    await profileService.updatepwd(req, res);
+    const result = await profileService.updateProfile(req);
+    return res.status(result.status).json(result.data);
   } catch (error) {
-    console.error(error);
+    return handleError(res, error);
   }
 };
-
-exports.updateemail = async (req, res) => {
-  try {
-    await profileService.updateemail(req, res);
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-exports.verifyemail = async (req, res) => {
-  try {
-    const { id, token } = req.params;
-    const result = await profileService.verifyemail(id, token);
-    if (result.success) {
-      res.status(200).send(result.message);
-    } else {
-      res.status(400).send(result.message);
-    }
-  } catch (error) {
-    console.error(error);
-    res.status(500).send("An error occurred.");
-  }
-};
-
-exports.getallstudentdata = async (req, res) => {
-  try {
-    await profileService.getallstudentdata(req, res);
-  } catch (error) {
-    console.error(error);
-  }
-};
-
-exports.deleteaccount = async (req, res) => {
-  try {
-    await profileService.deleteaccount(req, res);
-  } catch (error) {
-    console.error(error);
-  }
-};
-exports.getAllStudents = async (req, res) => {
-  try {
-    const students = await profileService.getAllStudents();
-    res.status(200).json({ students });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-}; 
