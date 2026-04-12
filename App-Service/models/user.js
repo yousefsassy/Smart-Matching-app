@@ -4,8 +4,8 @@ const locationSchema = require("./Location");
 // ===== Time window schema (from-to) =====
 const timeWindowSchema = new mongoose.Schema(
   {
-    start: { type: String, required: true, trim: true }, // "09:00"
-    end: { type: String, required: true, trim: true },   // "11:00"
+    start: { type: String, required: true, trim: true },
+    end: { type: String, required: true, trim: true },
   },
   { _id: false }
 );
@@ -13,17 +13,17 @@ const timeWindowSchema = new mongoose.Schema(
 // ===== Provider availability per date (calendar) =====
 const providerAvailabilitySchema = new mongoose.Schema(
   {
-    date: { type: Date, required: true }, // specific date selected in calendar
+    date: { type: Date, required: true },
     slot1: { type: timeWindowSchema, required: true },
     slot2: { type: timeWindowSchema, required: true },
   },
   { _id: false }
 );
 
-// ===== Client details =====
+// ✅ Client details: text only (no geo)
 const clientDetailsSchema = new mongoose.Schema(
   {
-    location: { type: locationSchema, required: false }, // optional
+    regionText: { type: String, trim: true, default: "" },   // optional
   },
   { _id: false }
 );
@@ -31,15 +31,14 @@ const clientDetailsSchema = new mongoose.Schema(
 // ===== Provider details =====
 const providerDetailsSchema = new mongoose.Schema(
   {
-    location: { type: locationSchema, required: true },
+    location: { type: locationSchema, required: true }, // includes geo
     fieldOfService: { type: String, required: true, trim: true },
     skills: { type: [String], default: [] },
     experienceYears: { type: Number, default: 0, min: 0 },
 
-    // Calendar-based availability (per date, exactly 2 slots)
     availability: { type: [providerAvailabilitySchema], default: [] },
 
-    // Optional quick toggle for “currently available”
+    // Optional quick toggle
     isAvailable: { type: Boolean, default: true },
 
     trustScore: { type: Number, default: 0, min: 0, max: 5 },
@@ -63,7 +62,6 @@ const userSchema = new mongoose.Schema(
       match: /^([a-zA-Z0-9_\.\-])+\@(([a-zA-Z0-9\-])+\.)+([a-zA-Z0-9]{2,})$/,
     },
     passwordHash: { type: String, required: true },
-
     role: { type: String, enum: ["client", "provider", "admin"], required: true },
 
     name: { type: String, trim: true, default: "" },
@@ -87,7 +85,7 @@ const userSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// Geo index for provider location (works when providerDetails.location.geo exists)
+// Geo index (providers only)
 userSchema.index({ "providerDetails.location.geo": "2dsphere" });
 
 module.exports = mongoose.model("User", userSchema);
