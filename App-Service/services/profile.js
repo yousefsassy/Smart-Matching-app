@@ -232,3 +232,40 @@ exports.updateProfile = async (req) => {
     },
   };
 };
+exports.getMyProfile = async (req) => {
+  const user = await User.findById(req.user.id);
+
+  if (!user) {
+    throw { status: 404, message: "User not found" };
+  }
+
+  return {
+    status: 200,
+    data: {
+      user: sanitizeUser(user),
+    },
+  };
+};
+// ... existing code ...
+
+exports.getProfileById = async (req) => {
+  const { id } = req.params;
+
+  // Basic validation for the ID
+  if (!id) {
+    throw { status: 400, message: "User ID is required" };
+  }
+
+  const user = await User.findById(id);
+
+  if (!user) {
+    throw { status: 404, message: "User not found" };
+  }
+
+  return {
+    status: 200,
+    data: {
+      user: sanitizeUser(user),
+    },
+  };
+};

@@ -27,3 +27,20 @@ exports.updateProfile = async (req, res) => {
     return handleError(res, error);
   }
 };
+exports.getMyProfile = async (req, res) => {
+  try {
+    const result = await profileService.getMyProfile(req);
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.getProfileById = async (req, res) => {
+  try {
+    const result = await profileService.getProfileById(req);
+    return res.status(result.status).json(result.data);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
