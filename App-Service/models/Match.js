@@ -7,10 +7,25 @@ const matchSchema = new Schema(
     provider: { type: Schema.Types.ObjectId, ref: "User", required: true },
     score: { type: Number, required: true },
     rank: { type: Number, required: true, min: 1 },
-    selected: { type: Boolean, default: false },
+    
+    // Status management
+    status: { 
+      type: String, 
+      enum: ["pending", "selected", "rejected", "expired"], 
+      default: "pending" 
+    },
+    selected: { type: Boolean, default: false }, // Kept as requested
+    
+    // Metadata for Admin/AI
+    reasoning: { type: String, trim: true }, // ADDED: LLM justification
+    
+    // Timing logic for "Expired" status
     notified: { type: Boolean, default: false },
-    skillOverlapSnapshot: { type: Number, default: 0 },   // ADDED
-    distanceKmSnapshot: { type: Number, default: null },  // ADDED
+    notifiedAt: { type: Date }, // ADDED: timestamp to calculate if the time window has passed
+
+    // Snapshots for model improvement
+    skillOverlapSnapshot: { type: Number, default: 0 },
+    distanceKmSnapshot: { type: Number, default: null },
   },
   { timestamps: true }
 );
