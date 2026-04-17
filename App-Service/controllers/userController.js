@@ -112,8 +112,22 @@ const loginUser = async (req, res) => {
 };
 
 // ===== Logout User =====
-const logoutUser = (req, res) => {
-  res.json({ message: "Logout successful - remove token from localStorage on frontend" });
+const logoutUser = async (req, res) => {
+  try {
+    // MVP: clear Expo push token so logged-out users stop receiving push notifications.
+    await User.findByIdAndUpdate(req.user.id, { expoPushToken: null });
+
+    // Future improvement: JWT tokens remain valid until expiry unless you implement:
+    // - token blacklist (store revoked tokens/jti) OR
+    // - refresh tokens + revoke refresh token on logout.
+
+    return res.json({
+      message: "Logout successful - remove token on frontend; expoPushToken cleared",
+    });
+  } catch (err) {
+    console.error("Logout error:", err);
+    return res.status(500).json({ message: "Server error" });
+  }
 };
 
 module.exports = {

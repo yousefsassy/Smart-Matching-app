@@ -67,6 +67,7 @@ const userSchema = new mongoose.Schema(
     name: { type: String, trim: true, default: "" },
     phone: { type: String, trim: true, default: "" },
     photoUrl: { type: String, default: "" },
+    expoPushToken: { type: String, default: null }, // Simple and accessible
 
     clientDetails: {
       type: clientDetailsSchema,

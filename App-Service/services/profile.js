@@ -37,6 +37,7 @@ const sanitizeUser = (user) => {
     email: user.email,
     phone: user.phone,
     photoUrl: user.photoUrl,
+    expoPushToken: user.expoPushToken || null, 
     clientDetails: user.clientDetails,
     providerDetails: user.providerDetails,
   };
@@ -148,6 +149,7 @@ exports.updateProfilePhoto = async (req) => {
 };
 
 exports.updateProfile = async (req) => {
+  // Finding the user based on the ID injected by isAuth middleware
   const user = await User.findById(req.user.id);
 
   if (!user) {
@@ -156,6 +158,7 @@ exports.updateProfile = async (req) => {
 
   let hasSupportedField = false;
 
+  // 1. Handle Standard Profile Fields
   if (Object.prototype.hasOwnProperty.call(req.body, "name")) {
     const name = normalizeOptionalString(req.body.name);
     if (name !== null) {
@@ -172,13 +175,26 @@ exports.updateProfile = async (req) => {
     }
   }
 
+  // 2. Handle Push Notification Token
+  if (Object.prototype.hasOwnProperty.call(req.body, "expoPushToken")) {
+    const token = req.body.expoPushToken;
+    
+    // Accept string for valid tokens or null for logouts
+    if (typeof token === "string" || token === null) {
+      user.expoPushToken = token;
+      hasSupportedField = true;
+    } else {
+      throw { status: 400, message: "Invalid expoPushToken format" };
+    }
+  }
+
+  // 3. Handle Email Updates (with duplicate check)
   if (Object.prototype.hasOwnProperty.call(req.body, "email")) {
     if (typeof req.body.email !== "string") {
       throw { status: 400, message: "Invalid email format" };
     }
 
     const email = req.body.email.trim().toLowerCase();
-
     if (!validator.isEmail(email)) {
       throw { status: 400, message: "Invalid email format" };
     }
@@ -196,12 +212,11 @@ exports.updateProfile = async (req) => {
     hasSupportedField = true;
   }
 
+  // 4. Handle Region Updates
   const regionText = extractRegionText(req.body, user.role);
   if (regionText !== null) {
     if (user.role === "client") {
-      if (!user.clientDetails) {
-        user.clientDetails = {};
-      }
+      if (!user.clientDetails) user.clientDetails = {};
       user.clientDetails.regionText = regionText;
     }
 
@@ -211,10 +226,10 @@ exports.updateProfile = async (req) => {
       }
       user.providerDetails.location.regionText = regionText;
     }
-
     hasSupportedField = true;
   }
 
+  // Final validation and save
   if (!hasSupportedField) {
     throw {
       status: 400,
