@@ -7,6 +7,7 @@ const userRoute = require('./routes/userRoute');
 const adminRoute = require('./routes/adminRoute');
 const serviceRequestRoute = require('./routes/serviceRequestRoutes');
 const profileRoute = require("./routes/profile");
+const availabilityRoute = require("./routes/availabilityRoute");
 
 const Port = process.env.PORT || 3000;
 const app = express();
@@ -20,6 +21,7 @@ app.use("/user", userRoute);
 app.use("/admin",adminRoute);
 app.use("/service-requests", serviceRequestRoute);
 app.use("/profile", profileRoute);
+app.use("/availability", availabilityRoute);
 
 
 // 404 handler
