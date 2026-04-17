@@ -4,18 +4,19 @@ const locationSchema = require("./Location");
 // ===== Time window schema (from-to) =====
 const timeWindowSchema = new mongoose.Schema(
   {
-    start: { type: String, required: true, trim: true },
-    end: { type: String, required: true, trim: true },
+    start: { type: String, trim: true },
+    end: { type: String, trim: true },
   },
   { _id: false }
 );
 
 // ===== Provider availability per date (calendar) =====
+// Slots are now optional. If both are null, they are "Available All Day"
 const providerAvailabilitySchema = new mongoose.Schema(
   {
     date: { type: Date, required: true },
-    slot1: { type: timeWindowSchema, required: true },
-    slot2: { type: timeWindowSchema, required: true },
+    slot1: { type: timeWindowSchema, default: null },
+    slot2: { type: timeWindowSchema, default: null },
   },
   { _id: false }
 );
