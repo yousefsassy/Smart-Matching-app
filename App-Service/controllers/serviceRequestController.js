@@ -3,36 +3,81 @@ const ServiceRequest = require("../models/ServiceRequest");
 // Create a new service request (clients only)
 exports.createServiceRequest = async (req, res) => {
   try {
-    const { serviceType, location, description = "", date, timeWindow, budget } = req.body;
+    const {
+      serviceType,
+      location,
+      description = "",
+      date,
+      timeWindow,
+      budget,
+    } = req.body;
+
     const clientId = req.user.id;
 
-    // --- Validations ---
-    if (!serviceType) return res.status(400).json({ message: "Service type is required" });
-    if (!location || !location.regionText) return res.status(400).json({ message: "Location is required" });
-    if (!date) return res.status(400).json({ message: "Date is required" });
-    if (!timeWindow || !timeWindow.start || !timeWindow.end)
-      return res.status(400).json({ message: "Time window is required" });
-    if (!budget || budget.min == null || budget.max == null)
-      return res.status(400).json({ message: "Budget range is required" });
-    if (budget.min > budget.max)
-      return res.status(400).json({ message: "Budget min cannot be greater than max" });
+    // =========================
+    // VALIDATIONS
+    // =========================
+    if (!serviceType) {
+      return res.status(400).json({ message: "Service type is required" });
+    }
 
+    if (!location || !location.regionText) {
+      return res.status(400).json({ message: "Location regionText is required" });
+    }
+
+    if (!date) {
+      return res.status(400).json({ message: "Date is required" });
+    }
+
+    if (!timeWindow?.start || !timeWindow?.end) {
+      return res.status(400).json({ message: "Time window is required" });
+    }
+
+    if (budget?.min == null || budget?.max == null) {
+      return res.status(400).json({ message: "Budget range is required" });
+    }
+
+    if (budget.min > budget.max) {
+      return res.status(400).json({
+        message: "Budget min cannot be greater than max",
+      });
+    }
+
+    // =========================
+    // GEO NORMALIZATION (IMPORTANT FIX)
+    // =========================
+    let geo = null;
+
+    if (
+      location.geo &&
+      Array.isArray(location.geo.coordinates) &&
+      location.geo.coordinates.length === 2 &&
+      location.geo.coordinates.every((n) => typeof n === "number")
+    ) {
+      geo = {
+        type: "Point",
+        coordinates: location.geo.coordinates, // [lng, lat]
+      };
+    }
+
+    // =========================
+    // CREATE REQUEST
+    // =========================
     const newRequest = new ServiceRequest({
       client: clientId,
       serviceType,
-      location,
+      location: {
+        regionText: location.regionText,
+        geo: geo, // can be null safely
+      },
       description,
       date,
       timeWindow,
       budget,
+      status: "pending",
     });
 
     const savedRequest = await newRequest.save();
-
-    // TODO: Trigger matching service here
-    // 1) Filter providers in DB (serviceType, distance, availability, isVerified)
-    // 2) Call AI/LLM ranking to return Top 3
-    // 3) Create 3 Match records: { serviceRequest, provider, rank, score, reasoning, status="pending" }
 
     return res.status(201).json({
       message: "Service request created successfully",

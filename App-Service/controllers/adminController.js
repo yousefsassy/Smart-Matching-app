@@ -104,6 +104,25 @@ const getClients = async (req, res) => {
     return res.status(500).json({ message: "Server error" });
   }
 };
+// ===== Delete Provider (Admin Only) =====
+const deleteProvider = async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+
+    if (!user || user.role !== "provider") {
+      return res.status(404).json({ message: "Provider not found" });
+    }
+
+    await User.findByIdAndDelete(req.params.id);
+
+    return res.json({
+      message: "Provider deleted successfully",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ message: "Server error" });
+  }
+};
 
 module.exports = {
   getUsers,
@@ -112,4 +131,5 @@ module.exports = {
   getOneUser,
   approveProvider,
   rejectProvider,
+  deleteProvider, 
 };

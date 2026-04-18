@@ -8,6 +8,8 @@ const adminRoute = require('./routes/adminRoute');
 const serviceRequestRoute = require('./routes/serviceRequestRoutes');
 const profileRoute = require("./routes/profile");
 const availabilityRoute = require("./routes/availabilityRoute");
+const jobRoute = require("./routes/jobRoute");
+const matchRoute = require("./routes/matchRoute");
 
 const Port = process.env.PORT || 3000;
 const app = express();
@@ -22,7 +24,8 @@ app.use("/admin",adminRoute);
 app.use("/service-requests", serviceRequestRoute);
 app.use("/profile", profileRoute);
 app.use("/availability", availabilityRoute);
-
+app.use("/jobs", jobRoute);
+app.use("/matches", matchRoute);
 
 // 404 handler
 app.use((req, res) => {

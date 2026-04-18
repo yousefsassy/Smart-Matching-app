@@ -8,6 +8,7 @@ const {
   getOneUser,
   approveProvider,
   rejectProvider,
+  deleteProvider, 
 } = require("../controllers/adminController");
 
 const isAuth = require("../middlewares/isAuth");
@@ -24,5 +25,12 @@ router.get("/:id", isAuth, getOneUser);
 // ===== Admin provider approval/rejection =====
 router.patch("/provider/:id/approve", isAuth, isAutho(["admin"]), approveProvider);
 router.patch("/provider/:id/reject", isAuth, isAutho(["admin"]), rejectProvider);
+// ===== Delete provider =====
+router.delete(
+  "/provider/:id",
+  isAuth,
+  isAutho(["admin"]),
+  deleteProvider
+);
 
 module.exports = router;
