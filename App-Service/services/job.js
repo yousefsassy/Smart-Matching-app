@@ -63,7 +63,7 @@ exports.acceptMatch = async (providerId, matchId) => {
   });
 
   // 🟡 UPDATE REQUEST
-  request.status = "accepted";
+  request.status = "assigned";
   await request.save();
 
   // 🔴 REJECT OTHER MATCHES
