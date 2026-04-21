@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -33,9 +33,21 @@ import StatusBadge from '../components/StatusBadge';
 const DEFAULT_AVAILABLE_DAYS = new Set([1, 2, 3, 4, 5]); // Mon–Fri
 
 // ── Underline color constants ──────────────────────────────────────────────────
-const UNDERLINE_JOB       = colors.primary[500];   // blue  — has scheduled jobs
-const UNDERLINE_AVAILABLE = colors.success;         // green — available
-const UNDERLINE_BUSY      = colors.error;           // red   — unavailable
+const UNDERLINE_JOB       = colors.primary[500];
+const UNDERLINE_AVAILABLE = colors.success;
+const UNDERLINE_BUSY      = colors.error;
+
+// ── Time slot options ──────────────────────────────────────────────────────────
+const TIME_SLOTS: string[] = Array.from({ length: 24 }, (_, h) =>
+  `${String(h).padStart(2, '0')}:00`
+);
+
+// ── Availability override shape ────────────────────────────────────────────────
+interface DayOverride {
+  available: boolean;
+  from: string | null; // null = all day
+  to: string | null;
+}
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +74,54 @@ function formatMonthLabel(year: number, month: number): string {
   return new Date(year, month, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 }
 
+// ── Time chip component ────────────────────────────────────────────────────────
+function TimeChip({
+  time,
+  selected,
+  onPress,
+}: {
+  time: string;
+  selected: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.75}
+      style={[timeChipStyles.chip, selected && timeChipStyles.chipSelected]}
+    >
+      <Text style={[timeChipStyles.text, selected && timeChipStyles.textSelected]}>
+        {time}
+      </Text>
+    </TouchableOpacity>
+  );
+}
+
+const timeChipStyles = StyleSheet.create({
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+    marginRight: 8,
+  },
+  chipSelected: {
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50],
+  },
+  text: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.medium,
+    color: colors.neutral[500],
+  },
+  textSelected: {
+    color: colors.primary[700],
+    fontWeight: typography.weight.bold,
+  },
+});
+
 // ── Main screen ────────────────────────────────────────────────────────────────
 
 export default function CalendarScreen() {
@@ -72,8 +132,16 @@ export default function CalendarScreen() {
   const [requests, setRequests] = useState<ServiceRequest[]>([]);
   const [editModalVisible, setEditModalVisible] = useState(false);
 
-  // availabilityOverrides: key = YYYY-MM-DD, value = true (available) | false (unavailable)
-  const [overrides, setOverrides] = useState<Record<string, boolean>>({});
+  // overrides: key = YYYY-MM-DD
+  const [overrides, setOverrides] = useState<Record<string, DayOverride>>({});
+
+  // modal draft state
+  const [draftAvailable, setDraftAvailable] = useState(true);
+  const [draftFrom, setDraftFrom] = useState<string | null>(null);
+  const [draftTo, setDraftTo] = useState<string | null>(null);
+
+  const fromScrollRef = useRef<ScrollView>(null);
+  const toScrollRef   = useRef<ScrollView>(null);
 
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -94,9 +162,20 @@ export default function CalendarScreen() {
 
   const isDayAvailable = useCallback(
     (dateStr: string): boolean => {
-      if (overrides[dateStr] !== undefined) return overrides[dateStr];
+      const ov = overrides[dateStr];
+      if (ov !== undefined) return ov.available;
       const dow = new Date(dateStr + 'T00:00:00').getDay();
       return DEFAULT_AVAILABLE_DAYS.has(dow);
+    },
+    [overrides]
+  );
+
+  const getDayTimeLabel = useCallback(
+    (dateStr: string): string => {
+      const ov = overrides[dateStr];
+      if (!ov || !ov.available) return '';
+      if (ov.from && ov.to) return `${ov.from} – ${ov.to}`;
+      return 'All day';
     },
     [overrides]
   );
@@ -109,7 +188,7 @@ export default function CalendarScreen() {
     [requests]
   );
 
-  // ── Marked dates for the calendar (custom underline style) ──────────────────
+  // ── Marked dates ─────────────────────────────────────────────────────────────
 
   const markedDates = useMemo(() => {
     const marks: Record<string, any> = {};
@@ -117,11 +196,10 @@ export default function CalendarScreen() {
 
     days.forEach((day) => {
       const ds = toDateString(day);
-      const hasJob = hasJobOnDay(ds);
+      const hasJob  = hasJobOnDay(ds);
       const available = isDayAvailable(ds);
       const isSelected = ds === selectedDate;
 
-      // Priority: jobs (blue) > available (green) > unavailable (red)
       const underlineColor = hasJob
         ? UNDERLINE_JOB
         : available
@@ -132,12 +210,8 @@ export default function CalendarScreen() {
         customStyles: {
           container: {
             backgroundColor: hasJob
-              ? isSelected
-                ? colors.primary[600]
-                : colors.primary[50]
-              : isSelected
-              ? colors.primary[600]
-              : undefined,
+              ? isSelected ? colors.primary[600] : colors.primary[50]
+              : isSelected ? colors.primary[600] : undefined,
             borderRadius: 6,
             borderWidth: hasJob ? 1.5 : 0,
             borderColor: hasJob ? colors.primary[500] : 'transparent',
@@ -175,12 +249,29 @@ export default function CalendarScreen() {
 
   const handleEditAvailability = () => {
     if (!selectedDate) return;
+    const existing = overrides[selectedDate];
+    if (existing) {
+      setDraftAvailable(existing.available);
+      setDraftFrom(existing.from);
+      setDraftTo(existing.to);
+    } else {
+      const dow = new Date(selectedDate + 'T00:00:00').getDay();
+      setDraftAvailable(DEFAULT_AVAILABLE_DAYS.has(dow));
+      setDraftFrom(null);
+      setDraftTo(null);
+    }
     setEditModalVisible(true);
   };
 
-  const applyAvailability = (available: boolean) => {
+  const handleSaveAvailability = () => {
     if (!selectedDate) return;
-    setOverrides((prev) => ({ ...prev, [selectedDate]: available }));
+    // If not available, clear time range
+    const from = draftAvailable ? draftFrom : null;
+    const to   = draftAvailable ? draftTo   : null;
+    setOverrides((prev) => ({
+      ...prev,
+      [selectedDate]: { available: draftAvailable, from, to },
+    }));
     setEditModalVisible(false);
   };
 
@@ -189,7 +280,7 @@ export default function CalendarScreen() {
       await updateRequestStatus(requestId, 'completed');
       reloadRequests();
     } catch {
-      // Keep the interaction lightweight in the calendar surface.
+      // lightweight — ignore in calendar surface
     }
   };
 
@@ -233,7 +324,7 @@ export default function CalendarScreen() {
             <CalendarIcon size={22} color={colors.neutral[0]} />
           </View>
           <Text style={styles.heroTitle}>My Calendar</Text>
-          <Text style={styles.heroSubtitle}>Your schedule at a glance</Text>
+          <Text style={styles.heroSubtitle}>Tap any date to view or edit availability</Text>
         </LinearGradient>
 
         {/* ── Legend ──────────────────────────────────────────────────────────── */}
@@ -303,12 +394,20 @@ export default function CalendarScreen() {
             <View style={styles.daySectionHeader}>
               <View style={styles.daySectionInfo}>
                 <Text style={styles.daySectionDate}>{formatDisplayDate(selectedDate)}</Text>
-                <Text style={[
-                  styles.daySectionSub,
-                  { color: isDayAvailable(selectedDate) ? colors.success : colors.error },
-                ]}>
-                  {isDayAvailable(selectedDate) ? '✓ Available' : '✗ Unavailable'}
-                </Text>
+                <View style={styles.daySectionStatusRow}>
+                  <Text style={[
+                    styles.daySectionSub,
+                    { color: isDayAvailable(selectedDate) ? colors.success : colors.error },
+                  ]}>
+                    {isDayAvailable(selectedDate) ? '✓ Available' : '✗ Unavailable'}
+                  </Text>
+                  {isDayAvailable(selectedDate) && getDayTimeLabel(selectedDate) !== '' && (
+                    <View style={styles.timePill}>
+                      <ClockIcon size={11} color={colors.primary[500]} />
+                      <Text style={styles.timePillText}>{getDayTimeLabel(selectedDate)}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
               <TouchableOpacity
                 style={styles.editAvailBtn}
@@ -351,7 +450,7 @@ export default function CalendarScreen() {
                         </Text>
                         <MapPinIcon size={12} color={colors.neutral[400]} />
                         <Text style={styles.jobMetaText} numberOfLines={1}>
-                          {job.requestLocation.addressLabel}
+                          {job.requestLocation?.addressLabel}
                         </Text>
                       </View>
                       {job.status === 'in_progress' ? (
@@ -385,35 +484,144 @@ export default function CalendarScreen() {
       <Modal
         visible={editModalVisible}
         transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setEditModalVisible(false)}
       >
         <Pressable style={styles.modalBackdrop} onPress={() => setEditModalVisible(false)}>
           <Pressable style={styles.modalSheet} onPress={() => {}}>
             <View style={styles.modalHandle} />
+
             <Text style={styles.modalTitle}>Edit Availability</Text>
             {selectedDate && (
               <Text style={styles.modalSubtitle}>{formatDisplayDate(selectedDate)}</Text>
             )}
-            <View style={styles.modalActions}>
+
+            {/* ── Available / Unavailable toggle ─────────────────────────────── */}
+            <View style={styles.toggleRow}>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnAvail]}
-                onPress={() => applyAvailability(true)}
+                style={[styles.toggleBtn, draftAvailable && styles.toggleBtnAvailActive]}
+                onPress={() => setDraftAvailable(true)}
                 activeOpacity={0.8}
               >
-                <CheckCircleIcon size={20} color={colors.success} />
-                <Text style={[styles.modalBtnText, { color: colors.success }]}>Mark Available</Text>
+                <CheckCircleIcon size={18} color={draftAvailable ? colors.success : colors.neutral[400]} />
+                <Text style={[styles.toggleBtnText, draftAvailable && { color: colors.success }]}>
+                  Available
+                </Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalBtn, styles.modalBtnBusy]}
-                onPress={() => applyAvailability(false)}
+                style={[styles.toggleBtn, !draftAvailable && styles.toggleBtnBusyActive]}
+                onPress={() => setDraftAvailable(false)}
                 activeOpacity={0.8}
               >
-                <XCircleIcon size={20} color={colors.error} />
-                <Text style={[styles.modalBtnText, { color: colors.error }]}>Mark Unavailable</Text>
+                <XCircleIcon size={18} color={!draftAvailable ? colors.error : colors.neutral[400]} />
+                <Text style={[styles.toggleBtnText, !draftAvailable && { color: colors.error }]}>
+                  Unavailable
+                </Text>
               </TouchableOpacity>
             </View>
-            <Text style={styles.modalNote}>Changes are saved locally only.</Text>
+
+            {/* ── Time range (only shown when available) ─────────────────────── */}
+            {draftAvailable && (
+              <View style={styles.timeSection}>
+                {/* All-day shortcut */}
+                <TouchableOpacity
+                  style={[styles.allDayBtn, !draftFrom && !draftTo && styles.allDayBtnActive]}
+                  onPress={() => { setDraftFrom(null); setDraftTo(null); }}
+                  activeOpacity={0.8}
+                >
+                  <Text style={[
+                    styles.allDayBtnText,
+                    !draftFrom && !draftTo && styles.allDayBtnTextActive,
+                  ]}>
+                    All day
+                  </Text>
+                </TouchableOpacity>
+
+                {/* From picker */}
+                <View style={styles.timePicker}>
+                  <View style={styles.timePickerLabelRow}>
+                    <ClockIcon size={14} color={colors.primary[500]} />
+                    <Text style={styles.timePickerLabel}>From</Text>
+                    {draftFrom && (
+                      <TouchableOpacity onPress={() => setDraftFrom(null)}>
+                        <Text style={styles.timeClear}>Clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <ScrollView
+                    ref={fromScrollRef}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.timeChipRow}
+                  >
+                    {TIME_SLOTS.map((t) => (
+                      <TimeChip
+                        key={t}
+                        time={t}
+                        selected={draftFrom === t}
+                        onPress={() => setDraftFrom(draftFrom === t ? null : t)}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* To picker */}
+                <View style={styles.timePicker}>
+                  <View style={styles.timePickerLabelRow}>
+                    <ClockIcon size={14} color={colors.accent.cyan} />
+                    <Text style={styles.timePickerLabel}>To</Text>
+                    {draftTo && (
+                      <TouchableOpacity onPress={() => setDraftTo(null)}>
+                        <Text style={styles.timeClear}>Clear</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                  <ScrollView
+                    ref={toScrollRef}
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.timeChipRow}
+                  >
+                    {TIME_SLOTS.map((t) => (
+                      <TimeChip
+                        key={t}
+                        time={t}
+                        selected={draftTo === t}
+                        onPress={() => setDraftTo(draftTo === t ? null : t)}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+
+                <Text style={styles.timeHint}>
+                  {draftFrom && draftTo
+                    ? `Available ${draftFrom} – ${draftTo}`
+                    : draftFrom
+                    ? `Available from ${draftFrom}`
+                    : draftTo
+                    ? `Available until ${draftTo}`
+                    : 'Available all day (no time restriction)'}
+                </Text>
+              </View>
+            )}
+
+            {/* ── Save button ───────────────────────────────────────────────── */}
+            <TouchableOpacity
+              style={styles.saveBtn}
+              onPress={handleSaveAvailability}
+              activeOpacity={0.85}
+            >
+              <LinearGradient
+                colors={colors.gradients.primary as [string, string]}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={styles.saveBtnGradient}
+              >
+                <Text style={styles.saveBtnText}>Save Availability</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+
+            <Text style={styles.modalNote}>Changes are saved locally on this device.</Text>
           </Pressable>
         </Pressable>
       </Modal>
@@ -466,7 +674,7 @@ const styles = StyleSheet.create({
     color: 'rgba(255,255,255,0.7)',
   },
 
-  // Legend — uses lines instead of dots to match underline metaphor
+  // Legend
   legend: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -542,16 +750,35 @@ const styles = StyleSheet.create({
   },
   daySectionInfo: {
     flex: 1,
+    gap: 4,
   },
   daySectionDate: {
     fontSize: typography.size.base,
     fontWeight: typography.weight.bold,
     color: colors.neutral[900],
-    marginBottom: 2,
+  },
+  daySectionStatusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
   daySectionSub: {
     fontSize: typography.size.xs,
     fontWeight: typography.weight.medium,
+  },
+  timePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: colors.primary[50],
+    borderRadius: 10,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+  },
+  timePillText: {
+    fontSize: 11,
+    fontWeight: typography.weight.semibold,
+    color: colors.primary[600],
   },
   editAvailBtn: {
     flexDirection: 'row',
@@ -669,7 +896,7 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
 
-  // Edit availability modal
+  // Modal
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
@@ -701,36 +928,117 @@ const styles = StyleSheet.create({
     fontSize: typography.size.sm,
     color: colors.neutral[500],
     textAlign: 'center',
-    marginBottom: spacing.sm,
   },
-  modalActions: {
-    gap: spacing.md,
+
+  // Available / Unavailable toggle
+  toggleRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.xs,
   },
-  modalBtn: {
+  toggleBtn: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: spacing.sm,
+    gap: spacing.xs,
     paddingVertical: spacing.base,
     borderRadius: borderRadius.lg,
     borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
   },
-  modalBtnAvail: {
+  toggleBtnAvailActive: {
     borderColor: colors.success,
     backgroundColor: colors.successLight,
   },
-  modalBtnBusy: {
+  toggleBtnBusyActive: {
     borderColor: colors.error,
     backgroundColor: colors.errorLight,
   },
-  modalBtnText: {
+  toggleBtnText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.bold,
+    color: colors.neutral[400],
+  },
+
+  // Time range section
+  timeSection: {
+    gap: spacing.md,
+    borderTopWidth: 1,
+    borderTopColor: colors.neutral[100],
+    paddingTop: spacing.md,
+  },
+  allDayBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: spacing.base,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    borderWidth: 1.5,
+    borderColor: colors.neutral[200],
+    backgroundColor: colors.neutral[50],
+  },
+  allDayBtnActive: {
+    borderColor: colors.primary[500],
+    backgroundColor: colors.primary[50],
+  },
+  allDayBtnText: {
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[500],
+  },
+  allDayBtnTextActive: {
+    color: colors.primary[600],
+  },
+  timePicker: {
+    gap: spacing.sm,
+  },
+  timePickerLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
+  timePickerLabel: {
+    flex: 1,
+    fontSize: typography.size.sm,
+    fontWeight: typography.weight.semibold,
+    color: colors.neutral[700],
+  },
+  timeClear: {
+    fontSize: typography.size.xs,
+    color: colors.accent.coral,
+    fontWeight: typography.weight.semibold,
+  },
+  timeChipRow: {
+    paddingVertical: spacing.xs,
+    paddingRight: spacing.xl,
+  },
+  timeHint: {
+    fontSize: typography.size.xs,
+    color: colors.neutral[400],
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
+
+  // Save button
+  saveBtn: {
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+    marginTop: spacing.xs,
+  },
+  saveBtnGradient: {
+    paddingVertical: spacing.base,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  saveBtnText: {
     fontSize: typography.size.base,
     fontWeight: typography.weight.bold,
+    color: colors.neutral[0],
   },
   modalNote: {
     fontSize: typography.size.xs,
     color: colors.neutral[400],
     textAlign: 'center',
-    marginTop: spacing.xs,
   },
 });
