@@ -11,7 +11,7 @@ const matchSchema = new Schema(
     // Status management
     status: { 
       type: String, 
-      enum: ["pending", "selected", "rejected", "expired","accepted"], 
+      enum: ["pending", "selected", "accepted", "rejected", "expired"],
       default: "pending" 
     },
     selected: { type: Boolean, default: false }, // Kept as requested

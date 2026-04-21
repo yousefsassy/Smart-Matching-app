@@ -4,6 +4,8 @@ const router = express.Router();
 const {
   generateMatches,
   selectMatch,
+  respondToMatch,
+  expireMatch,
   getMatchesByRequest,
 } = require("../controllers/MatchController");
 
@@ -34,10 +36,24 @@ router.get(
 // Client selects match
 // -----------------------------
 router.post(
-  "/select/:matchId",
+  "/:matchId/select",
   isAuth,
   isAutho(["client"]),
   selectMatch
+);
+
+router.post(
+  "/:matchId/respond",
+  isAuth,
+  isAutho(["provider"]),
+  respondToMatch
+);
+
+router.post(
+  "/:matchId/expire",
+  isAuth,
+  isAutho(["admin"]),
+  expireMatch
 );
 
 module.exports = router;

@@ -6,28 +6,19 @@ const isAuth = require("../middlewares/isAuth");
 const isAutho = require("../middlewares/isAutho");
 
 const {
-  acceptMatch,
-  startJob,
   completeJob,
+  rateJob,
   cancelJob,
   getMyJobs,
+  getAllJobs,
 } = require("../controllers/JobController");
 
-// Provider accepts match
+router.patch("/:id/complete", isAuth, isAutho(["provider"]), completeJob);
+
+router.post("/:id/rate", isAuth, isAutho(["client"]), rateJob);
+
 router.post(
-  "/match/:matchId/accept",
-  isAuth,
-  isAutho(["provider"]),
-  acceptMatch
-);
-
-// Job lifecycle
-router.patch("/:jobId/start", isAuth, isAutho(["provider"]), startJob);
-
-router.patch("/:jobId/complete", isAuth, isAutho(["provider"]), completeJob);
-
-router.patch(
-  "/:jobId/cancel",
+  "/:id/cancel",
   isAuth,
   isAutho(["client", "provider"]),
   cancelJob
@@ -40,5 +31,7 @@ router.get(
   isAutho(["client", "provider"]),
   getMyJobs
 );
+
+router.get("/", isAuth, isAutho(["admin"]), getAllJobs);
 
 module.exports = router;

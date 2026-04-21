@@ -1,22 +1,82 @@
-// controllers/jobController.js
 const jobService = require("../services/job");
+const {
+  sendJobCancelledAlert,
+  sendJobCompletedAlert,
+} = require("../services/notifications");
 
-const handle = (res, fn) =>
-  fn.then((data) => res.json(data)).catch((err) =>
-    res.status(err.status || 500).json({ message: err.message })
-  );
+const handleError = (res, error) =>
+  res.status(error.status || 500).json({ message: error.message || "Server error" });
 
-exports.acceptMatch = (req, res) =>
-  handle(res, jobService.acceptMatch(req.user.id, req.params.matchId));
+exports.completeJob = async (req, res) => {
+  try {
+    const result = await jobService.completeJob(req.user.id, req.params.id);
+    const { notification, ...payload } = result;
 
-exports.startJob = (req, res) =>
-  handle(res, jobService.startJob(req.user.id, req.params.jobId));
+    if (notification?.clientToken) {
+      try {
+        await sendJobCompletedAlert(notification.clientToken, notification.jobId);
+      } catch (error) {
+        console.error("sendJobCompletedAlert failed:", error.message);
+      }
+    }
 
-exports.completeJob = (req, res) =>
-  handle(res, jobService.completeJob(req.user.id, req.params.jobId));
+    return res.json(payload);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
 
-exports.cancelJob = (req, res) =>
-  handle(res, jobService.cancelJob(req.user.id, req.params.jobId));
+exports.rateJob = async (req, res) => {
+  try {
+    const result = await jobService.rateJob(
+      req.user.id,
+      req.params.id,
+      req.body.rating,
+      req.body.review
+    );
 
-exports.getMyJobs = (req, res) =>
-  handle(res, jobService.getMyJobs(req.user.id, req.user.role));
+    return res.json(result);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.cancelJob = async (req, res) => {
+  try {
+    const result = await jobService.cancelJob(req.user.id, req.params.id);
+    const { notification, ...payload } = result;
+
+    if (notification?.otherPartyToken) {
+      try {
+        await sendJobCancelledAlert(
+          notification.otherPartyToken,
+          notification.jobId
+        );
+      } catch (error) {
+        console.error("sendJobCancelledAlert failed:", error.message);
+      }
+    }
+
+    return res.json(payload);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.getMyJobs = async (req, res) => {
+  try {
+    const jobs = await jobService.getMyJobs(req.user.id, req.user.role);
+    return res.json(jobs);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
+exports.getAllJobs = async (req, res) => {
+  try {
+    const jobs = await jobService.getAllJobs();
+    return res.json(jobs);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};

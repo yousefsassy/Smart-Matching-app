@@ -28,7 +28,7 @@ const serviceRequestSchema = new mongoose.Schema(
     budget: { type: budgetSchema, required: true },
     status: {
       type: String,
-      enum: ["pending", "matched", "assigned", "cancelled"],
+      enum: ["pending", "matched", "assigned", "completed", "cancelled"],
       default: "pending",
     },
   },

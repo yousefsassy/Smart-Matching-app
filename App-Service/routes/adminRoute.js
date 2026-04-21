@@ -19,9 +19,6 @@ router.get("/", isAuth, isAutho(["admin"]), getUsers);
 router.get("/providers", isAuth, isAutho(["admin"]), getProviders);
 router.get("/clients", isAuth, isAutho(["admin"]), getClients);
 
-// Keep this LAST (dynamic route)
-router.get("/:id", isAuth, getOneUser);
-
 // ===== Admin provider approval/rejection =====
 router.patch("/provider/:id/approve", isAuth, isAutho(["admin"]), approveProvider);
 router.patch("/provider/:id/reject", isAuth, isAutho(["admin"]), rejectProvider);
@@ -32,5 +29,8 @@ router.delete(
   isAutho(["admin"]),
   deleteProvider
 );
+
+// Keep this LAST (dynamic route)
+router.get("/:id", isAuth, getOneUser);
 
 module.exports = router;

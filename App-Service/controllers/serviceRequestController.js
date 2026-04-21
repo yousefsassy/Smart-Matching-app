@@ -1,4 +1,6 @@
 const ServiceRequest = require("../models/ServiceRequest");
+const Match = require("../models/Match");
+const matchService = require("../services/match");
 
 // Create a new service request (clients only)
 exports.createServiceRequest = async (req, res) => {
@@ -78,10 +80,28 @@ exports.createServiceRequest = async (req, res) => {
     });
 
     const savedRequest = await newRequest.save();
+    let matching = null;
+
+    try {
+      matching = await matchService.generateMatches(savedRequest._id);
+    } catch (error) {
+      console.error("Initial match generation failed:", error.message);
+      matching = {
+        message:
+          "Service request created, but match generation failed. The request remains pending.",
+        matches: [],
+        usedFallback: true,
+      };
+    }
 
     return res.status(201).json({
-      message: "Service request created successfully",
+      message:
+        matching?.message === "No providers available"
+          ? "Service request created successfully, but no providers are available right now"
+          : "Service request created successfully",
       request: savedRequest,
+      matches: matching?.matches || [],
+      matching,
     });
   } catch (error) {
     console.error("Create request error:", error);
@@ -151,6 +171,14 @@ exports.cancelRequest = async (req, res) => {
 
     request.status = "cancelled";
     await request.save();
+
+    await Match.updateMany(
+      {
+        serviceRequest: request._id,
+        status: { $in: ["pending", "selected"] },
+      },
+      { status: "rejected", selected: false }
+    );
 
     return res.json({ message: "Service request cancelled", request });
   } catch (error) {

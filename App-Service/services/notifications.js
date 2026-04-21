@@ -50,12 +50,21 @@ async function sendNewMatchAlert(providerToken, requestId) {
   );
 }
 
-async function sendProviderAcceptedAlert(clientToken, requestId) {
+async function sendMatchAcceptedAlert(clientToken, requestId) {
   return sendPushNotification(
     clientToken,
     "Request accepted",
     "A provider accepted your request.",
     { requestId, type: "ACCEPTED" }
+  );
+}
+
+async function sendProviderUnavailableAlert(clientToken, requestId) {
+  return sendPushNotification(
+    clientToken,
+    "Provider unavailable",
+    "This provider is unavailable. Please choose another candidate.",
+    { requestId, type: "PROVIDER_UNAVAILABLE" }
   );
 }
 
@@ -80,7 +89,8 @@ async function sendJobCancelledAlert(otherPartyToken, jobId) {
 module.exports = {
   sendPushNotification,
   sendNewMatchAlert,
-  sendProviderAcceptedAlert,
+  sendMatchAcceptedAlert,
+  sendProviderUnavailableAlert,
   sendJobCompletedAlert,
   sendJobCancelledAlert,
 };
