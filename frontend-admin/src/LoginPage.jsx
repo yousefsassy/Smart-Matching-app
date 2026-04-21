@@ -14,6 +14,7 @@
  */
 
 import { useState } from 'react';
+import { ADMIN_ACCOUNTS } from './data/appShellData';
 import { colors } from './theme';
 
 export default function LoginPage({ onLoginSuccess }) {
@@ -58,10 +59,6 @@ export default function LoginPage({ onLoginSuccess }) {
       await new Promise(resolve => setTimeout(resolve, 900));
       
       // Admin credentials lookup
-      const ADMIN_ACCOUNTS = [
-        { email: 'admin@smartmatch.com', password: 'admin123', name: 'Admin User',  avatar: 'AU' },
-        { email: 'firas@smartmatch.com', password: 'firas123', name: 'Firas Saidi', avatar: 'FS' },
-      ];
       const match = ADMIN_ACCOUNTS.find(a => a.email === email && a.password === password);
       if (match) {
         onLoginSuccess({ name: match.name, email, role: 'superadmin', avatar: match.avatar });
