@@ -29,16 +29,16 @@ exports.completeJob = async (providerId, jobId) => {
   job.status = "completed";
   await job.save();
 
-  request.status = "completed";
-  await request.save();
+  // request.status = "completed";
+  // await request.save();
 
-  const provider = await User.findById(providerId);
-  if (provider?.providerDetails) {
-    provider.providerDetails.completedJobs += 1;
-    await provider.save();
-  }
+  // const provider = await User.findById(providerId);
+  // if (provider?.providerDetails) {
+  //   provider.providerDetails.completedJobs += 1;
+  //   await provider.save();
+  // }
 
-  const client = await User.findById(job.client).select("expoPushToken");
+  // const client = await User.findById(job.client).select("expoPushToken");
 
   return {
     message: "Job completed successfully",
