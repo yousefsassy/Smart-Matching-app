@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, borderRadius } from '../theme';
+import { colors, typography, borderRadius, shadows } from '../theme';
 
 const SIZES = {
   xs: 24,
@@ -48,8 +48,8 @@ export default function Avatar({
   const fontSize = FONT_SIZES[size];
   const initials = getInitials(name);
   const gradientColors: [string, string] = role === 'provider'
-    ? [colors.accent.cyan, colors.primary[500]]
-    : [colors.primary[500], colors.primary[700]];
+    ? [colors.accent.cyan, colors.primary[700]]
+    : [colors.primary[500], colors.primary[800]];
 
   const dotSize = Math.max(8, dimension * 0.22);
 
@@ -94,11 +94,15 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     overflow: 'hidden',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.35)',
+    ...shadows.sm,
   },
   initials: {
     color: colors.neutral[0],
     fontWeight: typography.weight.bold,
     textAlign: 'center',
+    letterSpacing: -0.2,
   },
   statusDot: {
     position: 'absolute',

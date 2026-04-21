@@ -4,49 +4,32 @@ import {
   Text,
   StyleSheet,
   Animated,
-  LayoutAnimation,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { colors, typography, spacing, borderRadius, shadows, animations } from '../theme';
-import { CheckIcon } from './Icons';
+import { colors, typography, spacing, borderRadius } from '../theme';
 
 interface StepperHeaderProps {
   currentStep: number;
   totalSteps: number;
   stepLabels: string[];
+  caption?: string;
 }
 
-export default function StepperHeader({ currentStep, totalSteps, stepLabels }: StepperHeaderProps) {
+export default function StepperHeader({
+  currentStep,
+  totalSteps,
+  stepLabels,
+  caption = 'Request details',
+}: StepperHeaderProps) {
   const progressAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: (currentStep + 1) / totalSteps,
-      duration: animations.duration.slow,
+      duration: 260,
       useNativeDriver: false,
     }).start();
   }, [currentStep, totalSteps, progressAnim]);
-
-  // Pulse animation for active dot
-  useEffect(() => {
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.15,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 800,
-          useNativeDriver: true,
-        }),
-      ])
-    );
-    pulse.start();
-    return () => pulse.stop();
-  }, [pulseAnim]);
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -55,61 +38,48 @@ export default function StepperHeader({ currentStep, totalSteps, stepLabels }: S
 
   return (
     <View style={styles.container}>
-      {/* Step label */}
-      <Text style={styles.stepLabel}>
-        STEP {currentStep + 1} OF {totalSteps}
-      </Text>
-      <Text style={styles.stepTitle}>{stepLabels[currentStep]}</Text>
+      <View style={styles.topRow}>
+        <View>
+          <Text style={styles.meta}>
+            {currentStep + 1}/{totalSteps}
+          </Text>
+          <Text style={styles.title}>{stepLabels[currentStep]}</Text>
+        </View>
+        <Text style={styles.caption}>{caption}</Text>
+      </View>
 
-      {/* Progress bar */}
-      <View style={styles.progressTrack}>
-        <Animated.View style={[styles.progressFillContainer, { width: progressWidth }]}>
+      <View style={styles.track}>
+        <Animated.View style={[styles.fillContainer, { width: progressWidth }]}>
           <LinearGradient
-            colors={colors.gradients.accent as [string, string, ...string[]]}
+            colors={colors.gradients.mustard as [string, string]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
-            style={styles.progressFill}
+            style={styles.fill}
           />
         </Animated.View>
       </View>
 
-      {/* Step dots */}
-      <View style={styles.dotsContainer}>
+      <View style={styles.labelsRow}>
         {stepLabels.map((label, index) => {
-          const isCompleted = index < currentStep;
-          const isActive = index === currentStep;
+          const active = index === currentStep;
+          const complete = index < currentStep;
 
           return (
-            <View key={index} style={styles.dotWrapper}>
-              <Animated.View
+            <View key={label} style={styles.labelBlock}>
+              <View
                 style={[
-                  styles.dot,
-                  isCompleted && styles.dotCompleted,
-                  isActive && styles.dotActive,
-                  !isCompleted && !isActive && styles.dotUpcoming,
-                  isActive && { transform: [{ scale: pulseAnim }] },
+                  styles.labelDot,
+                  active && styles.labelDotActive,
+                  complete && styles.labelDotComplete,
                 ]}
-              >
-                {isCompleted ? (
-                  <CheckIcon size={14} color={colors.neutral[0]} />
-                ) : (
-                  <Text
-                    style={[
-                      styles.dotNumber,
-                      isActive && styles.dotNumberActive,
-                    ]}
-                  >
-                    {index + 1}
-                  </Text>
-                )}
-              </Animated.View>
+              />
               <Text
-                style={[
-                  styles.dotLabel,
-                  isCompleted && styles.dotLabelCompleted,
-                  isActive && styles.dotLabelActive,
-                ]}
                 numberOfLines={1}
+                style={[
+                  styles.labelText,
+                  active && styles.labelTextActive,
+                  complete && styles.labelTextComplete,
+                ]}
               >
                 {label}
               </Text>
@@ -123,92 +93,80 @@ export default function StepperHeader({ currentStep, totalSteps, stepLabels }: S
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.raised,
+    borderRadius: 26,
     padding: spacing.xl,
-    marginBottom: spacing.lg,
-    ...shadows.sm,
-  },
-  stepLabel: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.semibold,
-    color: colors.primary[500],
-    letterSpacing: typography.letterSpacing.wider,
-    marginBottom: spacing.xs,
-  },
-  stepTitle: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    marginBottom: spacing.base,
-  },
-  progressTrack: {
-    height: 4,
-    backgroundColor: colors.neutral[100],
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
     marginBottom: spacing.lg,
   },
-  progressFillContainer: {
-    height: '100%',
-    borderRadius: borderRadius.full,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    flex: 1,
-    borderRadius: borderRadius.full,
-  },
-  dotsContainer: {
+  topRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: spacing.md,
+    marginBottom: spacing.base,
   },
-  dotWrapper: {
-    alignItems: 'center',
-    flex: 1,
-  },
-  dot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
+  meta: {
+    ...typography.role.eyebrow,
+    color: colors.primary[500],
     marginBottom: spacing.xs,
   },
-  dotCompleted: {
-    backgroundColor: colors.primary[500],
+  title: {
+    ...typography.role.sectionTitle,
+    color: colors.primary[900],
   },
-  dotActive: {
-    backgroundColor: colors.primary[500],
-    shadowColor: colors.primary[500],
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  dotUpcoming: {
-    backgroundColor: 'transparent',
-    borderWidth: 2,
-    borderColor: colors.neutral[300],
-  },
-  dotNumber: {
+  caption: {
     fontSize: typography.size.xs,
-    fontWeight: typography.weight.semibold,
-    color: colors.neutral[400],
-  },
-  dotNumberActive: {
-    color: colors.neutral[0],
-  },
-  dotLabel: {
-    fontSize: 10,
+    color: colors.neutral[500],
     fontWeight: typography.weight.medium,
+  },
+  track: {
+    height: 4,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.neutral[100],
+    overflow: 'hidden',
+    marginBottom: spacing.base,
+  },
+  fillContainer: {
+    height: '100%',
+    overflow: 'hidden',
+    borderRadius: borderRadius.full,
+  },
+  fill: {
+    flex: 1,
+  },
+  labelsRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  labelBlock: {
+    flex: 1,
+    gap: spacing.xs,
+  },
+  labelDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: colors.neutral[300],
+  },
+  labelDotActive: {
+    width: 18,
+    backgroundColor: colors.accent.amber,
+  },
+  labelDotComplete: {
+    backgroundColor: colors.primary[500],
+  },
+  labelText: {
+    fontSize: typography.size.xs,
     color: colors.neutral[400],
-    textAlign: 'center',
+    fontWeight: typography.weight.medium,
   },
-  dotLabelCompleted: {
-    color: colors.primary[500],
-  },
-  dotLabelActive: {
-    color: colors.primary[600],
+  labelTextActive: {
+    color: colors.neutral[700],
     fontWeight: typography.weight.semibold,
+  },
+  labelTextComplete: {
+    color: colors.primary[500],
   },
 });

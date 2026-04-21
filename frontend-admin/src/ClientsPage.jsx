@@ -11,27 +11,7 @@
 
 import { useState } from 'react';
 import { colors } from './theme';
-
-// Mock client data
-const MOCK_CLIENTS = [
-  { id: 'c01', fullName: 'Emma Davis',       email: 'emma.davis@email.com',    phone: '+1 (555) 234-5678', location: 'New York, NY',      joinedAt: '2024-01-15', requests: 5,  status: 'active',   avatar: 'ED' },
-  { id: 'c02', fullName: 'Lisa Park',        email: 'lisa.park@email.com',     phone: '+1 (555) 345-6789', location: 'Los Angeles, CA',   joinedAt: '2024-02-20', requests: 3,  status: 'active',   avatar: 'LP' },
-  { id: 'c03', fullName: 'Sarah Chen',       email: 'sarah.chen@email.com',    phone: '+1 (555) 456-7890', location: 'San Francisco, CA', joinedAt: '2024-01-08', requests: 8,  status: 'active',   avatar: 'SC' },
-  { id: 'c04', fullName: 'James Wilson',     email: 'j.wilson@email.com',      phone: '+1 (555) 567-8901', location: 'Chicago, IL',       joinedAt: '2024-03-02', requests: 2,  status: 'active',   avatar: 'JW' },
-  { id: 'c05', fullName: 'Olivia Martinez',  email: 'o.martinez@email.com',    phone: '+1 (555) 678-9012', location: 'Miami, FL',         joinedAt: '2024-02-14', requests: 6,  status: 'active',   avatar: 'OM' },
-  { id: 'c06', fullName: 'Noah Thompson',    email: 'noah.t@email.com',        phone: '+1 (555) 789-0123', location: 'Houston, TX',       joinedAt: '2024-01-30', requests: 4,  status: 'inactive', avatar: 'NT' },
-  { id: 'c07', fullName: 'Ava Anderson',     email: 'ava.anderson@email.com',  phone: '+1 (555) 890-1234', location: 'Phoenix, AZ',       joinedAt: '2024-03-10', requests: 1,  status: 'active',   avatar: 'AA' },
-  { id: 'c08', fullName: 'Liam Jackson',     email: 'liam.j@email.com',        phone: '+1 (555) 901-2345', location: 'Philadelphia, PA',  joinedAt: '2024-02-05', requests: 7,  status: 'active',   avatar: 'LJ' },
-  { id: 'c09', fullName: 'Sophia White',     email: 's.white@email.com',       phone: '+1 (555) 012-3456', location: 'San Antonio, TX',   joinedAt: '2024-01-22', requests: 3,  status: 'active',   avatar: 'SW' },
-  { id: 'c10', fullName: 'Ethan Harris',     email: 'ethan.h@email.com',       phone: '+1 (555) 123-4567', location: 'San Diego, CA',     joinedAt: '2024-03-18', requests: 2,  status: 'flagged',  avatar: 'EH' },
-  { id: 'c11', fullName: 'Isabella Clark',   email: 'i.clark@email.com',       phone: '+1 (555) 234-5679', location: 'Dallas, TX',        joinedAt: '2024-02-28', requests: 9,  status: 'active',   avatar: 'IC' },
-  { id: 'c12', fullName: 'Mason Lewis',      email: 'mason.lewis@email.com',   phone: '+1 (555) 345-6780', location: 'San Jose, CA',      joinedAt: '2024-01-10', requests: 0,  status: 'inactive', avatar: 'ML' },
-  { id: 'c13', fullName: 'Mia Robinson',     email: 'mia.r@email.com',         phone: '+1 (555) 456-7891', location: 'Austin, TX',        joinedAt: '2024-03-05', requests: 4,  status: 'active',   avatar: 'MR' },
-  { id: 'c14', fullName: 'Faten Amri',       email: 'faten@demo.com',          phone: '+216 20 123 456',   location: 'Tunis, Tunisia',    joinedAt: '2024-01-01', requests: 12, status: 'active',   avatar: 'FA' },
-  { id: 'c15', fullName: 'Charlotte Young',  email: 'c.young@email.com',       phone: '+1 (555) 567-8902', location: 'Jacksonville, FL',  joinedAt: '2024-02-22', requests: 5,  status: 'active',   avatar: 'CY' },
-];
-
-const PAGE_SIZE = 9;
+import { CLIENTS_PAGE_SIZE, MOCK_CLIENTS } from './data/mockEntities';
 
 const STATUS_STYLES = {
   active:   { bg: colors.accent.green + '18',  color: colors.accent.green,  label: 'Active'   },
@@ -121,8 +101,8 @@ export default function ClientsPage() {
     c.phone.includes(q)
   );
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / CLIENTS_PAGE_SIZE);
+  const paginated  = filtered.slice((page - 1) * CLIENTS_PAGE_SIZE, page * CLIENTS_PAGE_SIZE);
 
   const handleSearch = (val) => {
     setSearch(val);
@@ -161,7 +141,7 @@ export default function ClientsPage() {
       {paginated.length > 0 ? (
         <div style={styles.grid}>
           {paginated.map((client, i) => (
-            <ClientCard key={client.id} client={client} index={(page - 1) * PAGE_SIZE + i} />
+            <ClientCard key={client.id} client={client} index={(page - 1) * CLIENTS_PAGE_SIZE + i} />
           ))}
         </div>
       ) : (

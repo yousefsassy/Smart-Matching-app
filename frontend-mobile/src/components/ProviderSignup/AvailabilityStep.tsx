@@ -13,18 +13,9 @@ import {
 import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
 import ToggleSwitch from '../ToggleSwitch';
 import { CalendarIcon, PlusIcon, XIcon, ClockIcon, CheckIcon } from '../Icons';
+import { ProviderAvailability } from '../../types/provider';
 
-interface TimeRange {
-  start: string;
-  end: string;
-}
-
-interface DayConfig {
-  enabled: boolean;
-  ranges: TimeRange[];
-}
-
-export type AvailabilityData = Record<string, DayConfig>;
+export type AvailabilityData = ProviderAvailability;
 
 interface AvailabilityStepProps {
   data: { availability: AvailabilityData };

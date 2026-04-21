@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,24 +12,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getServiceCategoryLabel, getServiceCategoryMeta } from '../constants/serviceCategories';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
+import { formatBudgetRange } from '../utils/formatters';
 import Avatar from '../components/Avatar';
+import EditorialSectionHeader from '../components/editorial/EditorialSectionHeader';
+import MetricPill from '../components/editorial/MetricPill';
+import ToggleSwitch from '../components/ToggleSwitch';
 import {
-  BriefcaseIcon,
   BellIcon,
   ChevronRightIcon,
   ClockIcon,
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  plumbing: '🔧', electrical: '⚡', cleaning: '🧹',
-  gardening: '🌿', painting: '🎨', carpentry: '🪚', moving: '📦', other: '⚙️',
-};
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -39,19 +38,27 @@ function getGreeting(): string {
 }
 
 export default function ProviderDashboardScreen() {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const { getProviderRequests, refresh } = useServiceRequests();
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const [refreshing, setRefreshing] = useState(false);
+  const [isAvailable, setIsAvailable] = useState(user?.isAvailable ?? true);
 
+  const allRequests = getProviderRequests();
   const firstName = user?.fullName?.split(' ')[0] || 'User';
-  const businessName = user?.businessName;
+  const businessName = user?.businessName || 'Your service profile';
 
-  const pendingRequests = getProviderRequests()
-    .filter((r) => r.status === 'pending')
-    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-    .slice(0, 5);
+  const pendingRequests = allRequests
+    .filter((request) => request.status === 'pending')
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  const acceptedCount = allRequests.filter((request) => request.status === 'accepted').length;
+  const inProgressCount = allRequests.filter((request) => request.status === 'in_progress').length;
+  const completedCount = allRequests.filter((request) => request.status === 'completed').length;
+
+  useEffect(() => {
+    setIsAvailable(user?.isAvailable ?? true);
+  }, [user?.isAvailable]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -59,107 +66,129 @@ export default function ProviderDashboardScreen() {
     setRefreshing(false);
   };
 
+  const handleAvailabilityToggle = async (value: boolean) => {
+    setIsAvailable(value);
+
+    try {
+      await updateUser({ isAvailable: value });
+    } catch {
+      setIsAvailable(!value);
+      Alert.alert('Update failed', 'Could not update availability right now.');
+    }
+  };
+
   return (
     <View style={styles.root}>
-
-      {/* ── Gradient Hero Header ──────────────────────────────────────────────── */}
-      <LinearGradient
-        colors={['#0A2744', '#134686', '#1a5699']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.header, { paddingTop: insets.top + spacing.base }]}
-      >
-        <View style={styles.headerGlowCircle} />
-
-        <View style={styles.headerTopRow}>
-          <View style={styles.headerProviderBadge}>
-            <BriefcaseIcon size={12} color="rgba(255,255,255,0.85)" />
-            <Text style={styles.headerProviderBadgeText}>PROVIDER</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.bellButton}
-            onPress={() => Alert.alert('Notifications', 'You have 5 new notifications')}
-          >
-            <BellIcon size={20} color={colors.neutral[0]} />
-            <View style={styles.bellBadge}>
-              <Text style={styles.bellBadgeText}>5</Text>
-            </View>
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.tagline}>{getGreeting()} 👋</Text>
-        <Text style={styles.greeting}>
-          {firstName}
-          {businessName ? `,\n${businessName}` : ''}
-        </Text>
-        <Text style={styles.subGreeting}>Let's grow your business today</Text>
-      </LinearGradient>
-
       <ScrollView
         style={styles.scrollView}
-        contentContainerStyle={{ paddingBottom: insets.bottom + spacing['4xl'] }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + spacing['5xl'] }}
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.primary[600]}
-            colors={[colors.primary[600]]}
+            tintColor={colors.accent.amber}
+            colors={[colors.accent.amber]}
           />
         }
       >
+        <LinearGradient
+          colors={colors.gradients.hero as [string, string, string]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[styles.hero, { paddingTop: insets.top + spacing.base }]}
+        >
+          <View style={styles.heroGlowLarge} />
+          <View style={styles.heroGlowSmall} />
 
-        {/* ── New Requests ─────────────────────────────────────────────────────── */}
-        <View style={styles.sectionHeader}>
-          <View>
-            <Text style={styles.sectionEyebrow}>INCOMING</Text>
-            <Text style={styles.sectionTitle}>New Requests</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.seeAllBtn}
-            onPress={() => navigation.navigate('IncomingRequests')}
-          >
-            <Text style={styles.seeAll}>See all</Text>
-            <ChevronRightIcon size={12} color={colors.primary[600]} />
-          </TouchableOpacity>
-        </View>
-
-        {pendingRequests.length === 0 ? (
-          <View style={styles.emptyState}>
-            <View style={styles.emptyIconCircle}>
-              <ClockIcon size={32} color={colors.primary[400]} />
+          <View style={styles.heroTopRow}>
+            <View style={styles.availabilityCard}>
+              <View style={styles.availabilityCopy}>
+                <Text style={styles.availabilityEyebrow}>Availability</Text>
+                <Text
+                  style={[
+                    styles.availabilityText,
+                    { color: isAvailable ? colors.successLight : colors.errorLight },
+                  ]}
+                >
+                  {isAvailable ? 'Available for new requests' : 'Unavailable right now'}
+                </Text>
+              </View>
+              <ToggleSwitch
+                value={isAvailable}
+                onValueChange={handleAvailabilityToggle}
+                activeColor={colors.success}
+                inactiveColor={colors.error}
+              />
             </View>
-            <Text style={styles.emptyTitle}>No new requests yet</Text>
-            <Text style={styles.emptySubtitle}>New service requests from clients will appear here</Text>
-          </View>
-        ) : (
-          <View style={styles.requestsList}>
-            {pendingRequests.map((req) => (
-              <TouchableOpacity
-                key={req.id}
-                style={styles.requestCard}
-                onPress={() => navigation.navigate('IncomingRequests')}
-                activeOpacity={0.8}
-              >
-                <Avatar name={req.clientName} size="md" role="client" />
-                <View style={styles.requestCardContent}>
-                  <Text style={styles.requestClientName}>{req.clientName}</Text>
-                  <Text style={styles.requestService}>
-                    {CATEGORY_EMOJI[req.serviceCategory] || '⚙️'}{' '}
-                    {req.serviceCategory.charAt(0).toUpperCase() + req.serviceCategory.slice(1)}
-                  </Text>
-                  {req.budget && (
-                    <Text style={styles.requestBudget}>
-                      Budget: ${req.budget.min}–${req.budget.max}
-                    </Text>
-                  )}
-                </View>
-                <ChevronRightIcon size={16} color={colors.neutral[300]} />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
 
+            <TouchableOpacity
+              style={styles.notificationButton}
+              onPress={() => Alert.alert('Notifications', 'You have 5 new notifications')}
+            >
+              <BellIcon size={18} color={colors.neutral[0]} />
+              <View style={styles.notificationDot} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.heroCopy}>
+            <Text style={styles.heroEyebrow}>{getGreeting()}</Text>
+            <Text style={styles.heroTitle}>{businessName}</Text>
+            <Text style={styles.heroDeck}>{firstName}, review incoming leads and keep work moving.</Text>
+          </View>
+
+          <View style={styles.heroMetrics}>
+            <MetricPill value={String(pendingRequests.length).padStart(2, '0')} label="Incoming" />
+            <MetricPill value={String(acceptedCount).padStart(2, '0')} label="Accepted" />
+            <MetricPill value={String(inProgressCount).padStart(2, '0')} label="In progress" />
+            <MetricPill value={String(completedCount).padStart(2, '0')} label="Completed" />
+          </View>
+        </LinearGradient>
+
+        <View style={styles.body}>
+          <EditorialSectionHeader
+            eyebrow="Queue"
+            title="New requests"
+            actionLabel="See all"
+            onActionPress={() => navigation.navigate('IncomingRequests')}
+          />
+
+          {pendingRequests.length === 0 ? (
+            <View style={styles.emptyListPanel}>
+              <ClockIcon size={28} color={colors.primary[500]} />
+              <Text style={styles.emptyListTitle}>No new requests yet</Text>
+              <Text style={styles.emptyListText}>
+                New service requests from clients will appear here when they match your setup.
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.requestsList}>
+              {pendingRequests.slice(0, 5).map((request) => (
+                <TouchableOpacity
+                  key={request.id}
+                  style={styles.requestCard}
+                  onPress={() => navigation.navigate('IncomingRequests')}
+                  activeOpacity={0.84}
+                >
+                  <Avatar name={request.clientName} size="md" role="client" />
+                  <View style={styles.requestCardBody}>
+                    <Text style={styles.requestClientName}>{request.clientName}</Text>
+                    <Text style={styles.requestService}>
+                      {getServiceCategoryMeta(request.serviceCategory).emoji}{' '}
+                      {getServiceCategoryLabel(request.serviceCategory)}
+                    </Text>
+                    {request.budget ? (
+                      <Text style={styles.requestBudget}>
+                        Budget: {formatBudgetRange(request.budget)}
+                      </Text>
+                    ) : null}
+                  </View>
+                  <ChevronRightIcon size={16} color={colors.neutral[400]} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -168,190 +197,156 @@ export default function ProviderDashboardScreen() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.neutral[50],
+    backgroundColor: colors.surface.base,
   },
-
-  // ── Gradient Header
-  header: {
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-  headerGlowCircle: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: 'rgba(38, 96, 175, 0.25)',
-    top: -60,
-    right: -30,
-  },
-  headerTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-  },
-  headerProviderBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 6,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  headerProviderBadgeText: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.bold,
-    color: 'rgba(255,255,255,0.9)',
-    letterSpacing: typography.letterSpacing.wider,
-  },
-  bellButton: {
-    position: 'relative',
-    width: 42,
-    height: 42,
-    borderRadius: borderRadius.xl,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
-  },
-  bellBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    backgroundColor: colors.accent.coral,
-    borderRadius: borderRadius.full,
-    minWidth: 14,
-    height: 14,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.5,
-    borderColor: colors.primary[700],
-  },
-  bellBadgeText: {
-    fontSize: 8,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
-    lineHeight: 10,
-  },
-  tagline: {
-    fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
-    color: 'rgba(255,255,255,0.65)',
-    marginBottom: spacing.xs,
-    letterSpacing: typography.letterSpacing.wide,
-  },
-  greeting: {
-    fontSize: typography.size['2xl'],
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[0],
-    lineHeight: typography.lineHeight['2xl'],
-    letterSpacing: typography.letterSpacing.tight,
-    marginBottom: spacing.xs,
-  },
-  subGreeting: {
-    fontSize: typography.size.sm,
-    color: 'rgba(255,255,255,0.6)',
-    fontWeight: typography.weight.regular,
-  },
-
   scrollView: {
     flex: 1,
   },
-
-  // ── Section header
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+  hero: {
     paddingHorizontal: spacing.xl,
-    marginBottom: spacing.base,
+    paddingBottom: spacing['3xl'],
+    overflow: 'hidden',
+    position: 'relative',
   },
-  sectionEyebrow: {
-    fontSize: typography.size.xs,
-    fontWeight: typography.weight.bold,
-    color: colors.primary[500],
-    letterSpacing: typography.letterSpacing.widest,
-    textTransform: 'uppercase',
+  heroGlowLarge: {
+    position: 'absolute',
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: 'rgba(21,122,115,0.14)',
+    top: -130,
+    right: -100,
+  },
+  heroGlowSmall: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    bottom: 20,
+    left: -40,
+  },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: spacing['3xl'],
+  },
+  availabilityCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.xl,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    marginRight: spacing.md,
+  },
+  availabilityCopy: {
+    flex: 1,
+  },
+  availabilityEyebrow: {
+    ...typography.role.eyebrow,
+    color: 'rgba(255,255,255,0.62)',
     marginBottom: 2,
   },
-  sectionTitle: {
-    fontSize: typography.size.md,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[800],
-    letterSpacing: typography.letterSpacing.tight,
-  },
-  seeAllBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-  },
-  seeAll: {
+  availabilityText: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.semibold,
-    color: colors.primary[600],
+    fontWeight: typography.weight.bold,
   },
-
-  // ── Empty state
-  emptyState: {
+  notificationButton: {
+    width: 42,
+    height: 42,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationDot: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.accent.coral,
+  },
+  heroCopy: {
+    gap: spacing.md,
+    marginBottom: spacing.xl,
+    maxWidth: 320,
+  },
+  heroEyebrow: {
+    ...typography.role.eyebrow,
+    color: colors.accent.amber,
+  },
+  heroTitle: {
+    fontSize: 36,
+    lineHeight: 40,
+    letterSpacing: -0.9,
+    color: colors.neutral[0],
+    fontWeight: typography.weight.bold,
+  },
+  heroDeck: {
+    ...typography.role.deck,
+    color: 'rgba(255,255,255,0.72)',
+  },
+  heroMetrics: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    marginBottom: spacing.xl,
+  },
+  body: {
+    paddingTop: spacing['2xl'],
+    paddingHorizontal: spacing.xl,
+    gap: spacing['2xl'],
+  },
+  emptyListPanel: {
     alignItems: 'center',
     paddingVertical: spacing['3xl'],
     paddingHorizontal: spacing.xl,
+    borderRadius: 30,
+    backgroundColor: colors.surface.raised,
     gap: spacing.sm,
   },
-  emptyIconCircle: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primary[50],
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.sm,
-  },
-  emptyTitle: {
+  emptyListTitle: {
     fontSize: typography.size.md,
+    color: colors.primary[900],
     fontWeight: typography.weight.bold,
-    color: colors.neutral[700],
-    textAlign: 'center',
   },
-  emptySubtitle: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[400],
+  emptyListText: {
+    ...typography.role.body,
+    color: colors.neutral[500],
     textAlign: 'center',
-    maxWidth: 220,
-    lineHeight: typography.lineHeight.sm,
+    maxWidth: 260,
   },
-
-  // ── Request cards
   requestsList: {
-    marginHorizontal: spacing.xl,
     gap: spacing.md,
-    marginBottom: spacing.xl,
   },
   requestCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing.base,
+    backgroundColor: colors.surface.raised,
+    borderRadius: 26,
+    padding: spacing.lg,
     gap: spacing.md,
     ...shadows.card,
   },
-  requestCardContent: {
+  requestCardBody: {
     flex: 1,
-    gap: 3,
+    gap: 4,
   },
   requestClientName: {
     fontSize: typography.size.base,
     fontWeight: typography.weight.bold,
-    color: colors.neutral[800],
+    color: colors.primary[900],
   },
   requestService: {
     fontSize: typography.size.sm,
@@ -360,7 +355,6 @@ const styles = StyleSheet.create({
   },
   requestBudget: {
     fontSize: typography.size.xs,
-    color: colors.neutral[400],
+    color: colors.neutral[500],
   },
-
 });

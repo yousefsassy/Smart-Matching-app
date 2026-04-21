@@ -7,6 +7,8 @@ import {
   Animated,
   TouchableOpacity,
   TextInputProps,
+  StyleProp,
+  ViewStyle,
 } from 'react-native';
 import { colors, typography, spacing, borderRadius } from '../theme';
 import { EyeIcon, EyeOffIcon } from './Icons';
@@ -16,7 +18,7 @@ interface InputProps extends Omit<TextInputProps, 'style'> {
   error?: string;
   icon?: React.ReactNode;
   rightIcon?: React.ReactNode;
-  containerStyle?: object;
+  containerStyle?: StyleProp<ViewStyle>;
 }
 
 const Input = forwardRef<TextInput, InputProps>(function Input({
@@ -64,7 +66,7 @@ const Input = forwardRef<TextInput, InputProps>(function Input({
 
   const backgroundColor = borderAnim.interpolate({
     inputRange: [0, 1],
-    outputRange: [colors.neutral[50], colors.neutral[0]],
+    outputRange: [colors.surface.raised, colors.surface.base],
   });
 
   return (
@@ -124,16 +126,17 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
+    fontWeight: typography.weight.semibold,
     color: colors.neutral[700],
-    marginBottom: spacing.sm,
+    marginBottom: 6,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1.5,
-    borderRadius: borderRadius.lg,
+    borderRadius: borderRadius.xl,
     overflow: 'hidden',
+    minHeight: 54,
   },
   inputError: {
     borderColor: colors.error,
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: typography.size.base,
     color: colors.neutral[800],
-    paddingVertical: spacing.md + 2,
+    paddingVertical: spacing.md + 4,
     paddingHorizontal: spacing.base,
   },
   inputWithIcon: {
@@ -160,7 +163,7 @@ const styles = StyleSheet.create({
   error: {
     fontSize: typography.size.xs,
     color: colors.error,
-    marginTop: spacing.xs,
+    marginTop: 6,
     marginLeft: spacing.xs,
   },
 });

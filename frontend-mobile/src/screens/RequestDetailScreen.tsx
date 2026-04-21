@@ -11,11 +11,13 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getServiceCategoryLabel, getServiceCategoryMeta } from '../constants/serviceCategories';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
 import { ServiceRequest } from '../types/serviceRequest';
 import { STATUS_CONFIG } from '../constants/statusConfig';
+import { formatBudgetRange } from '../utils/formatters';
 import PrimaryButton from '../components/PrimaryButton';
 import StatusBadge from '../components/StatusBadge';
 import Avatar from '../components/Avatar';
@@ -29,28 +31,6 @@ import {
 } from '../components/Icons';
 
 type Props = NativeStackScreenProps<HomeStackParamList, 'RequestDetail'>;
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  plumbing: '🔧',
-  electrical: '⚡',
-  cleaning: '🧹',
-  gardening: '🌿',
-  painting: '🎨',
-  carpentry: '🪚',
-  moving: '📦',
-  other: '⚙️',
-};
-
-const CATEGORY_COLORS: Record<string, [string, string]> = {
-  plumbing: [colors.primary[500], colors.primary[700]],
-  electrical: [colors.accent.mustard, '#F59500'],
-  cleaning: [colors.accent.cyan, colors.primary[600]],
-  gardening: ['#22C55E', '#16A34A'],
-  painting: [colors.accent.coral, '#C0331F'],
-  carpentry: ['#A16207', '#78420A'],
-  moving: [colors.primary[400], colors.primary[600]],
-  other: [colors.neutral[500], colors.neutral[700]],
-};
 
 export default function RequestDetailScreen({ route, navigation }: Props) {
   const { requestId } = route.params;
@@ -129,9 +109,9 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
   const canRate = request.status === 'completed' && !request.rating;
   const hasAction = canCancel || canRate;
 
-  const categoryColors = CATEGORY_COLORS[request.serviceCategory] || [colors.primary[500], colors.primary[700]];
-  const categoryEmoji = CATEGORY_EMOJI[request.serviceCategory] || '⚙️';
-  const categoryLabel = request.serviceCategory.charAt(0).toUpperCase() + request.serviceCategory.slice(1);
+  const categoryMeta = getServiceCategoryMeta(request.serviceCategory);
+  const categoryEmoji = categoryMeta.emoji;
+  const categoryLabel = getServiceCategoryLabel(request.serviceCategory);
 
   return (
     <View style={styles.root}>
@@ -145,7 +125,7 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
 
         {/* ── Category Hero Header ─────────────────────────────────────────────── */}
         <LinearGradient
-          colors={categoryColors}
+          colors={colors.gradients.header as [string, string, string]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={[styles.hero, { paddingTop: insets.top + spacing.sm }]}
@@ -192,7 +172,7 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
                 <View style={styles.detailPillBody}>
                   <Text style={styles.detailPillLabel}>Location</Text>
                   <Text style={styles.detailPillValue} numberOfLines={2}>
-                    {request.location.address}
+                    {request.requestLocation.addressLabel}
                   </Text>
                 </View>
               </View>
@@ -218,7 +198,7 @@ export default function RequestDetailScreen({ route, navigation }: Props) {
                   <View style={styles.detailPillBody}>
                     <Text style={styles.detailPillLabel}>Budget</Text>
                     <Text style={styles.detailPillValue}>
-                      ${request.budget.min} – ${request.budget.max} {request.budget.currency}
+                      {formatBudgetRange(request.budget)}
                     </Text>
                   </View>
                 </View>
@@ -378,7 +358,7 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.2)',
+    backgroundColor: colors.overlay.glassStrong,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,

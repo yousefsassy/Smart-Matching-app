@@ -1,0 +1,134 @@
+@startuml SmartMatch_Deployment_Diagram
+top to bottom direction
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam nodesep 30
+skinparam ranksep 45
+skinparam backgroundColor white
+
+skinparam node {
+  BackgroundColor #F8FAFC
+  BorderColor #1F3A5F
+}
+
+skinparam artifact {
+  BackgroundColor #FFF8E1
+  BorderColor #B7791F
+}
+
+skinparam component {
+  BackgroundColor #E8F1FB
+  BorderColor #2B6CB0
+}
+
+skinparam database {
+  BackgroundColor #E6FFFA
+  BorderColor #2C7A7B
+}
+
+skinparam cloud {
+  BackgroundColor #F3F4F6
+  BorderColor #4B5563
+}
+
+title TawTaw Smart Matching App — UML Deployment Diagram (Target Architecture)
+
+node "Client Mobile Device\n<<device>>" as ClientDevice {
+  artifact "TawTaw Mobile App\n[React Native · Expo]" as ClientApp
+}
+
+node "Provider Mobile Device\n<<device>>" as ProviderDevice {
+  artifact "TawTaw Mobile App\n[React Native · Expo]" as ProviderApp
+}
+
+node "Admin Workstation / Browser\n<<device>>" as AdminWorkstation {
+  artifact "SmartMatch Admin Dashboard\n[React · Vite Web App]" as AdminDashboard
+}
+
+node "Backend Application Server\n<<node>>\nNode.js / Express" as BackendServer {
+  artifact "smartmatch-backend\n[service deployment]" as BackendArtifact
+  component "Auth Service" as AuthService
+  component "JWT Service" as JwtService
+  component "Profile Management" as ProfileService
+  component "Request Management" as RequestService
+  component "Matching Orchestrator" as MatchingOrchestrator
+  component "Notification Service" as NotificationService
+  component "Socket.io / Real-time Updates" as RealtimeService
+}
+
+node "AI Matching Engine Server\n<<node>>\nFastAPI" as MatchingServer {
+  artifact "matching-engine\n[service deployment]" as MatchingArtifact
+  component "Prediction API" as PredictionApi
+}
+
+database "MongoDB Database Server\n<<database>>\nSmartMatch Operational Database\n(Users, providers, requests, ratings,\ntrust metrics, geospatial indexes)" as MongoServer {
+  artifact "MongoDB data store" as MongoArtifact
+}
+
+cloud "External Notification Providers\n<<external>>" as NotificationCloud {
+  component "Expo / OneSignal Push" as PushProvider
+  component "SMTP Provider\n(SendGrid/Mailgun via Nodemailer)" as SmtpProvider
+}
+
+ClientApp --> BackendServer : HTTPS / REST
+ProviderApp --> BackendServer : HTTPS / REST
+ProviderApp <--> BackendServer : WebSocket / Socket.io
+AdminDashboard --> BackendServer : HTTPS / REST
+
+BackendServer --> MatchingServer : Prediction API\n(HTTP / HTTPS)
+BackendServer <--> MongoServer : MongoDB Driver / TCP
+BackendServer --> NotificationCloud : Push API / SMTP
+NotificationCloud --> ProviderApp : Push Notification / Email
+
+BackendArtifact ..> BackendServer : <<deploy>>
+MatchingArtifact ..> MatchingServer : <<deploy>>
+MongoArtifact ..> MongoServer : <<deploy>>
+ClientApp ..> ClientDevice : <<deploy>>
+ProviderApp ..> ProviderDevice : <<deploy>>
+AdminDashboard ..> AdminWorkstation : <<deploy>>
+
+AuthService -[hidden]down- JwtService
+JwtService -[hidden]down- ProfileService
+ProfileService -[hidden]down- RequestService
+RequestService -[hidden]down- MatchingOrchestrator
+MatchingOrchestrator -[hidden]down- NotificationService
+NotificationService -[hidden]down- RealtimeService
+
+note right of BackendServer
+  Main system entry point for:
+  - mobile clients
+  - providers
+  - admin dashboard
+
+  Consolidated for readability even
+  though services are modular.
+end note
+
+note right of MatchingServer
+  Dedicated AI-powered matching node.
+  Invoked only through the backend.
+end note
+
+note bottom of MongoServer
+  All persistence terminates here.
+  No client or admin node connects
+  directly to the database.
+end note
+
+note bottom of NotificationCloud
+  Triggered only by the backend.
+  Delivers push and fallback email
+  notifications to providers.
+end note
+
+legend right
+  Core node only view:
+  - No Redis
+  - No load balancer
+  - No replicas
+  - No CDN / static hosting node
+  - No monitoring / failover nodes
+endlegend
+
+@enduml

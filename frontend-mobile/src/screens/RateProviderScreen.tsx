@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { getServiceCategoryLabel, getServiceCategoryMeta } from '../constants/serviceCategories';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import { HomeStackParamList } from '../navigation/MainTabs';
@@ -24,26 +25,14 @@ import { StarIcon, CheckCircleIcon, ChevronLeftIcon } from '../components/Icons'
 type Props = NativeStackScreenProps<HomeStackParamList, 'RateProvider'>;
 
 const RATING_LABELS = ['', 'Poor', 'Fair', 'Good', 'Very Good', 'Excellent'];
-const RATING_COLORS = [
+  const RATING_COLORS = [
   '',
   colors.accent.coral,
-  '#F59500',
+  colors.accent.amber,
   colors.accent.mustard,
   colors.accent.cyan,
   colors.success,
 ];
-
-const CATEGORY_EMOJI: Record<string, string> = {
-  cleaning: '🧹',
-  plumbing: '🔧',
-  electrical: '⚡',
-  carpentry: '🪚',
-  painting: '🎨',
-  gardening: '🌿',
-  moving: '📦',
-  tutoring: '📚',
-  other: '🛠️',
-};
 
 export default function RateProviderScreen({ route, navigation }: Props) {
   const { requestId } = route.params;
@@ -109,7 +98,7 @@ export default function RateProviderScreen({ route, navigation }: Props) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient
-          colors={['#0A2744', '#134686', '#1a5699']}
+          colors={colors.gradients.header as [string, string, string]}
           style={[styles.hero, { paddingTop: insets.top + spacing.sm }]}
         />
         <View style={styles.loadingContainer}>
@@ -120,17 +109,16 @@ export default function RateProviderScreen({ route, navigation }: Props) {
     );
   }
 
-  const categoryEmoji = CATEGORY_EMOJI[request.serviceCategory] ?? '🛠️';
+  const categoryEmoji = getServiceCategoryMeta(request.serviceCategory).emoji;
   const providerName = request.assignedProviderName || 'Service Provider';
-  const serviceName =
-    request.serviceCategory.charAt(0).toUpperCase() + request.serviceCategory.slice(1);
+  const serviceName = getServiceCategoryLabel(request.serviceCategory);
   const ratingColor = RATING_COLORS[rating] || colors.neutral[400];
 
   return (
     <View style={styles.container}>
       {/* Gradient Hero */}
       <LinearGradient
-        colors={['#0A2744', '#134686', '#1a5699']}
+        colors={colors.gradients.header as [string, string, string]}
         style={[styles.hero, { paddingTop: insets.top + spacing.sm }]}
       >
         {/* Decorative circles */}
@@ -312,9 +300,9 @@ const styles = StyleSheet.create({
     width: 38,
     height: 38,
     borderRadius: 19,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.overlay.glassSoft,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.2)',
+    borderColor: colors.overlay.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,

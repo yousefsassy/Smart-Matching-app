@@ -7,112 +7,91 @@
  *  - Bar chart of monthly request volume
  *  - Real-time activity feed
  *  - Quick metric cards (clients, providers, pending reviews, etc.)
- * 
- * Mirrors client-side dashboard pattern: StatWidget grid + Card components
  * ============================================================
  */
 
-import { colors, spacing } from './theme';
-import StatCard from './components/Statcard';
+import { colors } from './theme';
+import StatCard from './components/StatCard';
+import {
+  DASHBOARD_ANALYTICS,
+  DASHBOARD_CHART_DATA,
+  DASHBOARD_RECENT_ACTIVITY,
+} from './data/appShellData';
 
-// Mock analytics data (in production, fetch from API)
-const MOCK_ANALYTICS = {
-  revenue:    { value: '$48,200', trend: +18 },
-  users:      { value: '1,284',   trend: +12 },
-  requests:   { value: '342',     trend: +24 },
-  completion: { value: '91%',     trend:  +3 },
-};
-
-const RECENT_ACTIVITY = [
-  { id: 1, type: 'New User',       desc: 'Emma Davis registered as Provider',     time: '2 min ago',  icon: '👤', color: colors.accent.cyan  },
-  { id: 2, type: 'New Request',    desc: 'Lisa Park created a Cleaning request',   time: '18 min ago', icon: '📋', color: colors.primary[500] },
-  { id: 3, type: 'Request Done',   desc: "Sarah Chen's Plumbing job completed",    time: '1 hr ago',   icon: '✅', color: colors.accent.green  },
-  { id: 4, type: 'User Flagged',   desc: 'David Miller flagged for review',        time: '3 hr ago',   icon: '⚠️', color: colors.accent.coral  },
-  { id: 5, type: 'New Review',     desc: 'Michael Roberts received 5 ⭐ rating',   time: '5 hr ago',   icon: '⭐', color: colors.accent.gold   },
-];
-
-const CHART_DATA = [
-  { month: 'Sep', requests: 28 },
-  { month: 'Oct', requests: 35 },
-  { month: 'Nov', requests: 42 },
-  { month: 'Dec', requests: 38 },
-  { month: 'Jan', requests: 55 },
-  { month: 'Feb', requests: 61 },
+const ACTIVITY_COLORS = [
+  colors.accent.cyan,
+  colors.primary[500],
+  colors.accent.green,
+  colors.accent.coral,
+  colors.accent.gold,
 ];
 
 export default function DashboardPage() {
-  const stats = MOCK_ANALYTICS;
-  const maxVal = Math.max(...CHART_DATA.map(d => d.requests));
+  const maxVal = Math.max(...DASHBOARD_CHART_DATA.map((item) => item.requests));
 
   return (
     <div style={styles.container}>
-      
-      {/* KPI Cards - mirrors client StatWidget grid */}
       <div style={styles.kpiGrid}>
         <StatCard
           title="Total Revenue"
-          value={stats.revenue.value}
+          value={DASHBOARD_ANALYTICS.revenue.value}
           subtitle="This month"
           icon="💰"
-          trend={stats.revenue.trend}
+          trend={DASHBOARD_ANALYTICS.revenue.trend}
           gradient={[colors.primary[500], colors.primary[700]]}
         />
         <StatCard
           title="Total Users"
-          value={stats.users.value}
+          value={DASHBOARD_ANALYTICS.users.value}
           subtitle="Clients + Providers"
           icon="👥"
-          trend={stats.users.trend}
+          trend={DASHBOARD_ANALYTICS.users.trend}
           gradient={[colors.accent.cyan, colors.primary[500]]}
         />
         <StatCard
           title="Service Requests"
-          value={stats.requests.value}
+          value={DASHBOARD_ANALYTICS.requests.value}
           subtitle="Last 30 days"
           icon="📋"
-          trend={stats.requests.trend}
+          trend={DASHBOARD_ANALYTICS.requests.trend}
           gradient={[colors.accent.purple, colors.primary[600]]}
         />
         <StatCard
           title="Completion Rate"
-          value={stats.completion.value}
+          value={DASHBOARD_ANALYTICS.completion.value}
           subtitle="Jobs finished"
           icon="✅"
-          trend={stats.completion.trend}
+          trend={DASHBOARD_ANALYTICS.completion.trend}
           gradient={[colors.accent.green, colors.accent.cyan]}
         />
       </div>
 
-      {/* Row: Chart + Activity Feed */}
       <div style={styles.chartsRow}>
-        
-        {/* Bar Chart - Requests Overview */}
         <div style={styles.chartCard}>
           <div style={styles.chartHeader}>
             <div style={styles.chartTitle}>Requests Overview</div>
             <div style={styles.chartSubtitle}>Monthly service request volume</div>
           </div>
-          
+
           <div style={styles.chartBars}>
-            {CHART_DATA.map(d => (
-              <div key={d.month} style={styles.barColumn}>
+            {DASHBOARD_CHART_DATA.map((entry) => (
+              <div key={entry.month} style={styles.barColumn}>
                 <div style={styles.barWrapper}>
                   <div
-                    title={`${d.requests} requests`}
+                    title={`${entry.requests} requests`}
                     style={{
                       ...styles.bar,
-                      height: `${(d.requests / maxVal) * 140}px`,
+                      height: `${(entry.requests / maxVal) * 140}px`,
                     }}
                   >
-                    <div style={styles.barValue}>{d.requests}</div>
+                    <div style={styles.barValue}>{entry.requests}</div>
                   </div>
                 </div>
-                <div style={styles.barLabel}>{d.month}</div>
+                <div style={styles.barLabel}>{entry.month}</div>
               </div>
             ))}
           </div>
 
-          {/* Legend */}
           <div style={styles.chartLegend}>
             <div style={styles.legendItem}>
               <div style={styles.legendColor} />
@@ -121,56 +100,57 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Activity Feed */}
         <div style={styles.activityCard}>
           <div style={styles.activityTitle}>Recent Activity</div>
           <div style={styles.activityList}>
-            {RECENT_ACTIVITY.map((activity, i) => (
-              <div
-                key={activity.id}
-                style={{
-                  ...styles.activityItem,
-                  borderBottom: i < RECENT_ACTIVITY.length - 1 
-                    ? `1px solid ${colors.neutral[100]}` 
-                    : 'none',
-                }}
-              >
-                <div style={{
-                  ...styles.activityIcon,
-                  background: activity.color + '22',
-                }}>
-                  {activity.icon}
-                </div>
-                <div style={styles.activityContent}>
-                  <div style={{
-                    ...styles.activityType,
-                    color: activity.color,
-                  }}>
-                    {activity.type}
+            {DASHBOARD_RECENT_ACTIVITY.map((activity, index) => {
+              const color = ACTIVITY_COLORS[index] || colors.primary[500];
+              return (
+                <div
+                  key={activity.id}
+                  style={{
+                    ...styles.activityItem,
+                    borderBottom:
+                      index < DASHBOARD_RECENT_ACTIVITY.length - 1
+                        ? `1px solid ${colors.neutral[100]}`
+                        : 'none',
+                  }}
+                >
+                  <div
+                    style={{
+                      ...styles.activityIcon,
+                      background: `${color}22`,
+                    }}
+                  >
+                    {activity.icon}
                   </div>
-                  <div style={styles.activityDesc}>{activity.desc}</div>
-                  <div style={styles.activityTime}>{activity.time}</div>
+                  <div style={styles.activityContent}>
+                    <div style={{ ...styles.activityType, color }}>{activity.type}</div>
+                    <div style={styles.activityDesc}>{activity.desc}</div>
+                    <div style={styles.activityTime}>{activity.time}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Quick Stats Row - compact metrics */}
       <div style={styles.quickStatsGrid}>
         {[
-          { label: 'Active Clients',    value: '892',  icon: '👤', color: colors.primary[500] },
-          { label: 'Active Providers',  value: '392',  icon: '🔧', color: colors.accent.cyan  },
-          { label: 'Pending Reviews',   value: '12',   icon: '⏳', color: colors.accent.gold  },
-          { label: 'Flagged Accounts',  value: '3',    icon: '🚩', color: colors.accent.coral },
-          { label: 'Avg Match Score',   value: '94%',  icon: '✨', color: colors.accent.purple},
-        ].map(stat => (
+          { label: 'Active Clients', value: '892', icon: '👤', color: colors.primary[500] },
+          { label: 'Active Providers', value: '392', icon: '🔧', color: colors.accent.cyan },
+          { label: 'Pending Reviews', value: '12', icon: '⏳', color: colors.accent.gold },
+          { label: 'Flagged Accounts', value: '3', icon: '🚩', color: colors.accent.coral },
+          { label: 'Avg Match Score', value: '94%', icon: '✨', color: colors.accent.purple },
+        ].map((stat) => (
           <div key={stat.label} style={styles.quickStatCard}>
-            <div style={{
-              ...styles.quickStatIcon,
-              background: stat.color + '18',
-            }}>
+            <div
+              style={{
+                ...styles.quickStatIcon,
+                background: `${stat.color}18`,
+              }}
+            >
               {stat.icon}
             </div>
             <div style={styles.quickStatInfo}>
@@ -180,7 +160,6 @@ export default function DashboardPage() {
           </div>
         ))}
       </div>
-
     </div>
   );
 }
@@ -191,22 +170,16 @@ const styles = {
     flexDirection: 'column',
     gap: 24,
   },
-  
-  // KPI Cards Grid
   kpiGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
     gap: 16,
   },
-
-  // Chart Row
   chartsRow: {
     display: 'grid',
     gridTemplateColumns: '1fr 360px',
     gap: 20,
   },
-
-  // Chart Card
   chartCard: {
     background: colors.neutral[0],
     borderRadius: 16,
@@ -288,8 +261,6 @@ const styles = {
     fontSize: 12,
     color: colors.neutral[600],
   },
-
-  // Activity Card
   activityCard: {
     background: colors.neutral[0],
     borderRadius: 16,
@@ -342,8 +313,6 @@ const styles = {
     color: colors.neutral[400],
     marginTop: 3,
   },
-
-  // Quick Stats Grid
   quickStatsGrid: {
     display: 'grid',
     gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',

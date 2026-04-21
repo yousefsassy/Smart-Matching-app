@@ -5,15 +5,11 @@ import LoginScreen from '../screens/LoginScreen';
 import SignUpGateScreen from '../screens/SignUpGateScreen';
 import ClientSignupScreen from '../screens/ClientSignupScreen';
 import ProviderSignupScreen from '../screens/ProviderSignupScreen';
+import LocationPickerScreen from '../screens/LocationPickerScreen';
 import { colors } from '../theme';
+import { AuthStackParamList } from './types';
 
-export type AuthStackParamList = {
-  Welcome: undefined;
-  Login: undefined;
-  Signup: undefined;
-  ClientSignup: undefined;
-  ProviderSignup: undefined;
-};
+export type { AuthStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();
 
@@ -31,6 +27,7 @@ export default function AuthStack() {
       <Stack.Screen name="Signup" component={SignUpGateScreen} />
       <Stack.Screen name="ClientSignup" component={ClientSignupScreen} />
       <Stack.Screen name="ProviderSignup" component={ProviderSignupScreen} />
+      <Stack.Screen name="LocationPicker" component={LocationPickerScreen} />
     </Stack.Navigator>
   );
 }

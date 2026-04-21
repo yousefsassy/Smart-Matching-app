@@ -4,103 +4,95 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
-import { colors, typography, spacing, borderRadius, shadows } from '../../theme';
+import { colors, typography, spacing } from '../../theme';
 import { MapPinIcon } from '../Icons';
 import Textarea from '../Textarea';
 import LocationPicker from '../LocationPicker';
+import { NormalizedLocation } from '../../types/location';
 
 export interface DescribeJobData {
   description: string;
-  location: string;
+  requestLocation: NormalizedLocation | null;
 }
 
 interface DescribeJobStepProps {
   data: DescribeJobData;
   errors: Partial<Record<keyof DescribeJobData, string>>;
-  onChange: (field: keyof DescribeJobData, value: string) => void;
+  onChange: (
+    field: keyof DescribeJobData,
+    value: string | NormalizedLocation | null
+  ) => void;
+  onOpenLocationPicker: () => void;
 }
 
-export default function DescribeJobStep({ data, errors, onChange }: DescribeJobStepProps) {
+export default function DescribeJobStep({
+  data,
+  errors,
+  onChange,
+  onOpenLocationPicker,
+}: DescribeJobStepProps) {
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.headerEmoji}>📝</Text>
-        <Text style={styles.title}>Describe your job</Text>
-        <Text style={styles.subtitle}>Tell us what's needed and where you are</Text>
+        <Text style={styles.title}>Describe the job</Text>
+        <Text style={styles.subtitle}>A few clear details are enough.</Text>
       </View>
 
-      {/* Description */}
-      <View style={styles.section}>
-        <Textarea
-          label="Job Description *"
-          value={data.description}
-          onChangeText={(text) => onChange('description', text)}
-          placeholder="Describe the problem or what needs to be done — the more detail, the better match you'll get..."
-          maxLength={500}
-          showCharCount
-          minHeight={120}
-          error={errors.description}
-        />
+      <Textarea
+        label="Description"
+        value={data.description}
+        onChangeText={(text) => onChange('description', text)}
+        placeholder="What needs to be done?"
+        maxLength={500}
+        showCharCount
+        minHeight={120}
+        error={errors.description}
+      />
+
+      <View style={styles.locationHeader}>
+        <MapPinIcon size={16} color={colors.primary[500]} />
+        <Text style={styles.locationLabel}>Location</Text>
       </View>
 
-      {/* Location */}
-      <View style={styles.section}>
-        <View style={styles.sectionLabelRow}>
-          <MapPinIcon size={16} color={colors.primary[500]} />
-          <Text style={styles.sectionLabel}>Location *</Text>
-        </View>
-        <LocationPicker
-          value={data.location}
-          onSelect={(val) => onChange('location', val)}
-          error={errors.location}
-        />
-      </View>
-
+      <LocationPicker
+        value={data.requestLocation}
+        onPress={onOpenLocationPicker}
+        error={errors.requestLocation}
+      />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
+    backgroundColor: colors.surface.raised,
+    borderRadius: 26,
     padding: spacing.xl,
-    ...shadows.sm,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
   },
   header: {
-    alignItems: 'center',
     marginBottom: spacing.xl,
   },
-  headerEmoji: {
-    fontSize: 40,
-    marginBottom: spacing.md,
-  },
   title: {
-    fontSize: typography.size.lg,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    textAlign: 'center',
+    ...typography.role.sectionTitle,
+    color: colors.primary[900],
     marginBottom: spacing.xs,
   },
   subtitle: {
     fontSize: typography.size.sm,
     color: colors.neutral[500],
-    textAlign: 'center',
   },
-  section: {
-    marginBottom: spacing.lg,
-  },
-  sectionLabelRow: {
+  locationHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.xs,
     marginBottom: spacing.sm,
+    marginTop: spacing.sm,
   },
-  sectionLabel: {
+  locationLabel: {
     fontSize: typography.size.sm,
-    fontWeight: typography.weight.medium,
     color: colors.neutral[700],
-    marginBottom: spacing.sm,
+    fontWeight: typography.weight.semibold,
   },
 });

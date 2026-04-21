@@ -1,8 +1,10 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { getFocusedRouteNameFromRoute, RouteProp } from '@react-navigation/native';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../context/AuthContext';
 import ClientDashboardScreen from '../screens/ClientDashboardScreen';
 import ProviderDashboardScreen from '../screens/ProviderDashboardScreen';
@@ -13,31 +15,24 @@ import RequestDetailScreen from '../screens/RequestDetailScreen';
 import RateProviderScreen from '../screens/RateProviderScreen';
 import ManageServiceRequestsScreen from '../screens/ManageServiceRequestsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
+import LocationPickerScreen from '../screens/LocationPickerScreen';
 import {
   HomeIcon,
   ProfileIcon,
   ClockIcon,
   CalendarIcon,
+  TawTawMarkIcon,
 } from '../components/Icons';
 import { colors, borderRadius, typography } from '../theme';
-
-// ── Param lists ────────────────────────────────────────────────────────────────
-
-export type MainTabParamList = {
-  HomeTab: undefined;
-  RequestsTab: undefined;
-  CalendarTab: undefined;
-  ProfileTab: undefined;
-};
-
-export type HomeStackParamList = {
-  Dashboard: undefined;
-  MyRequests: undefined;
-  IncomingRequests: undefined;
-  CreateRequest: undefined;
-  RequestDetail: { requestId: string };
-  RateProvider: { requestId: string };
-};
+import {
+  LocationPickerRouteParams,
+} from './locationPicker';
+import {
+  HomeStackParamList,
+  MainTabParamList,
+  TAB_HIDDEN_ROUTES,
+} from './types';
+export type { HomeStackParamList, MainTabParamList } from './types';
 
 // ── Navigators ─────────────────────────────────────────────────────────────────
 
@@ -64,6 +59,7 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="MyRequests" component={MyRequestsScreen} />
       <HomeStack.Screen name="IncomingRequests" component={ManageServiceRequestsScreen} />
       <HomeStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
+      <HomeStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ animation: 'slide_from_bottom' }} />
       <HomeStack.Screen name="RequestDetail" component={RequestDetailScreen} />
       <HomeStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
     </HomeStack.Navigator>
@@ -81,6 +77,7 @@ function ClientRequestsStackNavigator() {
     >
       <ClientRequestsStack.Screen name="MyRequests" component={MyRequestsScreen} />
       <ClientRequestsStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
+      <ClientRequestsStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ animation: 'slide_from_bottom' }} />
       <ClientRequestsStack.Screen name="RequestDetail" component={RequestDetailScreen} />
       <ClientRequestsStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
     </ClientRequestsStack.Navigator>
@@ -110,8 +107,21 @@ interface TabIconProps {
 }
 
 function TabIcon({ focused, children }: TabIconProps) {
+  if (focused) {
+    return (
+      <LinearGradient
+        colors={colors.gradients.cardHero as [string, string]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={[styles.tabIcon, styles.tabIconFocused]}
+      >
+        {children}
+      </LinearGradient>
+    );
+  }
+
   return (
-    <View style={[styles.tabIcon, focused && styles.tabIconFocused]}>
+    <View style={styles.tabIcon}>
       {children}
     </View>
   );
@@ -121,6 +131,36 @@ interface TabBarIconProps {
   focused: boolean;
   color: string;
   size: number;
+}
+
+function getTabBarStyle(
+  route: Partial<RouteProp<Record<string, object | undefined>, string>>,
+  insetsBottom: number
+) {
+  const focusedRouteName = getFocusedRouteNameFromRoute(route as any) ?? 'Dashboard';
+
+  if (TAB_HIDDEN_ROUTES.has(focusedRouteName)) {
+    return { display: 'none' as const };
+  }
+
+  return {
+    backgroundColor: colors.surface.base,
+    borderTopWidth: 0,
+    height: 82 + insetsBottom,
+    paddingTop: 12,
+    paddingBottom: insetsBottom + 12,
+    ...Platform.select({
+      ios: {
+        shadowColor: colors.primary[900],
+        shadowOffset: { width: 0, height: -6 },
+        shadowOpacity: 0.08,
+        shadowRadius: 24,
+      },
+      android: {
+        elevation: 16,
+      },
+    }),
+  };
 }
 
 // ── Main tabs ──────────────────────────────────────────────────────────────────
@@ -135,63 +175,71 @@ export default function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarStyle: {
-          backgroundColor: colors.neutral[0],
-          borderTopWidth: 1,
-          borderTopColor: colors.neutral[100],
-          height: 72 + insets.bottom,
-          paddingTop: 10,
-          paddingBottom: insets.bottom + 10,
+          backgroundColor: colors.surface.base,
+          borderTopWidth: 0,
+          height: 82 + insets.bottom,
+          paddingTop: 12,
+          paddingBottom: insets.bottom + 12,
           ...Platform.select({
             ios: {
               shadowColor: colors.primary[900],
-              shadowOffset: { width: 0, height: -3 },
-              shadowOpacity: 0.10,
-              shadowRadius: 16,
+              shadowOffset: { width: 0, height: -6 },
+              shadowOpacity: 0.08,
+              shadowRadius: 24,
             },
             android: {
-              elevation: 12,
+              elevation: 16,
             },
           }),
         },
-        tabBarActiveTintColor: colors.primary[600],
+        tabBarActiveTintColor: colors.primary[700],
         tabBarInactiveTintColor: colors.neutral[400],
         tabBarLabelStyle: {
           fontSize: typography.size.xs,
-          fontWeight: typography.weight.bold,
+          fontWeight: typography.weight.semibold,
           marginTop: 3,
-          letterSpacing: typography.letterSpacing.wide,
+          letterSpacing: 0.25,
         },
         tabBarItemStyle: {
           paddingVertical: 2,
         },
+        tabBarBackground: () => (
+          <View style={styles.tabBarBackground}>
+            <View style={styles.tabBarBrandMark}>
+              <TawTawMarkIcon size={22} />
+            </View>
+          </View>
+        ),
       }}
     >
       {/* Home — both roles */}
       <Tab.Screen
         name="HomeTab"
         component={HomeStackNavigator}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Home',
+          tabBarStyle: getTabBarStyle(route, insets.bottom),
           tabBarIcon: ({ focused, color }: TabBarIconProps) => (
             <TabIcon focused={focused}>
-              <HomeIcon color={color} size={22} />
+              <HomeIcon color={focused ? colors.neutral[0] : color} size={22} />
             </TabIcon>
           ),
-        }}
+        })}
       />
 
       {/* Requests — both roles, different content */}
       <Tab.Screen
         name="RequestsTab"
         component={isProvider ? ProviderRequestsStackNavigator : ClientRequestsStackNavigator}
-        options={{
+        options={({ route }) => ({
           tabBarLabel: 'Requests',
+          tabBarStyle: getTabBarStyle(route, insets.bottom),
           tabBarIcon: ({ focused, color }: TabBarIconProps) => (
             <TabIcon focused={focused}>
-              <ClockIcon color={color} size={22} />
+              <ClockIcon color={focused ? colors.neutral[0] : color} size={22} />
             </TabIcon>
           ),
-        }}
+        })}
       />
 
       {/* Calendar — provider only */}
@@ -203,7 +251,7 @@ export default function MainTabs() {
             tabBarLabel: 'Calendar',
             tabBarIcon: ({ focused, color }: TabBarIconProps) => (
               <TabIcon focused={focused}>
-                <CalendarIcon color={color} size={22} />
+                <CalendarIcon color={focused ? colors.neutral[0] : color} size={22} />
               </TabIcon>
             ),
           }}
@@ -218,7 +266,7 @@ export default function MainTabs() {
           tabBarLabel: 'Profile',
           tabBarIcon: ({ focused, color }: TabBarIconProps) => (
             <TabIcon focused={focused}>
-              <ProfileIcon color={color} size={22} />
+              <ProfileIcon color={focused ? colors.neutral[0] : color} size={22} />
             </TabIcon>
           ),
         }}
@@ -229,13 +277,29 @@ export default function MainTabs() {
 
 const styles = StyleSheet.create({
   tabIcon: {
-    width: 48,
-    height: 30,
+    width: 52,
+    height: 34,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: borderRadius.full,
   },
   tabIconFocused: {
-    backgroundColor: colors.primary[50],
+    shadowColor: colors.primary[700],
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.18,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  tabBarBackground: {
+    flex: 1,
+    backgroundColor: colors.surface.base,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+  },
+  tabBarBrandMark: {
+    position: 'absolute',
+    top: 8,
+    alignSelf: 'center',
+    opacity: 0.08,
   },
 });

@@ -14,25 +14,11 @@
 
 import { useState } from 'react';
 import { colors } from './theme';
-
-// Mock provider data
-const INITIAL_PROVIDERS = [
-  { id: 'p01', fullName: 'Firas Saidi',       email: 'firas@consulting.com',    phone: '+216 55 111 222', businessName: 'Saidi Consulting',     serviceCategory: 'consulting',  rating: 4.9, reviews: 42, location: 'Tunis, Tunisia',    joinedAt: '2023-12-01', status: 'approved', avatar: 'FS' },
-  { id: 'p02', fullName: 'Michael Roberts',   email: 'm.roberts@plumbing.com',  phone: '+1 (555) 222-3333', businessName: 'Roberts Plumbing',      serviceCategory: 'plumbing',    rating: 4.8, reviews: 38, location: 'New York, NY',      joinedAt: '2024-01-10', status: 'approved', avatar: 'MR' },
-  { id: 'p03', fullName: 'Emma Williams',     email: 'e.williams@electric.com', phone: '+1 (555) 333-4444', businessName: 'Williams Electric',     serviceCategory: 'electrical',  rating: 5.0, reviews: 15, location: 'Chicago, IL',       joinedAt: '2024-02-28', status: 'pending',  avatar: 'EW' },
-  { id: 'p04', fullName: 'Carlos Mendez',     email: 'c.mendez@cleaning.com',   phone: '+1 (555) 444-5555', businessName: 'Sparkle Clean Co.',     serviceCategory: 'cleaning',    rating: 4.7, reviews: 61, location: 'Miami, FL',         joinedAt: '2024-01-18', status: 'approved', avatar: 'CM' },
-  { id: 'p05', fullName: 'Aisha Patel',       email: 'aisha.p@gardening.com',   phone: '+1 (555) 555-6666', businessName: 'Green Thumb Gardens',   serviceCategory: 'gardening',   rating: 4.6, reviews: 29, location: 'Los Angeles, CA',   joinedAt: '2024-03-05', status: 'pending',  avatar: 'AP' },
-  { id: 'p06', fullName: 'David Kim',         email: 'd.kim@painting.com',      phone: '+1 (555) 666-7777', businessName: 'Kim Premium Painting',  serviceCategory: 'painting',    rating: 4.5, reviews: 47, location: 'San Francisco, CA', joinedAt: '2024-02-10', status: 'approved', avatar: 'DK' },
-  { id: 'p07', fullName: 'Sophie Turner',     email: 's.turner@moving.com',     phone: '+1 (555) 777-8888', businessName: 'Turner Moving Services', serviceCategory: 'moving',     rating: 4.3, reviews: 22, location: 'Seattle, WA',       joinedAt: '2024-03-15', status: 'pending',  avatar: 'ST' },
-  { id: 'p08', fullName: 'Omar Hassan',       email: 'o.hassan@carpentry.com',  phone: '+1 (555) 888-9999', businessName: 'Hassan Woodworks',      serviceCategory: 'carpentry',   rating: 4.9, reviews: 18, location: 'Houston, TX',       joinedAt: '2024-01-25', status: 'rejected', avatar: 'OH' },
-  { id: 'p09', fullName: 'Nina Johansson',    email: 'nina.j@cleaning.com',     phone: '+1 (555) 999-0000', businessName: 'Nordic Clean Pros',     serviceCategory: 'cleaning',    rating: 4.8, reviews: 33, location: 'Minneapolis, MN',   joinedAt: '2024-02-20', status: 'approved', avatar: 'NJ' },
-  { id: 'p10', fullName: 'Ahmed Benali',      email: 'a.benali@plumbing.com',   phone: '+216 50 222 333',   businessName: 'Benali Plumbing',       serviceCategory: 'plumbing',    rating: 4.6, reviews: 9,  location: 'Sfax, Tunisia',     joinedAt: '2024-03-20', status: 'pending',  avatar: 'AB' },
-  { id: 'p11', fullName: 'Rachel Green',      email: 'r.green@electrical.com',  phone: '+1 (555) 011-2222', businessName: 'Green Electric',        serviceCategory: 'electrical',  rating: 4.7, reviews: 54, location: 'Boston, MA',        joinedAt: '2024-01-05', status: 'approved', avatar: 'RG' },
-  { id: 'p12', fullName: 'Tom Bradley',       email: 't.bradley@painting.com',  phone: '+1 (555) 122-3333', businessName: 'Bradley & Sons Paint',  serviceCategory: 'painting',    rating: 3.9, reviews: 12, location: 'Denver, CO',        joinedAt: '2024-03-22', status: 'rejected', avatar: 'TB' },
-];
-
-const SERVICE_CATEGORIES = ['all', 'plumbing', 'electrical', 'cleaning', 'gardening', 'painting', 'carpentry', 'moving', 'consulting'];
-const PAGE_SIZE = 9;
+import {
+  INITIAL_PROVIDERS,
+  PROVIDERS_PAGE_SIZE,
+  PROVIDER_SERVICE_CATEGORIES,
+} from './data/mockEntities';
 
 const STATUS_CONFIG = {
   pending:  { bg: colors.accent.gold   + '20', color: colors.accent.gold,   label: 'Pending',  dot: colors.accent.gold   },
@@ -207,8 +193,8 @@ export default function ProvidersPage() {
     return matchSearch && matchCategory && matchStatus;
   });
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const paginated  = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.ceil(filtered.length / PROVIDERS_PAGE_SIZE);
+  const paginated  = filtered.slice((page - 1) * PROVIDERS_PAGE_SIZE, page * PROVIDERS_PAGE_SIZE);
 
   const resetFilters = () => {
     setSearch('');
@@ -273,7 +259,7 @@ export default function ProvidersPage() {
             onChange={e => { setCategoryFilter(e.target.value); setPage(1); }}
             style={styles.filterSelect}
           >
-            {SERVICE_CATEGORIES.map(c => (
+            {PROVIDER_SERVICE_CATEGORIES.map(c => (
               <option key={c} value={c}>
                 {c === 'all' ? 'All Categories' : c.charAt(0).toUpperCase() + c.slice(1)}
               </option>
@@ -311,7 +297,7 @@ export default function ProvidersPage() {
             <ProviderCard
               key={provider.id}
               provider={provider}
-              index={(page - 1) * PAGE_SIZE + i}
+              index={(page - 1) * PROVIDERS_PAGE_SIZE + i}
               onApprove={handleApprove}
               onDecline={handleDecline}
             />

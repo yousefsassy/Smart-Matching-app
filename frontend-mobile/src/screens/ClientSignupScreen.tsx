@@ -7,35 +7,28 @@ import {
   Platform,
   ScrollView,
   StatusBar,
+  TouchableOpacity,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography, spacing, borderRadius, shadows } from '../theme';
 import { useAuth } from '../context/AuthContext';
 import { AuthStackParamList } from '../navigation/AuthStack';
 import PrimaryButton from '../components/PrimaryButton';
 import Input from '../components/Input';
-import { UserIcon, MailIcon, LockIcon, CheckCircleIcon, XCircleIcon, ChevronLeftIcon } from '../components/Icons';
+import { UserIcon, MailIcon, LockIcon, CheckCircleIcon, XCircleIcon, ChevronLeftIcon, TawTawMarkIcon } from '../components/Icons';
+import {
+  PASSWORD_CRITERIA,
+  getConfirmPasswordError,
+  getEmailError,
+  getFullNameError,
+  getPasswordStrength,
+  getSignupPasswordError,
+} from '../utils/validation';
 
 type ClientSignupNav = NativeStackNavigationProp<AuthStackParamList, 'ClientSignup'>;
-
-// Password strength criteria (kept for good UX)
-const CRITERIA = [
-  { label: 'At least 8 characters', test: (p: string) => p.length >= 8 },
-  { label: 'One uppercase letter', test: (p: string) => /[A-Z]/.test(p) },
-  { label: 'One number', test: (p: string) => /\d/.test(p) },
-  { label: 'One special character', test: (p: string) => /[!@#$%^&*(),.?":{}|<>]/.test(p) },
-];
-
-function getStrength(password: string): { level: number; label: string; color: string } {
-  const passed = CRITERIA.filter((c) => c.test(password)).length;
-  if (passed === 0) return { level: 0, label: '', color: colors.neutral[200] };
-  if (passed === 1) return { level: 1, label: 'Weak', color: colors.error };
-  if (passed === 2) return { level: 2, label: 'Fair', color: colors.warning };
-  if (passed === 3) return { level: 3, label: 'Good', color: colors.accent.gold };
-  return { level: 4, label: 'Strong', color: colors.success };
-}
 
 interface FormData {
   fullName: string;
@@ -75,17 +68,18 @@ export default function ClientSignupScreen() {
   const validate = (): boolean => {
     const errs: Record<string, string> = {};
 
-    if (!formData.fullName.trim()) errs.fullName = 'Full name is required';
-    else if (formData.fullName.trim().length < 2) errs.fullName = 'Name must be at least 2 characters';
+    const fullNameError = getFullNameError(formData.fullName);
+    const emailError = getEmailError(formData.email);
+    const passwordError = getSignupPasswordError(formData.password);
+    const confirmPasswordError = getConfirmPasswordError(
+      formData.password,
+      formData.confirmPassword
+    );
 
-    if (!formData.email.trim()) errs.email = 'Email is required';
-    else if (!/\S+@\S+\.\S+/.test(formData.email)) errs.email = 'Please enter a valid email';
-
-    if (!formData.password) errs.password = 'Password is required';
-    else if (formData.password.length < 8) errs.password = 'Must be at least 8 characters';
-
-    if (!formData.confirmPassword) errs.confirmPassword = 'Please confirm your password';
-    else if (formData.password !== formData.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+    if (fullNameError) errs.fullName = fullNameError;
+    if (emailError) errs.email = emailError;
+    if (passwordError) errs.password = passwordError;
+    if (confirmPasswordError) errs.confirmPassword = confirmPasswordError;
 
     setErrors(errs);
     return Object.keys(errs).length === 0;
@@ -107,25 +101,40 @@ export default function ClientSignupScreen() {
     }
   };
 
-  const strength = getStrength(formData.password);
+  const strength = getPasswordStrength(formData.password, {
+    neutral: colors.neutral[200],
+    error: colors.error,
+    warning: colors.warning,
+    caution: colors.accent.gold,
+    success: colors.success,
+  });
 
   return (
     <KeyboardAvoidingView
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       <View style={styles.screen}>
         <ScrollView
           contentContainerStyle={[styles.scrollContent, { paddingTop: insets.top + spacing.xl }]}
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          {/* Page title */}
-          <View style={styles.pageHeader}>
-            <Text style={styles.pageTitle}>Create Account</Text>
-            <Text style={styles.pageSubtitle}>Sign up to get started with TawTaw</Text>
-          </View>
+          <LinearGradient
+            colors={colors.gradients.header as [string, string, string]}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.hero}
+          >
+            <TouchableOpacity style={styles.heroBack} onPress={() => navigation.goBack()} activeOpacity={0.8}>
+              <ChevronLeftIcon size={18} color={colors.neutral[0]} />
+            </TouchableOpacity>
+            <View style={styles.heroMark}>
+              <TawTawMarkIcon size={34} />
+            </View>
+            <Text style={styles.pageTitle}>Create your account</Text>
+          </LinearGradient>
 
           {/* Single form card */}
           <View style={styles.card}>
@@ -136,7 +145,7 @@ export default function ClientSignupScreen() {
               </View>
               <View>
                 <Text style={styles.sectionTitle}>Personal Information</Text>
-                <Text style={styles.sectionSubtitle}>Tell us about yourself</Text>
+                <Text style={styles.sectionSubtitle}>Your details</Text>
               </View>
             </View>
 
@@ -164,15 +173,13 @@ export default function ClientSignupScreen() {
               returnKeyType="next"
             />
 
-            {/* Password section divider */}
-            <View style={styles.divider} />
             <View style={styles.sectionHeader}>
               <View style={styles.iconContainer}>
                 <LockIcon size={20} color={colors.primary[500]} />
               </View>
               <View>
                 <Text style={styles.sectionTitle}>Create Password</Text>
-                <Text style={styles.sectionSubtitle}>Secure your account</Text>
+                <Text style={styles.sectionSubtitle}>Secure access</Text>
               </View>
             </View>
 
@@ -212,7 +219,7 @@ export default function ClientSignupScreen() {
             {/* Criteria checklist */}
             {formData.password.length > 0 && (
               <View style={styles.criteriaList}>
-                {CRITERIA.map((criterion, index) => {
+                {PASSWORD_CRITERIA.map((criterion, index) => {
                   const met = criterion.test(formData.password);
                   return (
                     <View key={index} style={styles.criteriaItem}>
@@ -267,7 +274,7 @@ export default function ClientSignupScreen() {
               variant="outline"
               fullWidth={false}
               style={styles.backButton}
-              icon={<ChevronLeftIcon size={18} color={colors.primary[600]} />}
+              icon={<ChevronLeftIcon size={18} color={colors.primary[700]} />}
             />
             <PrimaryButton
               title="Create Account"
@@ -294,62 +301,79 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    padding: spacing.xl,
-    paddingBottom: spacing['3xl'],
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  pageHeader: {
-    marginBottom: spacing.xl,
+  hero: {
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.lg,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
+    ...shadows.lg,
+  },
+  heroBack: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: colors.overlay.glassSoft,
+    borderWidth: 1,
+    borderColor: colors.overlay.border,
+    marginBottom: spacing.md,
+  },
+  heroMark: {
+    width: 48,
+    height: 48,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.md,
   },
   pageTitle: {
-    fontSize: typography.size.xxl,
+    fontSize: typography.size['2xl'],
+    lineHeight: typography.lineHeight['2xl'],
     fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
-    marginBottom: spacing.xs,
-  },
-  pageSubtitle: {
-    fontSize: typography.size.sm,
-    color: colors.neutral[500],
+    letterSpacing: -0.7,
+    color: colors.neutral[0],
   },
   card: {
-    backgroundColor: colors.neutral[0],
-    borderRadius: borderRadius.xl,
-    padding: spacing.xl,
-    ...shadows.sm,
+    backgroundColor: colors.surface.base,
+    borderRadius: borderRadius['2xl'],
+    padding: spacing.lg,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    ...shadows.card,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: spacing.lg,
+    marginBottom: spacing.md,
   },
   iconContainer: {
     width: 40,
     height: 40,
     borderRadius: borderRadius.lg,
-    backgroundColor: colors.primary[50],
+    backgroundColor: colors.surface.tint,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: spacing.md,
   },
   sectionTitle: {
-    fontSize: typography.size.base,
-    fontWeight: typography.weight.bold,
-    color: colors.neutral[900],
+    ...typography.role.cardTitle,
+    color: colors.neutral[800],
   },
   sectionSubtitle: {
-    fontSize: typography.size.xs,
+    ...typography.role.meta,
     color: colors.neutral[500],
     marginTop: 2,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: colors.neutral[100],
-    marginVertical: spacing.lg,
   },
   strengthSection: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: spacing.base,
-    marginTop: -spacing.sm,
+    marginTop: -spacing.xs,
   },
   strengthBar: {
     flexDirection: 'row',
@@ -367,8 +391,8 @@ const styles = StyleSheet.create({
     marginLeft: spacing.sm,
   },
   criteriaList: {
-    marginBottom: spacing.lg,
-    gap: spacing.sm,
+    marginBottom: spacing.md,
+    gap: spacing.xs,
   },
   criteriaItem: {
     flexDirection: 'row',
@@ -401,7 +425,7 @@ const styles = StyleSheet.create({
   navButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: spacing.xl,
+    marginTop: spacing.lg,
     gap: spacing.md,
   },
   backButton: {
