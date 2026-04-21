@@ -29,6 +29,7 @@ const MOCK_REQUESTS = [
     budget: { min: 80,  max: 150 },
     status: 'completed',
     rating: 5,
+    commentaire: 'Michael was very professional and fixed the issue quickly. Highly recommend!',
     createdAt: '2024-03-14T09:30:00',
     statusHistory: ['pending', 'assigned', 'in_progress', 'completed'],
   },
@@ -85,6 +86,7 @@ const MOCK_REQUESTS = [
     budget: { min: 400, max: 700 },
     status: 'completed',
     rating: 4,
+    commentaire: 'Good work overall, the colors look great. Took a bit longer than expected but the quality is there.',
     createdAt: '2024-03-08T10:00:00',
     statusHistory: ['pending', 'assigned', 'in_progress', 'completed'],
   },
@@ -127,6 +129,7 @@ const MOCK_REQUESTS = [
     budget: { min: 80,  max: 120 },
     status: 'completed',
     rating: 5,
+    commentaire: 'Nina and her team did an outstanding job. The office has never been cleaner. Will definitely book again.',
     createdAt: '2024-03-10T09:00:00',
     statusHistory: ['pending', 'assigned', 'in_progress', 'completed'],
   },
@@ -183,6 +186,7 @@ const MOCK_REQUESTS = [
     budget: { min: 600, max: 1000 },
     status: 'completed',
     rating: 5,
+    commentaire: 'Aisha transformed our backyard completely. The native plants are beautiful and the irrigation works perfectly.',
     createdAt: '2024-03-09T11:00:00',
     statusHistory: ['pending', 'assigned', 'in_progress', 'completed'],
   },
@@ -225,6 +229,7 @@ const MOCK_REQUESTS = [
     budget: { min: 700, max: 1100 },
     status: 'completed',
     rating: 4,
+    commentaire: 'Rachel did a solid job with the generator and panel upgrade. Very knowledgeable and explained everything clearly.',
     createdAt: '2024-03-01T07:30:00',
     statusHistory: ['pending', 'assigned', 'in_progress', 'completed'],
   },
@@ -586,12 +591,26 @@ function RequestCard({ request, expanded, onToggle }) {
           {request.rating && (
             <div style={cardStyles.expandSection}>
               <div style={cardStyles.expandSectionTitle}>Client Rating</div>
-              <span style={{ color: colors.accent.gold, fontSize: 18 }}>
-                {'★'.repeat(request.rating)}{'☆'.repeat(5 - request.rating)}
-              </span>
-              <span style={{ fontSize: 13, color: colors.neutral[600], marginLeft: 8 }}>
-                {request.rating}/5
-              </span>
+              <div style={{ display: 'flex', alignItems: 'center' }}>
+                <span style={{ color: colors.accent.gold, fontSize: 18 }}>
+                  {'★'.repeat(request.rating)}{'☆'.repeat(5 - request.rating)}
+                </span>
+                <span style={{ fontSize: 13, color: colors.neutral[600], marginLeft: 8 }}>
+                  {request.rating}/5
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Client feedback comment (if completed and comment exists) */}
+          {request.status === 'completed' && request.commentaire && (
+            <div style={cardStyles.expandSection}>
+              <div style={cardStyles.expandSectionTitle}>Client Feedback</div>
+              <div style={cardStyles.feedbackBox}>
+                <span style={cardStyles.feedbackQuote}>"</span>
+                <p style={cardStyles.feedbackText}>{request.commentaire}</p>
+                <span style={{ ...cardStyles.feedbackQuote, alignSelf: 'flex-end' }}>"</span>
+              </div>
             </div>
           )}
 
@@ -768,6 +787,32 @@ const cardStyles = {
     background: colors.neutral[50],
     borderRadius: 8,
     padding: '10px 14px',
+  },
+  feedbackBox: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    gap: 6,
+    background: colors.accent.gold + '0d',
+    border: `1px solid ${colors.accent.gold}33`,
+    borderRadius: 10,
+    padding: '12px 16px',
+  },
+  feedbackQuote: {
+    fontSize: 28,
+    lineHeight: 1,
+    color: colors.accent.gold,
+    opacity: 0.5,
+    fontFamily: 'Georgia, serif',
+    flexShrink: 0,
+    userSelect: 'none',
+  },
+  feedbackText: {
+    fontSize: 13,
+    color: colors.neutral[700],
+    lineHeight: 1.65,
+    margin: 0,
+    flex: 1,
+    fontStyle: 'italic',
   },
 };
 
