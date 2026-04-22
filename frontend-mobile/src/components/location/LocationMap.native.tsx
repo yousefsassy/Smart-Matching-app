@@ -82,7 +82,7 @@ export default function LocationMap({
       {isResolving ? (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="small" color={colors.neutral[0]} />
-          <Text style={styles.loadingText}>Updating address…</Text>
+          <Text style={styles.loadingText}>Updating address...</Text>
         </View>
       ) : null}
     </View>

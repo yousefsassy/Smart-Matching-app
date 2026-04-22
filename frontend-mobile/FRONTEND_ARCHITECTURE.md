@@ -53,9 +53,16 @@ Each domain contains:
 
 - a service contract/interface
 - a mock implementation
+- an optional backend implementation or placeholder adapter
+- a runtime resolver when the domain can switch adapters
 - a barrel export
 
 This lets screens and contexts depend on stable frontend contracts now while keeping the eventual backend swap localized.
+
+Current domains with explicit runtime selection:
+
+- `services/requests`
+- `features/voiceRequest/services`
 
 ### `src/types`
 
@@ -79,6 +86,23 @@ Examples:
 - `statusConfig.ts`
 
 These centralize mock timing, storage keys, category metadata, status metadata, and navigation-related constants that were previously duplicated across screens.
+
+### `src/config`
+
+Runtime and environment resolution now live in a dedicated configuration layer.
+
+Examples:
+
+- `config/appEnvironment.ts`
+
+This is the shared source of truth for:
+
+- public Expo env variables
+- backend base URLs
+- explicit runtime overrides such as mock vs backend
+- voice runtime selection
+
+Screens and contexts should not read `process.env` directly.
 
 ### `src/utils`
 
@@ -109,7 +133,7 @@ The intended frontend flow is now:
 
 1. A screen triggers a user action.
 2. A context or screen-level handler calls a service method.
-3. The service method resolves against the current mock adapter.
+3. The service method resolves against the current runtime adapter.
 4. The context updates app state.
 5. The screen renders loading, empty, success, or error UI based on that state.
 
@@ -125,6 +149,13 @@ Current mock-backed domains:
 - profile updates
 - request creation and lifecycle
 - provider ranking and assignment
+
+Backend-ready domains now expose an explicit resolver instead of importing mock implementations directly inside contexts.
+
+Examples:
+
+- `requestsService` resolves through `services/requests/index.ts`
+- `transcriptionService` and `requestParserService` resolve through the voice runtime
 
 These mocks may use local storage or in-memory data to simulate behavior, but they are not real backend persistence.
 
@@ -152,6 +183,26 @@ Recommended migration path:
 3. Map backend payloads to the shared frontend types.
 4. Preserve loading/error/empty states already established in screens.
 5. Remove mock timing/storage behavior only after the corresponding backend endpoint exists.
+
+### Runtime Configuration
+
+Team members should rely on the shared env contract in `.env.example`.
+
+Important runtime controls:
+
+- `EXPO_PUBLIC_VOICE_RUNTIME=mock|gemini|backend`
+- `EXPO_PUBLIC_REQUESTS_RUNTIME=mock|backend`
+- `EXPO_PUBLIC_APP_API_BASE_URL=...`
+- `EXPO_PUBLIC_VOICE_BACKEND_URL=...`
+- `EXPO_PUBLIC_GEMINI_API_KEY=...`
+
+Recommended local defaults today:
+
+- keep `EXPO_PUBLIC_REQUESTS_RUNTIME=mock`
+- use `EXPO_PUBLIC_VOICE_RUNTIME=backend` only when the local voice backend is running
+- otherwise use `gemini` or let the app fall back to `mock`
+
+This makes voice recognition consistent for the whole team while the rest of the backend is still being integrated.
 
 ## Working Rules For This Frontend
 

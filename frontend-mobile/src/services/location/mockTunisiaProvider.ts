@@ -381,27 +381,49 @@ function getSearchTerms(suggestion: LocationSearchSuggestion) {
     .toLowerCase();
 }
 
+function getNormalizedWords(value: string) {
+  return value
+    .toLowerCase()
+    .split(/[^a-zA-ZÀ-ÿ0-9']+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function rankSuggestion(suggestion: LocationSearchSuggestion, normalizedQuery: string) {
   const haystack = getSearchTerms(suggestion);
+  const queryWords = getNormalizedWords(normalizedQuery);
   if (suggestion.title.toLowerCase().startsWith(normalizedQuery)) {
     return 0;
   }
   if (haystack.includes(normalizedQuery)) {
     return 1;
   }
-  return 2;
+  if (queryWords.some((word) => suggestion.title.toLowerCase().startsWith(word))) {
+    return 2;
+  }
+  if (queryWords.every((word) => haystack.includes(word))) {
+    return 3;
+  }
+  return 4;
 }
 
 export const mockTunisiaLocationProvider: LocationSearchProvider = {
   async search(query: string) {
     const normalizedQuery = query.trim().toLowerCase();
+    const queryWords = getNormalizedWords(normalizedQuery);
 
     if (!normalizedQuery) {
       return TUNISIA_LOCATIONS.slice(0, 8);
     }
 
     return TUNISIA_LOCATIONS
-      .filter((suggestion) => getSearchTerms(suggestion).includes(normalizedQuery))
+      .filter((suggestion) => {
+        const haystack = getSearchTerms(suggestion);
+        return (
+          haystack.includes(normalizedQuery) ||
+          queryWords.some((word) => haystack.includes(word))
+        );
+      })
       .sort((a, b) => rankSuggestion(a, normalizedQuery) - rankSuggestion(b, normalizedQuery))
       .slice(0, 8);
   },

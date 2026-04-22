@@ -9,13 +9,16 @@ import { useAuth } from '../context/AuthContext';
 import ClientDashboardScreen from '../screens/ClientDashboardScreen';
 import ProviderDashboardScreen from '../screens/ProviderDashboardScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import CreateServiceRequestScreen from '../screens/CreateServiceRequestScreen';
+import CreateRequestChoiceScreen from '../screens/CreateRequestChoiceScreen';
+import ManualRequestScreen from '../screens/ManualRequestScreen';
 import MyRequestsScreen from '../screens/MyRequestsScreen';
 import RequestDetailScreen from '../screens/RequestDetailScreen';
 import RateProviderScreen from '../screens/RateProviderScreen';
 import ManageServiceRequestsScreen from '../screens/ManageServiceRequestsScreen';
 import CalendarScreen from '../screens/CalendarScreen';
 import LocationPickerScreen from '../screens/LocationPickerScreen';
+import VoiceRequestScreen from '../screens/VoiceRequestScreen';
+import MatchingResultsScreen from '../screens/MatchingResultsScreen';
 import {
   HomeIcon,
   ProfileIcon,
@@ -58,7 +61,10 @@ function HomeStackNavigator() {
       <HomeStack.Screen name="Dashboard" component={DashboardScreen} />
       <HomeStack.Screen name="MyRequests" component={MyRequestsScreen} />
       <HomeStack.Screen name="IncomingRequests" component={ManageServiceRequestsScreen} />
-      <HomeStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
+      <HomeStack.Screen name="CreateRequest" component={CreateRequestChoiceScreen} options={{ animation: 'fade_from_bottom' }} />
+      <HomeStack.Screen name="VoiceRequest" component={VoiceRequestScreen} options={{ animation: 'slide_from_right' }} />
+      <HomeStack.Screen name="ManualRequest" component={ManualRequestScreen} options={{ animation: 'slide_from_right' }} />
+      <HomeStack.Screen name="MatchingResults" component={MatchingResultsScreen} options={{ animation: 'fade_from_bottom' }} />
       <HomeStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ animation: 'slide_from_bottom' }} />
       <HomeStack.Screen name="RequestDetail" component={RequestDetailScreen} />
       <HomeStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />
@@ -76,7 +82,10 @@ function ClientRequestsStackNavigator() {
       }}
     >
       <ClientRequestsStack.Screen name="MyRequests" component={MyRequestsScreen} />
-      <ClientRequestsStack.Screen name="CreateRequest" component={CreateServiceRequestScreen} options={{ animation: 'fade_from_bottom' }} />
+      <ClientRequestsStack.Screen name="CreateRequest" component={CreateRequestChoiceScreen} options={{ animation: 'fade_from_bottom' }} />
+      <ClientRequestsStack.Screen name="VoiceRequest" component={VoiceRequestScreen} options={{ animation: 'slide_from_right' }} />
+      <ClientRequestsStack.Screen name="ManualRequest" component={ManualRequestScreen} options={{ animation: 'slide_from_right' }} />
+      <ClientRequestsStack.Screen name="MatchingResults" component={MatchingResultsScreen} options={{ animation: 'fade_from_bottom' }} />
       <ClientRequestsStack.Screen name="LocationPicker" component={LocationPickerScreen} options={{ animation: 'slide_from_bottom' }} />
       <ClientRequestsStack.Screen name="RequestDetail" component={RequestDetailScreen} />
       <ClientRequestsStack.Screen name="RateProvider" component={RateProviderScreen} options={{ animation: 'slide_from_bottom' }} />

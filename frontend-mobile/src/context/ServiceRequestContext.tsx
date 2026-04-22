@@ -9,7 +9,7 @@ import React, {
 } from 'react';
 import { useAuth } from './AuthContext';
 import {
-  mockRequestsService,
+  requestsService,
   getClientRequests as selectClientRequests,
   getProviderRequests as selectProviderRequests,
 } from '../services/requests';
@@ -48,7 +48,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
   const loadRequests = useCallback(async () => {
     try {
       setError(null);
-      const nextRequests = await mockRequestsService.loadRequests();
+      const nextRequests = await requestsService.loadRequests();
       setRequests(nextRequests);
     } catch (loadError) {
       console.error('Failed to load requests:', loadError);
@@ -76,7 +76,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
       }
 
       const updatedRequests = await handleMutation(() =>
-        mockRequestsService.createServiceRequest(user, data)
+        requestsService.createServiceRequest(user, data)
       );
 
       return updatedRequests[0];
@@ -106,7 +106,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
 
   const selectProvider = useCallback(
     async (requestId: string, providerId: string) => {
-      await handleMutation(() => mockRequestsService.selectProvider(requestId, providerId));
+      await handleMutation(() => requestsService.selectProvider(requestId, providerId));
     },
     [handleMutation]
   );
@@ -117,7 +117,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
         throw new Error('User not authenticated');
       }
 
-      await handleMutation(() => mockRequestsService.acceptRequest(requestId, user));
+      await handleMutation(() => requestsService.acceptRequest(requestId, user));
     },
     [handleMutation, user]
   );
@@ -125,7 +125,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
   const rejectRequest = useCallback(
     async (requestId: string, reason?: string) => {
       await handleMutation(() =>
-        mockRequestsService.rejectRequest(requestId, user?.fullName || 'Provider', reason)
+        requestsService.rejectRequest(requestId, user?.fullName || 'Provider', reason)
       );
     },
     [handleMutation, user?.fullName]
@@ -133,7 +133,7 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
 
   const updateRequestStatus = useCallback(
     async (requestId: string, status: 'in_progress' | 'completed') => {
-      await handleMutation(() => mockRequestsService.updateRequestStatus(requestId, status));
+      await handleMutation(() => requestsService.updateRequestStatus(requestId, status));
     },
     [handleMutation]
   );
@@ -141,14 +141,14 @@ export function ServiceRequestProvider({ children }: { children: ReactNode }) {
   const rateProvider = useCallback(
     async (requestId: string, rating: number, review?: string) => {
       const payload: RequestRatingInput = { requestId, rating, review };
-      await handleMutation(() => mockRequestsService.rateProvider(payload));
+      await handleMutation(() => requestsService.rateProvider(payload));
     },
     [handleMutation]
   );
 
   const cancelRequest = useCallback(
     async (requestId: string) => {
-      await handleMutation(() => mockRequestsService.cancelRequest(requestId));
+      await handleMutation(() => requestsService.cancelRequest(requestId));
     },
     [handleMutation]
   );

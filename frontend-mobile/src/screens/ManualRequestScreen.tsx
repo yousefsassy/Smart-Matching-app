@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,22 +15,18 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { MOCK_NETWORK_DELAYS } from '../constants/appConfig';
-import { colors, spacing, borderRadius, animations, typography, shadows } from '../theme';
+import { colors, spacing, animations, typography, shadows, borderRadius } from '../theme';
 import { useLocationSelection } from '../context/LocationSelectionContext';
 import { useServiceRequests } from '../context/ServiceRequestContext';
 import {
-  ServiceCategory,
-  TimeSlot,
   BudgetRange,
-  ProviderRanking,
+  TimeSlot,
 } from '../types/serviceRequest';
 import { NormalizedLocation } from '../types/location';
 import StepperHeader from '../components/StepperHeader';
 import PrimaryButton from '../components/PrimaryButton';
-import { ChevronLeftIcon } from '../components/Icons';
+import { CheckCircleIcon, ChevronLeftIcon, SparkleIcon } from '../components/Icons';
 import { HomeStackParamList } from '../navigation/MainTabs';
-
 import ServiceTypeStep from '../components/ServiceRequest/ServiceTypeStep';
 import DescribeJobStep, { DescribeJobData } from '../components/ServiceRequest/DescribeJobStep';
 import ScheduleStep, {
@@ -39,65 +35,65 @@ import ScheduleStep, {
   normalizeTimeValue,
 } from '../components/ServiceRequest/ScheduleStep';
 import BudgetStep, { BudgetData, BudgetPreset } from '../components/ServiceRequest/BudgetStep';
-import MatchingScreen from '../components/ServiceRequest/MatchingScreen';
+import {
+  buildManualRequestDraft,
+  getFirstIncompleteManualRequestStep,
+  ManualRequestFormData,
+} from '../features/requestCreation/manualRequestDraft';
 
-type Props = NativeStackScreenProps<HomeStackParamList, 'CreateRequest'>;
+type Props = NativeStackScreenProps<HomeStackParamList, 'ManualRequest'>;
 
 const STEP_LABELS = ['Service', 'Describe', 'Schedule', 'Budget'];
 const TOTAL_STEPS = 4;
 const SCREEN_WIDTH = Dimensions.get('window').width;
 
 const BUDGET_PRESET_RANGES: Record<BudgetPreset, { min: number; max: number }> = {
-  economy:  { min: 50,  max: 150 },
+  economy: { min: 50, max: 150 },
   standard: { min: 150, max: 400 },
-  premium:  { min: 400, max: 800 },
+  premium: { min: 400, max: 800 },
 };
 
-interface FormData {
-  serviceCategory: ServiceCategory | null;
-  describe: DescribeJobData;
-  schedule: ScheduleData;
-  budget: BudgetData;
-}
+export default function ManualRequestScreen({ navigation, route }: Props) {
+  const initialFormData = React.useMemo(
+    () => buildManualRequestDraft(route.params?.prefill),
+    [route.params?.prefill]
+  );
 
-export default function CreateServiceRequestScreen({ navigation }: Props) {
-  const { createServiceRequest, selectProvider } = useServiceRequests();
+  const { createServiceRequest } = useServiceRequests();
   const { consumePendingSelection } = useLocationSelection();
   const insets = useSafeAreaInsets();
-  const completionTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── Step state ─────────────────────────────────────────────────────────────
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(() =>
+    getFirstIncompleteManualRequestStep(initialFormData)
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [formData, setFormData] = useState<ManualRequestFormData>(initialFormData);
 
-  // ── Matching state ─────────────────────────────────────────────────────────
-  const [showMatching, setShowMatching] = useState(false);
-  const [isLoadingProviders, setIsLoadingProviders] = useState(false);
-  const [rankedProviders, setRankedProviders] = useState<ProviderRanking[]>([]);
-  const [selectedProviderId, setSelectedProviderId] = useState<string | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [createdRequestId, setCreatedRequestId] = useState<string | null>(null);
-
-  // ── Form data ──────────────────────────────────────────────────────────────
-  const [formData, setFormData] = useState<FormData>({
-    serviceCategory: null,
-    describe: { description: '', requestLocation: null },
-    schedule: { date: null, startTime: null, endTime: null },
-    budget: { preset: null },
-  });
-
-  // ── Animation refs (mirrors ProviderSignupScreen) ──────────────────────────
   const slideAnim = useRef(new Animated.Value(0)).current;
   const opacityAnim = useRef(new Animated.Value(1)).current;
   const scrollViewRef = useRef<ScrollView>(null);
-  // ── Field change handlers ──────────────────────────────────────────────────
+  const cameFromVoice = route.params?.prefill?.source === 'voice';
 
-  const handleCategoryChange = useCallback((category: ServiceCategory) => {
+  const openLocationPicker = useCallback(() => {
+    navigation.navigate('LocationPicker', {
+      mode: 'request',
+      returnScreen: 'ManualRequest',
+      selectionKey: 'manual-request-location',
+      title: 'Select the request location',
+      initialLocation: formData.describe.requestLocation,
+    });
+  }, [formData.describe.requestLocation, navigation]);
+
+  const handleCategoryChange = useCallback((category: ManualRequestFormData['serviceCategory']) => {
     setFormData((prev) => ({ ...prev, serviceCategory: category }));
     if (errors.serviceCategory) {
-      setErrors((prev) => { const e = { ...prev }; delete e.serviceCategory; return e; });
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next.serviceCategory;
+        return next;
+      });
     }
-  }, [errors]);
+  }, [errors.serviceCategory]);
 
   const handleDescribeChange = useCallback((
     field: keyof DescribeJobData,
@@ -108,13 +104,17 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
       describe: { ...prev.describe, [field]: value },
     }));
     if (errors[field]) {
-      setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
     }
   }, [errors]);
 
   useFocusEffect(
     useCallback(() => {
-      const selection = consumePendingSelection('create-request-location');
+      const selection = consumePendingSelection('manual-request-location');
       if (!selection) {
         return undefined;
       }
@@ -126,6 +126,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
           requestLocation: selection.location,
         },
       }));
+
       setErrors((prev) => {
         if (!prev.requestLocation) {
           return prev;
@@ -147,7 +148,11 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         schedule: { ...prev.schedule, [field]: value },
       }));
       if (errors[field]) {
-        setErrors((prev) => { const e = { ...prev }; delete e[field]; return e; });
+        setErrors((prev) => {
+          const next = { ...prev };
+          delete next[field];
+          return next;
+        });
       }
     },
     [errors]
@@ -163,56 +168,48 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     []
   );
 
-  // ── Per-step validation ────────────────────────────────────────────────────
-
   const validateStep = (step: number): boolean => {
-    const errs: Record<string, string> = {};
+    const nextErrors: Record<string, string> = {};
 
     switch (step) {
-      case 0: {
+      case 0:
         if (!formData.serviceCategory) {
-          errs.serviceCategory = 'Please select a service type to continue';
+          nextErrors.serviceCategory = 'Please select a service type to continue';
         }
         break;
-      }
-      case 1: {
+      case 1:
         if (!formData.describe.description.trim() || formData.describe.description.trim().length < 10) {
-          errs.description = 'Please describe the job (at least 10 characters)';
+          nextErrors.description = 'Please describe the job (at least 10 characters)';
         }
         if (!formData.describe.requestLocation) {
-          errs.requestLocation = 'Please select your location';
+          nextErrors.requestLocation = 'Please select your location';
         }
         break;
-      }
       case 2: {
         const normalizedStart = normalizeTimeValue(formData.schedule.startTime);
         const normalizedEnd = normalizeTimeValue(formData.schedule.endTime);
 
         if (!formData.schedule.date) {
-          errs.date = 'Please select a date';
+          nextErrors.date = 'Please select a date';
         }
         if (!normalizedStart || !normalizedEnd) {
-          errs.timeSlot = 'Please choose both a start time and an end time';
+          nextErrors.timeSlot = 'Please choose both a start time and an end time';
         } else if (normalizedEnd <= normalizedStart) {
-          errs.timeSlot = 'End time must be later than start time';
+          nextErrors.timeSlot = 'End time must be later than start time';
         }
         break;
       }
-      case 3: {
-        // Budget is fully optional — always valid
+      case 3:
         break;
-      }
     }
 
-    setErrors(errs);
-    return Object.keys(errs).length === 0;
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  // ── Step transition animation (copied from ProviderSignupScreen) ───────────
-
   const animateTransition = (direction: 'forward' | 'backward', callback: () => void) => {
-    const exitX  = direction === 'forward' ? -SCREEN_WIDTH * 0.2 :  SCREEN_WIDTH * 0.2;
-    const enterX = direction === 'forward' ?  SCREEN_WIDTH * 0.2 : -SCREEN_WIDTH * 0.2;
+    const exitX = direction === 'forward' ? -SCREEN_WIDTH * 0.2 : SCREEN_WIDTH * 0.2;
+    const enterX = direction === 'forward' ? SCREEN_WIDTH * 0.2 : -SCREEN_WIDTH * 0.2;
 
     Animated.parallel([
       Animated.timing(slideAnim, { toValue: exitX, duration: 150, useNativeDriver: true }),
@@ -227,37 +224,32 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
     });
   };
 
-  // ── Navigation ─────────────────────────────────────────────────────────────
-
   const handleNext = () => {
-    if (!validateStep(currentStep)) return;
+    if (!validateStep(currentStep)) {
+      return;
+    }
 
     if (currentStep < TOTAL_STEPS - 1) {
-      animateTransition('forward', () => setCurrentStep((s) => s + 1));
+      animateTransition('forward', () => setCurrentStep((step) => step + 1));
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    } else {
-      // Last step → trigger matching flow
-      handleFindProviders();
+      return;
     }
+
+    handleFindProviders();
   };
 
   const handleBack = () => {
     if (currentStep > 0) {
-      animateTransition('backward', () => setCurrentStep((s) => s - 1));
+      animateTransition('backward', () => setCurrentStep((step) => step - 1));
       scrollViewRef.current?.scrollTo({ y: 0, animated: false });
-    } else {
-      navigation.goBack();
+      return;
     }
+
+    navigation.goBack();
   };
 
-  // ── Matching flow ──────────────────────────────────────────────────────────
-
   const handleFindProviders = async () => {
-    setShowMatching(true);
-    setIsLoadingProviders(true);
-
     try {
-      // Build TimeSlot
       const { schedule } = formData;
       const normalizedStart = normalizeTimeValue(schedule.startTime);
       const normalizedEnd = normalizeTimeValue(schedule.endTime);
@@ -267,11 +259,9 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         endTime: normalizedEnd!,
       };
 
-      // Build BudgetRange
       let budget: BudgetRange | undefined;
-      const { budget: bd } = formData;
-      if (bd.preset) {
-        budget = { ...BUDGET_PRESET_RANGES[bd.preset], currency: 'TND' };
+      if (formData.budget.preset) {
+        budget = { ...BUDGET_PRESET_RANGES[formData.budget.preset], currency: 'TND' };
       }
 
       const request = await createServiceRequest({
@@ -281,71 +271,11 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
         timeSlot,
         budget,
       });
-      setCreatedRequestId(request.id);
-
-      // Cosmetic delay so the loading animation has time to breathe
-      await new Promise((resolve) => setTimeout(resolve, MOCK_NETWORK_DELAYS.matchingRevealMs));
-
-      if (request.rankedProviders && request.rankedProviders.length > 0) {
-        setRankedProviders(request.rankedProviders);
-      }
+      navigation.replace('MatchingResults', { requestId: request.id });
     } catch {
-      // On error: go back to the stepper
-      setShowMatching(false);
-    } finally {
-      setIsLoadingProviders(false);
+      // Keep the user on the form if submission fails.
     }
   };
-
-  const handleSelectProvider = (providerId: string) => {
-    setSelectedProviderId(providerId);
-  };
-
-  const exitToRequestsTab = useCallback(() => {
-    completionTimeoutRef.current = setTimeout(() => {
-      navigation.popToTop();
-      navigation.getParent()?.navigate('RequestsTab');
-    }, 1200);
-  }, [navigation]);
-
-  React.useEffect(() => {
-    return () => {
-      if (completionTimeoutRef.current) {
-        clearTimeout(completionTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  const handleConfirm = async () => {
-    if (!selectedProviderId || !createdRequestId) return;
-
-    await selectProvider(createdRequestId, selectedProviderId);
-    setShowSuccess(true);
-    exitToRequestsTab();
-  };
-
-  const handleSkip = () => {
-    setShowSuccess(true);
-    exitToRequestsTab();
-  };
-
-  // ── Matching screen ────────────────────────────────────────────────────────
-
-  if (showMatching) {
-    return (
-      <MatchingScreen
-        isLoading={isLoadingProviders}
-        providers={rankedProviders}
-        selectedProviderId={selectedProviderId}
-        showSuccess={showSuccess}
-        onSelectProvider={handleSelectProvider}
-        onConfirm={handleConfirm}
-        onSkip={handleSkip}
-      />
-    );
-  }
-
-  // ── Step content renderer ──────────────────────────────────────────────────
 
   const renderStep = () => {
     switch (currentStep) {
@@ -366,15 +296,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
               requestLocation: errors.requestLocation,
             }}
             onChange={handleDescribeChange}
-            onOpenLocationPicker={() =>
-              navigation.navigate('LocationPicker', {
-                mode: 'request',
-                returnScreen: 'CreateRequest',
-                selectionKey: 'create-request-location',
-                title: 'Select the request location',
-                initialLocation: formData.describe.requestLocation,
-              })
-            }
+            onOpenLocationPicker={openLocationPicker}
           />
         );
       case 2:
@@ -386,18 +308,11 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
           />
         );
       case 3:
-        return (
-          <BudgetStep
-            data={formData.budget}
-            onChange={handleBudgetChange}
-          />
-        );
+        return <BudgetStep data={formData.budget} onChange={handleBudgetChange} />;
       default:
         return null;
     }
   };
-
-  // ── Stepper UI ─────────────────────────────────────────────────────────────
 
   return (
     <KeyboardAvoidingView
@@ -416,10 +331,18 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
             <TouchableOpacity style={styles.backIconButton} onPress={handleBack} activeOpacity={0.82}>
               <ChevronLeftIcon size={18} color={colors.neutral[0]} />
             </TouchableOpacity>
-            <Text style={styles.topMeta}>New request</Text>
+            <Text style={styles.topMeta}>
+              {cameFromVoice ? 'Voice draft ready' : 'Manual request'}
+            </Text>
           </View>
-          <Text style={styles.topTitle}>Create a request</Text>
-          <Text style={styles.topSubtitle}>Search, describe, and book a slot in a few quick steps.</Text>
+          <Text style={styles.topTitle}>
+            {cameFromVoice ? 'Review your request' : 'Fill request manually'}
+          </Text>
+          <Text style={styles.topSubtitle}>
+            {cameFromVoice
+              ? 'We filled in what we heard. You can adjust anything before we look for providers.'
+              : 'Complete the request step by step with clear sections and large controls.'}
+          </Text>
         </LinearGradient>
 
         <ScrollView
@@ -429,6 +352,19 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.sheet}>
+            {cameFromVoice ? (
+              <View style={styles.voiceBanner}>
+                <View style={styles.voiceBannerBadge}>
+                  <CheckCircleIcon size={16} color={colors.accent.cyan} />
+                  <Text style={styles.voiceBannerBadgeText}>Voice draft added</Text>
+                </View>
+                <Text style={styles.voiceBannerTitle}>Your spoken request is ready to review.</Text>
+                <Text style={styles.voiceBannerBody}>
+                  Check the details, add the location, and continue when everything looks right.
+                </Text>
+              </View>
+            ) : null}
+
             <StepperHeader
               currentStep={currentStep}
               totalSteps={TOTAL_STEPS}
@@ -447,7 +383,7 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
 
             <View style={styles.navButtons}>
               <PrimaryButton
-                title={currentStep === 0 ? 'Cancel' : 'Back'}
+                title={currentStep === 0 ? 'Back' : 'Back'}
                 onPress={handleBack}
                 variant="outline"
                 fullWidth={false}
@@ -462,6 +398,15 @@ export default function CreateServiceRequestScreen({ navigation }: Props) {
                 style={styles.nextButton}
               />
             </View>
+
+            {!cameFromVoice ? (
+              <View style={styles.choiceReminder}>
+                <SparkleIcon size={14} color={colors.accent.amber} />
+                <Text style={styles.choiceReminderText}>
+                  Prefer speaking instead? Go back to choose the voice path.
+                </Text>
+              </View>
+            ) : null}
           </View>
         </ScrollView>
       </View>
@@ -508,7 +453,9 @@ const styles = StyleSheet.create({
   },
   topSubtitle: {
     fontSize: typography.size.sm,
-    color: 'rgba(255,255,255,0.7)',
+    lineHeight: typography.lineHeight.sm,
+    color: 'rgba(255,255,255,0.72)',
+    maxWidth: 520,
   },
   scrollContent: {
     flexGrow: 1,
@@ -524,6 +471,44 @@ const styles = StyleSheet.create({
     borderColor: colors.neutral[100],
     ...shadows.card,
   },
+  voiceBanner: {
+    marginBottom: spacing.lg,
+    backgroundColor: colors.surface.raised,
+    borderRadius: 28,
+    padding: spacing.xl,
+    borderWidth: 1,
+    borderColor: colors.neutral[100],
+    ...shadows.card,
+  },
+  voiceBannerBadge: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.successLight,
+    marginBottom: spacing.base,
+  },
+  voiceBannerBadgeText: {
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
+    color: colors.primary[800],
+    fontWeight: typography.weight.semibold,
+  },
+  voiceBannerTitle: {
+    fontSize: typography.size.lg,
+    lineHeight: typography.lineHeight.lg,
+    color: colors.primary[900],
+    fontWeight: typography.weight.bold,
+    marginBottom: spacing.xs,
+  },
+  voiceBannerBody: {
+    fontSize: typography.size.base,
+    lineHeight: typography.lineHeight.base,
+    color: colors.neutral[700],
+  },
   navButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -536,5 +521,18 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1.5,
+  },
+  choiceReminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    justifyContent: 'center',
+  },
+  choiceReminderText: {
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
+    color: colors.neutral[600],
+    textAlign: 'center',
   },
 });

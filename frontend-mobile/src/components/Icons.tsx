@@ -154,6 +154,40 @@ export function PlusIcon({ size = 24, color = colors.neutral[600] }: IconProps) 
   );
 }
 
+export function MicrophoneIcon({ size = 24, color = colors.neutral[600] }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Rect
+        x="9"
+        y="3"
+        width="6"
+        height="11"
+        rx="3"
+        stroke={color}
+        strokeWidth={2}
+      />
+      <Path
+        d="M6 11C6 14.3137 8.68629 17 12 17C15.3137 17 18 14.3137 18 11"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M12 17V21"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+      <Path
+        d="M9 21H15"
+        stroke={color}
+        strokeWidth={2}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 export function CheckIcon({ size = 24, color = colors.neutral[600] }: IconProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">

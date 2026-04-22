@@ -35,7 +35,8 @@
         {
           "locationWhenInUsePermission": "Allow TawTaw to access your location to place service requests and provider service areas on the map."
         }
-      ]
+      ],
+      "expo-audio"
     ]
   }
 }

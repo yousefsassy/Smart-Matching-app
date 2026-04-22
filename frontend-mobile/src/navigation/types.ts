@@ -1,4 +1,5 @@
 import { LocationPickerRouteParams, LocationPickerSelectionParams } from './locationPicker';
+import { ServiceCategory } from '../types/serviceRequest';
 
 export type MainTabParamList = {
   HomeTab: undefined;
@@ -11,7 +12,15 @@ export type HomeStackParamList = {
   Dashboard: undefined;
   MyRequests: undefined;
   IncomingRequests: undefined;
-  CreateRequest: LocationPickerSelectionParams | undefined;
+  CreateRequest: undefined;
+  VoiceRequest:
+    | {
+        autoStart?: boolean;
+        source?: 'dashboard-fab' | 'create-request';
+      }
+    | undefined;
+  ManualRequest: { prefill?: ManualRequestPrefillParams } | undefined;
+  MatchingResults: { requestId: string };
   LocationPicker: LocationPickerRouteParams;
   RequestDetail: { requestId: string };
   RateProvider: { requestId: string };
@@ -26,4 +35,21 @@ export type AuthStackParamList = {
   LocationPicker: LocationPickerRouteParams;
 };
 
-export const TAB_HIDDEN_ROUTES = new Set(['CreateRequest', 'LocationPicker', 'RequestDetail', 'RateProvider']);
+export interface ManualRequestPrefillParams {
+  serviceCategory?: ServiceCategory | null;
+  description?: string;
+  scheduleDateIso?: string | null;
+  startTime?: string | null;
+  endTime?: string | null;
+  source?: 'voice';
+}
+
+export const TAB_HIDDEN_ROUTES = new Set([
+  'CreateRequest',
+  'VoiceRequest',
+  'ManualRequest',
+  'MatchingResults',
+  'LocationPicker',
+  'RequestDetail',
+  'RateProvider',
+]);

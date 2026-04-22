@@ -32,6 +32,7 @@ import {
   SearchIcon,
   CalendarIcon,
   TawTawMarkIcon,
+  MicrophoneIcon,
 } from '../components/Icons';
 
 type NavigationProp = NativeStackNavigationProp<HomeStackParamList>;
@@ -107,6 +108,27 @@ export default function ClientDashboardScreen() {
 
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>{firstName}, what do you need today?</Text>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="Start voice request"
+              accessibilityHint="Opens the voice request flow and starts listening for your request."
+              activeOpacity={0.9}
+              onPress={() =>
+                navigation.navigate('VoiceRequest', {
+                  autoStart: true,
+                  source: 'dashboard-fab',
+                })
+              }
+              style={styles.voiceShortcut}
+            >
+              <View style={styles.voiceShortcutIcon}>
+                <MicrophoneIcon size={14} color={colors.neutral[0]} />
+              </View>
+              <View style={styles.voiceShortcutCopy}>
+                <Text style={styles.voiceShortcutEyebrow}>Voice</Text>
+                <Text style={styles.voiceShortcutLabel}>Speak your request</Text>
+              </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.heroMetrics}>
@@ -317,11 +339,49 @@ const styles = StyleSheet.create({
   heroCopy: {
     maxWidth: 340,
     marginBottom: spacing.xl,
+    gap: spacing.lg,
   },
   heroTitle: {
     fontSize: 34,
     lineHeight: 38,
     letterSpacing: -0.9,
+    color: colors.neutral[0],
+    fontWeight: typography.weight.bold,
+  },
+  voiceShortcut: {
+    alignSelf: 'flex-start',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.14)',
+  },
+  voiceShortcutIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: borderRadius.full,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  voiceShortcutCopy: {
+    gap: 2,
+  },
+  voiceShortcutEyebrow: {
+    fontSize: typography.size.xs,
+    lineHeight: typography.lineHeight.xs,
+    color: 'rgba(255,255,255,0.66)',
+    fontWeight: typography.weight.semibold,
+    letterSpacing: typography.letterSpacing.wide,
+    textTransform: 'uppercase',
+  },
+  voiceShortcutLabel: {
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
     color: colors.neutral[0],
     fontWeight: typography.weight.bold,
   },

@@ -1,7 +1,7 @@
 import { NormalizedLocation } from '../types/location';
 
 export type LocationPickerMode = 'provider' | 'request';
-export type LocationPickerReturnScreen = 'ProviderSignup' | 'CreateRequest';
+export type LocationPickerReturnScreen = 'ProviderSignup' | 'CreateRequest' | 'ManualRequest' | 'VoiceRequest';
 
 export interface LocationPickerRouteParams {
   mode: LocationPickerMode;
