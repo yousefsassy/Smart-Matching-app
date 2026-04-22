@@ -1,6 +1,7 @@
 const Job = require("../models/Job");
 const ServiceRequest = require("../models/ServiceRequest");
 const User = require("../models/user");
+const { restoreProviderAvailability } = require("./providerAvailability");
 
 const createError = (status, message) => ({ status, message });
 
@@ -29,16 +30,10 @@ exports.completeJob = async (providerId, jobId) => {
   job.status = "completed";
   await job.save();
 
-  // request.status = "completed";
-  // await request.save();
+  request.status = "completed";
+  await request.save();
 
-  // const provider = await User.findById(providerId);
-  // if (provider?.providerDetails) {
-  //   provider.providerDetails.completedJobs += 1;
-  //   await provider.save();
-  // }
-
-  // const client = await User.findById(job.client).select("expoPushToken");
+  const client = await User.findById(job.client).select("expoPushToken");
 
   return {
     message: "Job completed successfully",
@@ -71,32 +66,22 @@ exports.rateJob = async (clientId, jobId, rating, review = "") => {
     throw createError(400, "This job has already been rated");
   }
 
-  const provider = await User.findById(job.provider);
-  if (!provider?.providerDetails) {
-    throw createError(404, "Provider not found");
-  }
-
   job.rating = numericRating;
   job.review = typeof review === "string" ? review.trim() : "";
   await job.save();
 
-  const details = provider.providerDetails;
-  const nextCount = details.ratingCount + 1;
-  details.trustScore = Number(
-    ((details.trustScore * details.ratingCount + numericRating) / nextCount).toFixed(
-      2
-    )
-  );
-  details.ratingCount = nextCount;
-  await provider.save();
+  const provider = await User.findById(job.provider);
+  if (!provider?.providerDetails) {
+    throw createError(404, "Provider not found");
+  }
 
   return {
     message: "Job rated successfully",
     job,
     provider: {
       id: provider._id,
-      trustScore: details.trustScore,
-      ratingCount: details.ratingCount,
+      trustScore: provider.providerDetails.trustScore,
+      ratingCount: provider.providerDetails.ratingCount,
     },
   };
 };
@@ -117,6 +102,8 @@ exports.cancelJob = async (userId, jobId) => {
 
   job.status = "cancelled";
   await job.save();
+
+  await restoreProviderAvailability(job.provider, job.availabilitySnapshot);
 
   request.status = "cancelled";
   await request.save();

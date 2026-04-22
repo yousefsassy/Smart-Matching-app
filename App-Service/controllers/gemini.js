@@ -5,28 +5,25 @@ exports.matchProviders = async (req, res, next) => {
     const body = req.body || {};
     const candidates = req.candidates || body.candidates;
     const serviceRequest = req.serviceRequest || body.serviceRequest || null;
-    const saveMatchesToDb = Boolean(req.params.id);
-    const serviceRequestId =
-      req.params.id ||
-      body.serviceRequestId ||
-      serviceRequest?._id ||
-      serviceRequest?.id ||
-      null;
     const topK = body.top_k || body.topK || 3;
 
     if (!Array.isArray(candidates)) {
       return res.status(400).json({ error: "candidates must be an array" });
     }
 
-    if (saveMatchesToDb && !serviceRequestId) {
-      return res.status(400).json({ error: "serviceRequestId is required" });
+    if (candidates.length === 0) {
+      return res.status(200).json({
+        success: true,
+        top_providers: [],
+        message: "No providers available",
+        matchesCreated: 0,
+        saved: false,
+      });
     }
 
     const result = await matchProvidersWithGemini({
       candidates,
       serviceRequest,
-      serviceRequestId,
-      saveMatchesToDb,
       topK,
     });
 

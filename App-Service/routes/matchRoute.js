@@ -3,6 +3,7 @@ const router = express.Router();
 
 const {
   generateMatches,
+  getInvitations,
   selectMatch,
   respondToMatch,
   expireMatch,
@@ -30,6 +31,13 @@ router.get(
   isAuth,
   isAutho(["client", "admin"]),
   getMatchesByRequest
+);
+
+router.get(
+  "/invitations",
+  isAuth,
+  isAutho(["provider"]),
+  getInvitations
 );
 
 // -----------------------------

@@ -2,13 +2,24 @@ const Match = require("../models/Match");
 const Job = require("../models/Job");
 const ServiceRequest = require("../models/ServiceRequest");
 const User = require("../models/user");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
-
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+const { rankProvidersWithGemini } = require("./gemini");
+const {
+  bookProviderAvailability,
+  restoreProviderAvailability,
+} = require("./providerAvailability");
 
 const createError = (status, message) => ({ status, message });
+const DEFAULT_MATCH_RESPONSE_TTL_MINUTES = 30;
+
+const getMatchResponseTtlMs = () => {
+  const configuredMinutes = Number(process.env.MATCH_RESPONSE_TTL_MINUTES);
+  const ttlMinutes =
+    Number.isFinite(configuredMinutes) && configuredMinutes > 0
+      ? configuredMinutes
+      : DEFAULT_MATCH_RESPONSE_TTL_MINUTES;
+
+  return ttlMinutes * 60 * 1000;
+};
 
 const toMinutes = (time) => {
   const [hours, minutes] = String(time).split(":").map(Number);
@@ -56,6 +67,20 @@ const haversineKm = (fromCoordinates, toCoordinates) => {
   return Number((2 * earthRadiusKm * Math.asin(Math.sqrt(a))).toFixed(2));
 };
 
+const computeSkillOverlap = (providerSkills, serviceType) => {
+  if (!Array.isArray(providerSkills) || providerSkills.length === 0 || !serviceType) {
+    return 0;
+  }
+
+  const target = String(serviceType).toLowerCase();
+  const matches = providerSkills.filter((skill) => {
+    const normalizedSkill = String(skill).toLowerCase();
+    return normalizedSkill.includes(target) || target.includes(normalizedSkill);
+  });
+
+  return Number((matches.length / providerSkills.length).toFixed(2));
+};
+
 const buildFallbackReasoning = (candidate) => {
   const parts = [
     `trustScore=${candidate.trustScore.toFixed(2)}`,
@@ -100,108 +125,6 @@ const getDeterministicRanking = (candidates) =>
       ),
       reasoning: buildFallbackReasoning(candidate),
     }));
-
-const buildRankingPrompt = (request, candidates) => `
-You are ranking providers for a service marketplace.
-
-Rules:
-- Output JSON only.
-- Return an array with at most 3 items.
-- Prioritize higher trustScore strongly before secondary factors.
-- Prefer closer providers when trustScore is similar.
-- Include providerId, numeric score, and short reasoning.
-
-SERVICE_REQUEST:
-${JSON.stringify(
-  {
-    id: request._id,
-    serviceType: request.serviceType,
-    description: request.description,
-    date: request.date,
-    timeWindow: request.timeWindow,
-    budget: request.budget,
-    location: request.location,
-  },
-  null,
-  2
-)}
-
-CANDIDATES:
-${JSON.stringify(
-  candidates.map((candidate) => ({
-    providerId: String(candidate.provider._id),
-    name: candidate.provider.name,
-    trustScore: candidate.trustScore,
-    experienceYears: candidate.experienceYears,
-    distanceKm: Number.isFinite(candidate.distanceKm)
-      ? candidate.distanceKm
-      : null,
-    fieldOfService: candidate.provider.providerDetails?.fieldOfService,
-  })),
-  null,
-  2
-)}
-
-Return ONLY this JSON shape:
-[
-  {
-    "providerId": "string",
-    "score": 97.5,
-    "reasoning": "short explanation"
-  }
-]
-`;
-
-const parseGeminiJson = (text) => {
-  const normalized = String(text)
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim();
-
-  return JSON.parse(normalized);
-};
-
-const getGeminiRanking = async (request, candidates) => {
-  if (!genAI) return null;
-
-  const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-flash-latest",
-  });
-
-  const response = await model.generateContent(
-    buildRankingPrompt(request, candidates)
-  );
-
-  const ranked = parseGeminiJson(response.response.text());
-  const candidateById = new Map(
-    candidates.map((candidate) => [String(candidate.provider._id), candidate])
-  );
-  const uniqueRanked = [];
-  const seen = new Set();
-
-  for (const item of Array.isArray(ranked) ? ranked : []) {
-    const providerId = String(item?.providerId || "");
-
-    if (!candidateById.has(providerId) || seen.has(providerId)) continue;
-
-    uniqueRanked.push({
-      providerId,
-      score:
-        typeof item.score === "number" && Number.isFinite(item.score)
-          ? Number(item.score.toFixed(2))
-          : 0,
-      reasoning:
-        typeof item.reasoning === "string" && item.reasoning.trim()
-          ? item.reasoning.trim()
-          : buildFallbackReasoning(candidateById.get(providerId)),
-    });
-    seen.add(providerId);
-  }
-
-  return uniqueRanked;
-};
 
 const finalizeTopThree = (rankedProviders, candidates) => {
   const fallback = getDeterministicRanking(candidates);
@@ -254,6 +177,11 @@ const getEligibleCandidates = async (request) => {
     .map((provider) => ({
       provider,
       trustScore: provider.providerDetails?.trustScore || 0,
+      skillOverlap: computeSkillOverlap(
+        provider.providerDetails?.skills,
+        request.serviceType
+      ),
+      completedJobs: provider.providerDetails?.completedJobs || 0,
       experienceYears: provider.providerDetails?.experienceYears || 0,
       distanceKm: haversineKm(
         request.location?.geo?.coordinates,
@@ -281,6 +209,33 @@ const setPostSelectionStatus = async (serviceRequestId) => {
     { status: nextStatus },
     { new: true }
   );
+};
+
+const isMatchPastResponseTtl = (match, now = new Date()) => {
+  if (match.status !== "selected" || !match.notifiedAt) return false;
+  return now.getTime() > new Date(match.notifiedAt).getTime() + getMatchResponseTtlMs();
+};
+
+const expireMatchDocument = async (match) => {
+  match.status = "expired";
+  match.selected = false;
+  await match.save();
+
+  const serviceRequest = match.serviceRequest?._id
+    ? match.serviceRequest
+    : await ServiceRequest.findById(match.serviceRequest);
+  const updatedRequest = await setPostSelectionStatus(serviceRequest._id);
+  const client = await User.findById(serviceRequest.client).select("expoPushToken");
+
+  return {
+    message: "Match expired successfully",
+    match,
+    request: updatedRequest,
+    notification: {
+      clientToken: client?.expoPushToken || null,
+      requestId: serviceRequest._id,
+    },
+  };
 };
 
 const hasActiveOverlappingJob = async (providerId, request) => {
@@ -326,7 +281,11 @@ exports.generateMatches = async (requestId) => {
   let usedFallback = false;
 
   try {
-    rankedProviders = await getGeminiRanking(request, candidates);
+    rankedProviders = await rankProvidersWithGemini({
+      serviceRequest: request,
+      candidates,
+      topK: 3,
+    });
     if (!rankedProviders?.length) {
       usedFallback = true;
       rankedProviders = [];
@@ -473,17 +432,39 @@ exports.respondToMatch = async (matchId, providerId, action) => {
     throw createError(400, "Provider already has an active job on this date");
   }
 
-  match.status = "accepted";
-  await match.save();
+  let availabilitySnapshot = null;
+  let job = null;
 
-  const job = await Job.create({
-    serviceRequest: request._id,
-    match: match._id,
-    client: request.client,
-    provider: providerId,
-    date: request.date,
-    timeWindow: request.timeWindow,
-  });
+  try {
+    availabilitySnapshot = await bookProviderAvailability(
+      providerId,
+      request.date,
+      request.timeWindow
+    );
+
+    match.status = "accepted";
+    await match.save();
+
+    job = await Job.create({
+      serviceRequest: request._id,
+      match: match._id,
+      client: request.client,
+      provider: providerId,
+      date: request.date,
+      timeWindow: request.timeWindow,
+      availabilitySnapshot,
+    });
+  } catch (error) {
+    if (availabilitySnapshot) {
+      await restoreProviderAvailability(providerId, availabilitySnapshot);
+    }
+    if (!job && match.status === "accepted") {
+      match.status = "selected";
+      match.selected = true;
+      await match.save();
+    }
+    throw error;
+  }
 
   await Match.updateMany(
     {
@@ -517,23 +498,37 @@ exports.expireMatch = async (matchId) => {
     throw createError(400, "Only pending or selected matches can expire");
   }
 
-  match.status = "expired";
-  match.selected = false;
-  await match.save();
+  return expireMatchDocument(match);
+};
 
-  const updatedRequest = await setPostSelectionStatus(match.serviceRequest._id);
-  const client = await User.findById(match.serviceRequest.client).select(
-    "expoPushToken"
-  );
+exports.getInvitations = async (providerId) => {
+  const selectedMatches = await Match.find({
+    provider: providerId,
+    status: "selected",
+  })
+    .sort({ notifiedAt: 1, createdAt: 1 })
+    .populate("serviceRequest");
+
+  const now = new Date();
+  const invitations = [];
+  const expired = [];
+  const notifications = [];
+
+  for (const match of selectedMatches) {
+    if (isMatchPastResponseTtl(match, now)) {
+      const result = await expireMatchDocument(match);
+      expired.push(result.match);
+      notifications.push(result.notification);
+    } else {
+      invitations.push(match);
+    }
+  }
 
   return {
-    message: "Match expired successfully",
-    match,
-    request: updatedRequest,
-    notification: {
-      clientToken: client?.expoPushToken || null,
-      requestId: match.serviceRequest._id,
-    },
+    invitations,
+    expired,
+    notifications,
+    ttlMinutes: getMatchResponseTtlMs() / 60000,
   };
 };
 

@@ -26,6 +26,30 @@ exports.getMatchesByRequest = async (req, res) => {
   }
 };
 
+exports.getInvitations = async (req, res) => {
+  try {
+    const result = await matchService.getInvitations(req.user.id);
+    const { notifications, ...payload } = result;
+
+    for (const notification of notifications || []) {
+      if (!notification?.clientToken) continue;
+
+      try {
+        await sendProviderUnavailableAlert(
+          notification.clientToken,
+          notification.requestId
+        );
+      } catch (error) {
+        console.error("sendProviderUnavailableAlert failed:", error.message);
+      }
+    }
+
+    return res.json(payload);
+  } catch (error) {
+    return handleError(res, error);
+  }
+};
+
 exports.selectMatch = async (req, res) => {
   try {
     const result = await matchService.selectMatch(req.params.matchId, req.user.id);

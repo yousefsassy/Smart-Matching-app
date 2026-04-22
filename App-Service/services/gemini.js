@@ -1,14 +1,31 @@
 const axios = require("axios");
-const mongoose = require("mongoose");
-const Match = require("../models/Match");
-const ServiceRequest = require("../models/ServiceRequest");
 const systemPrompt = require("../utils/systemPrompt");
 require("dotenv").config();
 
-const GEMINI_API_URL = process.env.GEMINI_API_URL ;
-const DEFAULT_MODEL = process.env.GEMINI_MODEL ;
+const MAX_TOP_PROVIDERS = 3;
+const DEFAULT_GEMINI_TIMEOUT_MS = 15000;
 
-//*********************** PARSE AND NORMALIZE GEMINI RESPONSE *************************
+function getGeminiTimeoutMs() {
+  const configuredTimeout = Number(process.env.GEMINI_TIMEOUT_MS);
+  return Number.isFinite(configuredTimeout) && configuredTimeout > 0
+    ? configuredTimeout
+    : DEFAULT_GEMINI_TIMEOUT_MS;
+}
+
+function requireGeminiConfig() {
+  const apiKey = process.env.GEMINI_API_KEY;
+  const baseUrl = process.env.GEMINI_BASE_URL;
+  const model = process.env.GEMINI_MODEL;
+
+  if (!apiKey) throw new Error("GEMINI_API_KEY is not configured");
+  if (!baseUrl) throw new Error("GEMINI_BASE_URL is not configured");
+  if (!model) throw new Error("GEMINI_MODEL is not configured");
+
+  return {
+    apiKey,
+    url: `${baseUrl.replace(/\/$/, "")}/models/${model}:generateContent`,
+  };
+}
 
 function parseGeminiJson(text) {
   if (!text || typeof text !== "string") {
@@ -29,79 +46,161 @@ function parseGeminiJson(text) {
   }
 }
 
-//*********************Normalize HTTP Response****************
+function toNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
 
-function normalizeTopProviders(result) {
+function clamp(value, min, max) {
+  return Math.min(max, Math.max(min, value));
+}
+
+function sanitizeServiceRequest(serviceRequest) {
+  if (!serviceRequest) return null;
+
+  return {
+    id: String(serviceRequest._id || serviceRequest.id || ""),
+    serviceType: serviceRequest.serviceType,
+    description: serviceRequest.description || "",
+    date: serviceRequest.date,
+    timeWindow: serviceRequest.timeWindow,
+    budget: serviceRequest.budget,
+    location: {
+      regionText: serviceRequest.location?.regionText || "",
+    },
+  };
+}
+
+function getCandidateId(candidate) {
+  return String(
+    candidate.provider_id ||
+      candidate.providerId ||
+      candidate.provider?._id ||
+      candidate._id ||
+      ""
+  );
+}
+
+function sanitizeCandidate(candidate) {
+  const provider = candidate.provider || {};
+  const providerDetails = provider.providerDetails || {};
+  const providerId = getCandidateId(candidate);
+  const distanceKm =
+    candidate.distance_km !== undefined ? candidate.distance_km : candidate.distanceKm;
+  const skillOverlap =
+    candidate.skill_overlap !== undefined ? candidate.skill_overlap : candidate.skillOverlap;
+  const trustScore =
+    candidate.trust_score !== undefined ? candidate.trust_score : candidate.trustScore;
+  const completedJobs =
+    candidate.completed_jobs !== undefined
+      ? candidate.completed_jobs
+      : providerDetails.completedJobs;
+  const experienceYears =
+    candidate.experience_years !== undefined
+      ? candidate.experience_years
+      : candidate.experienceYears;
+  const isAvailable =
+    candidate.is_available !== undefined
+      ? candidate.is_available
+      : providerDetails.isAvailable === false
+        ? 0
+        : 1;
+
+  return {
+    provider_id: providerId,
+    name: String(candidate.name || provider.name || ""),
+    distance_km: Number.isFinite(Number(distanceKm)) ? Number(distanceKm) : null,
+    field_match: Number(candidate.field_match ?? 1),
+    skill_overlap: clamp(toNumber(skillOverlap, 0), 0, 1),
+    trust_score: clamp(toNumber(trustScore, 0), 0, 5),
+    completed_jobs: Math.max(0, Math.trunc(toNumber(completedJobs, 0))),
+    experience_years: Math.max(0, Math.trunc(toNumber(experienceYears, 0))),
+    is_available: Number(isAvailable) === 1 ? 1 : 0,
+  };
+}
+
+function scoreToInternalScore(value) {
+  const score = toNumber(value, 0);
+  return Number((score <= 1 ? score * 100 : score).toFixed(2));
+}
+
+function normalizeTopProviders(result, sanitizedCandidates, topK) {
   if (!result || !Array.isArray(result.top_providers)) {
     throw new Error("Gemini response must include top_providers array");
   }
 
-  return {
-    top_providers: result.top_providers.map((provider, index) => ({
-      ...provider,
-      rank: Number(provider.rank) || index + 1,
-      predicted_score: Number(provider.predicted_score),
-    })),
-  };
-}
-
-//*********************SAVE MATCHES TO DB****************
-
-async function saveMatches(serviceRequestId, topProviders) {
-  if (!serviceRequestId || !mongoose.Types.ObjectId.isValid(serviceRequestId)) {
-    throw new Error("A valid serviceRequestId is required to save matches");
-  }
-
-  const invalidProvider = topProviders.find(
-    (provider) => !mongoose.Types.ObjectId.isValid(provider.provider_id)
+  const candidateById = new Map(
+    sanitizedCandidates.map((candidate) => [candidate.provider_id, candidate])
   );
+  const seen = new Set();
+  const maxItems = Math.min(MAX_TOP_PROVIDERS, Number(topK) || MAX_TOP_PROVIDERS);
+  const ranked = [];
 
-  if (invalidProvider) {
-    throw new Error(`Invalid provider_id returned by Gemini: ${invalidProvider.provider_id}`);
+  for (const provider of result.top_providers) {
+    const providerId = String(provider?.provider_id || provider?.providerId || "");
+
+    if (!candidateById.has(providerId)) continue;
+    if (seen.has(providerId)) continue;
+
+    const predictedScore = Number(provider.predicted_score ?? provider.score);
+    if (!Number.isFinite(predictedScore)) {
+      throw new Error(`Gemini returned nonnumeric score for provider ${providerId}`);
+    }
+
+    const original = candidateById.get(providerId);
+    ranked.push({
+      providerId,
+      score: scoreToInternalScore(predictedScore),
+      reasoning:
+        typeof provider.match_reason === "string" && provider.match_reason.trim()
+          ? provider.match_reason.trim()
+          : "Ranked by Gemini using trust, skills, distance, and experience.",
+      geminiProvider: {
+        ...original,
+        predicted_score: Number(predictedScore.toFixed(4)),
+        rank: ranked.length + 1,
+        match_reason:
+          typeof provider.match_reason === "string"
+            ? provider.match_reason.trim()
+            : "",
+      },
+    });
+    seen.add(providerId);
+
+    if (ranked.length >= maxItems) break;
   }
 
-  const matchDocs = topProviders.map((provider) => ({
-    serviceRequest: serviceRequestId,
-    provider: provider.provider_id,
-    score: provider.predicted_score,
-    rank: provider.rank,
-    selected: false,
-    notified: false,
-    skillOverlapSnapshot: provider.skill_overlap || 0,
-    distanceKmSnapshot:
-      provider.distance_km === undefined || provider.distance_km === null
-        ? null
-        : provider.distance_km,
-  }));
-
-  const matches = await Match.insertMany(matchDocs);
-  await ServiceRequest.findByIdAndUpdate(serviceRequestId, { status: "matched" });
-  return matches;
+  return ranked;
 }
 
-//*********************MAIN FUNCTION TO MATCH PROVIDERS WITH GEMINI****************
-
-async function matchProvidersWithGemini({
-  candidates,
+async function rankProvidersWithGemini({
   serviceRequest = null,
-  serviceRequestId,
-  saveMatchesToDb = false,
-  topK = 3,
+  candidates,
+  topK = MAX_TOP_PROVIDERS,
 }) {
   if (!Array.isArray(candidates)) {
     throw new Error("candidates must be an array");
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    throw new Error("GEMINI_API_KEY is not configured");
+  const sanitizedCandidates = candidates
+    .map(sanitizeCandidate)
+    .filter((candidate) => candidate.provider_id);
+
+  if (sanitizedCandidates.length === 0) {
+    return [];
   }
 
-  const model = DEFAULT_MODEL;
-  const url = `${GEMINI_API_URL}/models/${model}:generateContent`;
+  const { apiKey, url } = requireGeminiConfig();
+  const requestedTopK = Math.min(
+    MAX_TOP_PROVIDERS,
+    Math.max(1, Number(topK) || MAX_TOP_PROVIDERS),
+    sanitizedCandidates.length
+  );
+
   const input = {
-    top_k: Number(topK) || 3,
-    service_request: serviceRequest,
-    candidates,
+    top_k: requestedTopK,
+    service_request: sanitizeServiceRequest(serviceRequest),
+    candidates: sanitizedCandidates,
   };
 
   const response = await axios.post(
@@ -113,11 +212,7 @@ async function matchProvidersWithGemini({
       contents: [
         {
           role: "user",
-          parts: [
-            {
-              text: JSON.stringify(input),
-            },
-          ],
+          parts: [{ text: JSON.stringify(input) }],
         },
       ],
       generationConfig: {
@@ -127,32 +222,42 @@ async function matchProvidersWithGemini({
       },
     },
     {
+      timeout: getGeminiTimeoutMs(),
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": process.env.GEMINI_API_KEY,
+        "x-goog-api-key": apiKey,
       },
     }
   );
 
   const text = response.data?.candidates?.[0]?.content?.parts?.[0]?.text;
   const parsed = parseGeminiJson(text);
-  const result = normalizeTopProviders(parsed);
+  return normalizeTopProviders(parsed, sanitizedCandidates, requestedTopK);
+}
 
-  if (!saveMatchesToDb) {
-    return {
-      ...result,
-      matchesCreated: 0,
-      saved: false,
-    };
-  }
-
-  const matches = await saveMatches(serviceRequestId, result.top_providers);
+async function matchProvidersWithGemini({
+  candidates,
+  serviceRequest = null,
+  topK = MAX_TOP_PROVIDERS,
+}) {
+  const ranked = await rankProvidersWithGemini({
+    serviceRequest,
+    candidates,
+    topK,
+  });
 
   return {
-    ...result,
-    matchesCreated: matches.length,
-    saved: true,
+    top_providers: ranked.map((provider, index) => ({
+      ...provider.geminiProvider,
+      rank: index + 1,
+    })),
+    message: ranked.length ? "Providers ranked successfully" : "No providers available",
+    matchesCreated: 0,
+    saved: false,
   };
 }
 
-module.exports = { matchProvidersWithGemini };
+module.exports = {
+  rankProvidersWithGemini,
+  matchProvidersWithGemini,
+};
