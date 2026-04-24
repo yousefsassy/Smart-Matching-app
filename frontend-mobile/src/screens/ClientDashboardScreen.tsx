@@ -108,28 +108,48 @@ export default function ClientDashboardScreen() {
 
           <View style={styles.heroCopy}>
             <Text style={styles.heroTitle}>{firstName}, what do you need today?</Text>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="Start voice request"
-              accessibilityHint="Opens the voice request flow and starts listening for your request."
-              activeOpacity={0.9}
-              onPress={() =>
-                navigation.navigate('VoiceRequest', {
-                  autoStart: true,
-                  source: 'dashboard-fab',
-                })
-              }
-              style={styles.voiceShortcut}
-            >
-              <View style={styles.voiceShortcutIcon}>
-                <MicrophoneIcon size={14} color={colors.neutral[0]} />
-              </View>
-              <View style={styles.voiceShortcutCopy}>
-                <Text style={styles.voiceShortcutEyebrow}>Voice</Text>
-                <Text style={styles.voiceShortcutLabel}>Speak your request</Text>
-              </View>
-            </TouchableOpacity>
           </View>
+
+          {/* ── Voice Request Hero Card ─────────────────────────────────────── */}
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Start voice request"
+            accessibilityHint="Opens the voice request flow and starts listening for your request."
+            activeOpacity={0.86}
+            onPress={() =>
+              navigation.navigate('VoiceRequest', {
+                autoStart: true,
+                source: 'dashboard-fab',
+              })
+            }
+            style={styles.voiceHeroCard}
+          >
+            <View style={styles.voiceHeroInner}>
+              {/* Mic orb with static pulse rings */}
+              <View style={styles.voiceOrbWrap}>
+                <View style={styles.voicePulse3} />
+                <View style={styles.voicePulse2} />
+                <View style={styles.voicePulse1} />
+                <View style={styles.voiceOrb}>
+                  <MicrophoneIcon size={24} color={colors.accent.amber} />
+                </View>
+              </View>
+
+              {/* Text */}
+              <View style={styles.voiceHeroCopy}>
+                <Text style={styles.voiceHeroEyebrow}>VOICE REQUEST</Text>
+                <Text style={styles.voiceHeroTitle}>Speak your request</Text>
+                <Text style={styles.voiceHeroSub}>
+                  Just say what you need — we'll find the right provider
+                </Text>
+              </View>
+
+              {/* Arrow */}
+              <View style={styles.voiceHeroArrow}>
+                <ChevronRightIcon size={18} color="rgba(207,152,49,0.85)" />
+              </View>
+            </View>
+          </TouchableOpacity>
 
           <View style={styles.heroMetrics}>
             <MetricPill value={String(requests.length).padStart(2, '0')} label="All requests" />
@@ -259,6 +279,7 @@ export default function ClientDashboardScreen() {
           )}
         </View>
       </ScrollView>
+
     </View>
   );
 }
@@ -337,9 +358,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent.coral,
   },
   heroCopy: {
-    maxWidth: 340,
-    marginBottom: spacing.xl,
-    gap: spacing.lg,
+    marginBottom: spacing.lg,
   },
   heroTitle: {
     fontSize: 34,
@@ -348,42 +367,86 @@ const styles = StyleSheet.create({
     color: colors.neutral[0],
     fontWeight: typography.weight.bold,
   },
-  voiceShortcut: {
-    alignSelf: 'flex-start',
+
+  // ── Voice hero card ────────────────────────────────────────────────────────
+  voiceHeroCard: {
+    marginBottom: spacing.xl,
+    borderRadius: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(207,152,49,0.3)',
+    backgroundColor: 'rgba(207,152,49,0.10)',
+  },
+  voiceHeroInner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    paddingVertical: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    gap: spacing.lg,
   },
-  voiceShortcutIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: borderRadius.full,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+  voiceOrbWrap: {
+    width: 64,
+    height: 64,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
-  voiceShortcutCopy: {
-    gap: 2,
+  voicePulse3: {
+    position: 'absolute',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(207,152,49,0.08)',
   },
-  voiceShortcutEyebrow: {
-    fontSize: typography.size.xs,
-    lineHeight: typography.lineHeight.xs,
-    color: 'rgba(255,255,255,0.66)',
-    fontWeight: typography.weight.semibold,
-    letterSpacing: typography.letterSpacing.wide,
+  voicePulse2: {
+    position: 'absolute',
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(207,152,49,0.13)',
+  },
+  voicePulse1: {
+    position: 'absolute',
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(207,152,49,0.18)',
+  },
+  voiceOrb: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(207,152,49,0.22)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(207,152,49,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+  },
+  voiceHeroCopy: {
+    flex: 1,
+    gap: 3,
+  },
+  voiceHeroEyebrow: {
+    fontSize: 10,
+    letterSpacing: 1.2,
+    fontWeight: typography.weight.bold,
+    color: 'rgba(207,152,49,0.75)',
     textTransform: 'uppercase',
   },
-  voiceShortcutLabel: {
-    fontSize: typography.size.sm,
-    lineHeight: typography.lineHeight.sm,
-    color: colors.neutral[0],
+  voiceHeroTitle: {
+    fontSize: typography.size.base,
     fontWeight: typography.weight.bold,
+    color: colors.neutral[0],
+    letterSpacing: -0.3,
+  },
+  voiceHeroSub: {
+    fontSize: typography.size.xs,
+    color: 'rgba(255,255,255,0.55)',
+    lineHeight: 16,
+  },
+  voiceHeroArrow: {
+    flexShrink: 0,
   },
   heroMetrics: {
     flexDirection: 'row',
