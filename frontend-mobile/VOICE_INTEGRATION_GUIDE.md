@@ -28,6 +28,8 @@ EXPO_PUBLIC_VOICE_BACKEND_URL=http://localhost:3030
 EXPO_PUBLIC_REQUESTS_RUNTIME=mock
 ```
 
+If you test from a physical device, replace `localhost` with your computer's current LAN IP, for example `http://192.168.0.28:3030`.
+
 ### Option 2: Gemini fallback
 
 Use this when the voice backend is not running but a developer has a Gemini key.

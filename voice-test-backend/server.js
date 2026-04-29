@@ -7,6 +7,9 @@ const multer = require('multer');
 const app = express();
 const port = process.env.PORT || 3030;
 const assemblyAiApiKey = (process.env.ASSEMBLYAI_API_KEY || '').trim();
+const ASSEMBLY_AI_REQUEST_TIMEOUT_MS = 15000;
+const ASSEMBLY_AI_POLL_INTERVAL_MS = 2000;
+const ASSEMBLY_AI_MAX_POLL_ATTEMPTS = 15;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -32,6 +35,28 @@ function ensureAssemblyAiKey() {
 
 function wait(durationMs) {
   return new Promise((resolve) => setTimeout(resolve, durationMs));
+}
+
+async function fetchWithTimeout(url, init = {}, timeoutMs = ASSEMBLY_AI_REQUEST_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(url, {
+      ...init,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error('Voice transcription service timed out.');
+      timeoutError.statusCode = 504;
+      throw timeoutError;
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 function stripCodeFences(text) {
@@ -254,7 +279,7 @@ function buildClientSafeError(error) {
 async function uploadAudioToAssemblyAi(audioBuffer) {
   ensureAssemblyAiKey();
 
-  const response = await fetch('https://api.assemblyai.com/v2/upload', {
+  const response = await fetchWithTimeout('https://api.assemblyai.com/v2/upload', {
     method: 'POST',
     headers: {
       authorization: assemblyAiApiKey,
@@ -281,7 +306,7 @@ async function uploadAudioToAssemblyAi(audioBuffer) {
 }
 
 async function requestAssemblyAiTranscript(uploadUrl) {
-  const response = await fetch('https://api.assemblyai.com/v2/transcript', {
+  const response = await fetchWithTimeout('https://api.assemblyai.com/v2/transcript', {
     method: 'POST',
     headers: {
       authorization: assemblyAiApiKey,
@@ -312,8 +337,8 @@ async function requestAssemblyAiTranscript(uploadUrl) {
 }
 
 async function pollAssemblyAiTranscript(transcriptId) {
-  for (let attempt = 0; attempt < 45; attempt += 1) {
-    const response = await fetch(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
+  for (let attempt = 0; attempt < ASSEMBLY_AI_MAX_POLL_ATTEMPTS; attempt += 1) {
+    const response = await fetchWithTimeout(`https://api.assemblyai.com/v2/transcript/${transcriptId}`, {
       headers: {
         authorization: assemblyAiApiKey,
       },
@@ -337,7 +362,7 @@ async function pollAssemblyAiTranscript(transcriptId) {
       throw error;
     }
 
-    await wait(2000);
+    await wait(ASSEMBLY_AI_POLL_INTERVAL_MS);
   }
 
   const error = new Error('AssemblyAI transcription timed out.');

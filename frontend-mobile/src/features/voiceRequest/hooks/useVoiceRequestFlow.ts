@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { requestParserService as defaultRequestParserService } from '../services/requestParserService';
+import { mockRequestParserService } from '../services/mockVoiceService';
 import { transcriptionService as defaultTranscriptionService } from '../services/transcriptionService';
 import {
   ParsedVoiceRequest,
@@ -191,11 +192,16 @@ export function useVoiceRequestFlow({
         throw new Error('We could not hear a clear request. Please try again.');
       }
 
-      const nextParsedRequest = await withTimeout(
-        requestParserService.parse(nextTranscript),
-        PARSE_TIMEOUT_MS,
-        'We heard you, but preparing the request took too long. Please try once more.'
-      );
+      let nextParsedRequest: ParsedVoiceRequest;
+      try {
+        nextParsedRequest = await withTimeout(
+          requestParserService.parse(nextTranscript),
+          PARSE_TIMEOUT_MS,
+          'We heard you, but preparing the request took too long. Please try once more.'
+        );
+      } catch {
+        nextParsedRequest = await mockRequestParserService.parse(nextTranscript);
+      }
       const transcriptDateTime = extractPreferredDateTime(nextTranscript);
       const normalizedTranscript = normalizeTranscript(nextTranscript);
       setTranscript(nextTranscript);

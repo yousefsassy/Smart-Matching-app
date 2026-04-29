@@ -32,10 +32,10 @@ function getStatusCopy(
 ) {
   if (isDisabled) {
     return {
-      eyebrow: 'Confirmation pending',
-      title: 'Complete the missing details first',
-      body: 'Once the required fields are filled in, you can confirm by voice or by tap.',
-      status: 'Confirmation unavailable',
+      eyebrow: 'One more step',
+      title: 'We still need a few details',
+      body: 'You can add the missing details below, or speak the request again and include them.',
+      status: 'More details needed',
     };
   }
 
@@ -187,34 +187,38 @@ export default function VoiceConfirmationPrompt({
           ]}
         />
 
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="Confirmation microphone"
-          accessibilityHint="Starts or stops listening for a confirmation command."
-          accessibilityState={{ disabled: isDisabled, busy: stage === 'processing' }}
-          activeOpacity={0.9}
-          disabled={isDisabled || stage === 'processing'}
-          onPress={onMicPress}
-          style={[styles.micButton, isDisabled && styles.micButtonDisabled]}
-        >
-          <LinearGradient
-            colors={
-              isDisabled
-                ? [colors.neutral[200], colors.neutral[300]]
-                : stage === 'listening'
+        {isDisabled ? (
+          <View style={styles.disabledBadge}>
+            <Text style={styles.disabledBadgeText}>Add details or speak again</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="Confirmation microphone"
+            accessibilityHint="Starts or stops listening for a confirmation command."
+            accessibilityState={{ disabled: false, busy: stage === 'processing' }}
+            activeOpacity={0.9}
+            disabled={stage === 'processing'}
+            onPress={onMicPress}
+            style={styles.micButton}
+          >
+            <LinearGradient
+              colors={
+                stage === 'listening'
                   ? [colors.accent.amber, colors.accent.gold]
                   : [colors.surface.base, colors.surface.muted]
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.micFill}
-          >
-            <MicrophoneIcon
-              size={22}
-              color={isDisabled ? colors.neutral[500] : colors.primary[800]}
-            />
-          </LinearGradient>
-        </TouchableOpacity>
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.micFill}
+            >
+              <MicrophoneIcon
+                size={22}
+                color={colors.primary[800]}
+              />
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.metaWrap}>
@@ -227,7 +231,11 @@ export default function VoiceConfirmationPrompt({
           <Text style={styles.examples}>
             Try: "yes confirm", "confirm", "go ahead", "cancel", or "start over"
           </Text>
-        ) : null}
+        ) : (
+          <Text style={styles.examples}>
+            If something is missing, use `Edit details` or `Speak again`.
+          </Text>
+        )}
       </View>
     </View>
   );
@@ -285,6 +293,24 @@ const styles = StyleSheet.create({
   micButtonDisabled: {
     shadowOpacity: 0,
     elevation: 0,
+  },
+  disabledBadge: {
+    minHeight: 48,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: colors.surface.tint,
+    borderWidth: 1,
+    borderColor: colors.neutral[200],
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledBadgeText: {
+    fontSize: typography.size.sm,
+    lineHeight: typography.lineHeight.sm,
+    color: colors.primary[800],
+    fontWeight: typography.weight.semibold,
+    textAlign: 'center',
   },
   micFill: {
     flex: 1,

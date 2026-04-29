@@ -22,6 +22,7 @@ import VoiceRequestReview from '../features/voiceRequest/components/VoiceRequest
 import { useVoiceConfirmationFlow } from '../features/voiceRequest/hooks/useVoiceConfirmationFlow';
 import { useVoiceRequestFlow } from '../features/voiceRequest/hooks/useVoiceRequestFlow';
 import {
+  ParsedVoiceRequest,
   VoiceConfirmationIntent,
   VoiceRequestDraft,
   VoiceRequestPhase,
@@ -59,6 +60,7 @@ export default function VoiceRequestScreen({ navigation, route }: Props) {
   const locationProvider = useRef(getLocationSearchProvider()).current;
   const autoStartTriggeredRef = useRef(false);
   const submitLockRef = useRef(false);
+  const lastParsedRequestRef = useRef<ParsedVoiceRequest | null>(null);
   const [reviewStep, setReviewStep] = useState<VoiceReviewStep>('review');
   const [draft, setDraft] = useState<VoiceRequestDraft | null>(null);
   const [confirmationIntent, setConfirmationIntent] =
@@ -113,24 +115,28 @@ export default function VoiceRequestScreen({ navigation, route }: Props) {
     });
   }, [currentDraft, navigation]);
 
-  const resetConfirmationState = useCallback(() => {
-    confirmationFlow.reset();
-    setConfirmationIntent('unknown');
-    setConfirmationError(null);
-  }, [confirmationFlow]);
-
   useEffect(() => {
+    if (voiceRequestFlow.parsedRequest === lastParsedRequestRef.current) {
+      return;
+    }
+
+    lastParsedRequestRef.current = voiceRequestFlow.parsedRequest;
+
     if (!voiceRequestFlow.parsedRequest) {
       setDraft(null);
       setReviewStep('review');
-      resetConfirmationState();
+      confirmationFlow.reset();
+      setConfirmationIntent('unknown');
+      setConfirmationError(null);
       return;
     }
 
     setDraft(mapParsedVoiceRequestToDraft(voiceRequestFlow.parsedRequest));
     setReviewStep('review');
-    resetConfirmationState();
-  }, [resetConfirmationState, voiceRequestFlow.parsedRequest]);
+    confirmationFlow.reset();
+    setConfirmationIntent('unknown');
+    setConfirmationError(null);
+  }, [confirmationFlow, voiceRequestFlow.parsedRequest]);
 
   useEffect(() => {
     if (!route.params?.autoStart || autoStartTriggeredRef.current || voiceRequestFlow.parsedRequest) {
@@ -436,7 +442,9 @@ export default function VoiceRequestScreen({ navigation, route }: Props) {
                 onConfirmationMicPress={handleConfirmationMicPress}
                 onTapConfirm={handleSubmitVoiceRequest}
                 onEdit={() => {
-                  resetConfirmationState();
+                  confirmationFlow.reset();
+                  setConfirmationIntent('unknown');
+                  setConfirmationError(null);
                   setReviewStep('edit');
                 }}
                 onRetry={handleRetry}
